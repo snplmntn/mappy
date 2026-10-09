@@ -145,7 +145,8 @@ class ChatService:
         brand that isn't (before search, so "coffee bean" isn't quietly answered by a "coffee" tag),
         then a search hit, then the LLM's category guess."""
         brand = brand_in(query)
-        if brand and (stores := [pid for pid in self.search.ids if is_store_of(brand, self.mall.places[pid].name)]):
+        if brand and (stores := [pid for pid in self.search.ids
+                                 if is_store_of(brand, self.mall.places[pid].name, self.mall.places[pid].tags)]):
             return stores, None
         if brand and self.search.by_category(brand.category):
             return (self.search.alternatives(brand.category, brand.traits),

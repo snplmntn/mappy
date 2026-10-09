@@ -63,6 +63,18 @@ def test_short_alias_needs_whole_word():
     assert brand_in("backfcolor") is None  # "kfc" inside a word
 
 
+def test_exact_spelling_beats_a_near_miss_of_another_brand():
+    assert brand_in("pet express").name == "Pet Express"  # not a typo of "j&t express"
+    assert brand_in("mi store").name == "Xiaomi"           # never SM Store
+    assert brand_in("department store") is None            # not a slice of "robinsons department store"
+
+
+def test_typo_must_cover_a_whole_run_of_words():
+    assert brand_in("jollibe").name == "Jollibee"
+    assert brand_in("sa jolibee tayo").name == "Jollibee"
+    assert brand_in("sm department store") is None
+
+
 def test_table_is_consistent():
     names = [b.name for b in BRANDS]
     assert len(names) == len(set(names))
@@ -110,3 +122,9 @@ def test_is_store_of(brand, place, expected):
 
 def test_a_store_no_brand_owns():
     assert not [b.name for b in BRANDS if is_store_of(b, "Buttons & Wrap")]
+
+
+def test_a_tag_names_the_brand_of_a_store():
+    assert is_store_of(_BRAND["Xiaomi"], "Mi Store", ("gadget", "xiaomi")) is True
+    assert is_store_of(_BRAND["SM Store"], "Mi Store", ("gadget", "xiaomi")) is False
+    assert is_store_of(_BRAND["Apple"], "Fruit Stand", ("apple",)) is False  # everyday word: name only

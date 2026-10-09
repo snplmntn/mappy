@@ -9,9 +9,6 @@ from rapidfuzz import fuzz
 
 SHORT_ALIAS_LEN = 5
 FUZZY_MIN = 90
-# A request shorter than an alias is a typo of it only if at most this many characters are missing
-# ("jolibee" for "jollibee"), not a phrase inside it ("department store" in "sm department store").
-MAX_TYPO_GAP = 2
 
 
 @dataclass(frozen=True)
@@ -144,7 +141,7 @@ BRANDS: tuple[Brand, ...] = (
     Brand("Oppo", "electronics", ("phone",)),
     Brand("Vivo", "electronics", ("phone",)),
     Brand("Realme", "electronics", ("phone",)),
-    Brand("Xiaomi", "electronics", ("phone", "gadget")),
+    Brand("Xiaomi", "electronics", ("phone", "gadget"), ("mi store",)),
     Brand("Silicon Valley", "electronics", ("laptop", "gadget")),
     Brand("Octagon", "electronics", ("laptop", "gadget")),
     Brand("Digital Walker", "electronics", ("gadget",)),
@@ -257,30 +254,48 @@ def _whole_phrase(alias: str, text: str) -> bool:
     return re.search(rf"(?<![\w&]){re.escape(alias)}(?![\w&])", text) is not None
 
 
-def _mentions(alias: str, brand: Brand, text: str) -> bool:
-    if brand.everyday:
-        return alias == text
-    if len(alias) <= SHORT_ALIAS_LEN:
-        return _whole_phrase(alias, text)
-    if len(alias) > len(text):
-        # partial_ratio would find a short text inside a long alias ("coffee" in "coffee bean").
-        return len(alias) - len(text) <= MAX_TYPO_GAP and fuzz.ratio(alias, text) >= FUZZY_MIN
-    return fuzz.partial_ratio(alias, text) >= FUZZY_MIN
+def _named(alias: str, brand: Brand, text: str) -> bool:
+    """The alias is spelled out in the text (the whole text, for a brand that is also a plain word)."""
+    return alias == text if brand.everyday else _whole_phrase(alias, text)
+
+
+def _windows(text: str, size: int) -> list[str]:
+    words = text.split()
+    return [" ".join(words[i:i + size]) for i in range(len(words) - size + 1)]
+
+
+def _typo_of(alias: str, brand: Brand, text: str) -> bool:
+    """A run of words in the text as long as the alias (give or take one) nearly spells it ("jolibee").
+    Whole windows only: a score against a slice of the text would let "mi store" pass as SM Store."""
+    if brand.everyday or len(alias) <= SHORT_ALIAS_LEN:
+        return False
+    n = len(alias.split())
+    return any(fuzz.ratio(alias, w) >= FUZZY_MIN
+               for size in (n, n - 1, n + 1) if size > 0 for w in _windows(text, size))
 
 
 def brand_in(text: str) -> Brand | None:
-    """The brand a short request names, matched by full name or alias (typo-tolerant), else None.
-    Longest alias wins so "coffee bean" does not lose to "bean"."""
+    """The brand a short request names, matched by full name or alias, else None. An exact spelling
+    anywhere in the text wins (longest first, so "coffee bean" does not lose to "bean"); only then
+    is a near-miss spelling tried, so "pet express" is Pet Express, never a typo of J&T Express."""
     t = _norm(text)
-    return next((b for alias, b in _ALIASES if _mentions(alias, b, t)), None)
+    for match in (_named, _typo_of):
+        if found := next((b for alias, b in _ALIASES if match(alias, b, t)), None):
+            return found
+    return None
 
 
-def is_store_of(brand: Brand, place_name: str) -> bool:
+def is_store_of(brand: Brand, place_name: str, tags: tuple[str, ...] = ()) -> bool:
     """Whether a place is one of the brand's stores: a spelling of the brand is a whole phrase of the
-    place name ("The SM Store", "BDO ATM"), or the two names nearly coincide. Not a loose score, so
-    "Mi Store" is not SM Store and "Pet Express" is not J&T Express."""
+    place name ("The SM Store", "BDO ATM") or of a tag ("Mi Store" tagged "xiaomi"), or the two
+    names nearly coincide. Not a loose score, so "Mi Store" is not SM Store and "Pet Express" is
+    not J&T Express. Tags count only for brands that are not plain words ("apple" is a tag of a
+    fruit stand)."""
     pn = _norm(place_name)
-    return any(_whole_phrase(alias, pn) or fuzz.ratio(alias, pn) >= FUZZY_MIN for alias in _spellings(brand))
+    spellings = _spellings(brand)
+    if any(_whole_phrase(alias, pn) or fuzz.ratio(alias, pn) >= FUZZY_MIN for alias in spellings):
+        return True
+    return not brand.everyday and any(_whole_phrase(alias, _norm(tag)) for tag in tags for alias in spellings)
 
 
 def traits_of(name: str) -> tuple[str, ...]:
