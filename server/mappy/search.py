@@ -27,7 +27,20 @@ CATEGORY_ALIASES = {
     "padala": "remittance", "regalo": "gift", "damit": "clothing", "shoe repair": "shoe_repair",
 }
 
-MIN_NAME_WORD_LEN = 3
+NAME_SIM_MIN = 0.8
+LEXICAL_WEIGHT = 0.2
+
+
+GENERIC_NAME_WORDS = {"cafe", "store", "concept", "coffee", "express", "mobile", "authorized", "filipino",
+                      "center", "shop", "the", "sm", "makati", "99"}
+SHORT_ALIAS_LEN = 5
+
+
+def _aliases(name: str) -> list[str]:
+    """Full name plus the name with generic words removed ("ASUS Concept Store" -> "asus")."""
+    full = name.lower()
+    core = " ".join(w for w in re.findall(r"[\w&']+", full) if w not in GENERIC_NAME_WORDS)
+    return [full] + ([core] if core and core != full and len(core) >= 3 else [])
 
 
 def _norm(text: str) -> str:
@@ -61,17 +74,31 @@ class Search:
         q = self.embedder.embed([query], "query")[0]
         cos = self.vectors @ q
         ql = query.lower()
+        q_words = {w for w in re.findall(r"[\w&]+", ql) if len(w) >= 3}
         scored = []
         for i, pid in enumerate(self.ids):
             p = self.mall.places[pid]
             if floor and p.floor != floor:
                 continue
-            score = 0.7 * float(cos[i]) + 0.3 * fuzz.WRatio(ql, p.name.lower()) / 100
+            name_sim = fuzz.WRatio(ql, p.name.lower()) / 100
+            score = 0.7 * float(cos[i]) + (0.3 * name_sim if name_sim >= NAME_SIM_MIN else 0.0)
+            score += LEXICAL_WEIGHT * self._lexical(pid, ql, q_words)
             if category and p.category == category:
                 score += 0.15
             scored.append((pid, score))
         scored.sort(key=lambda t: -t[1])
         return scored[:k]
+
+    def _lexical(self, pid: str, query: str, q_words: set[str]) -> float:
+        """Share of query words found verbatim in the place's name or tags (whole phrase counts fully)."""
+        p = self.mall.places[pid]
+        tags = [t.lower() for t in p.tags]
+        if query in tags:
+            return 1.0
+        if not q_words:
+            return 0.0
+        vocab = set(re.findall(r"[\w&]+", " ".join(tags + [p.name.lower()])))
+        return len(q_words & vocab) / len(q_words)
 
     def by_category(self, category: str) -> list[str]:
         order = {f: i for i, f in enumerate(self.mall.floor_order())}
@@ -88,17 +115,21 @@ class Search:
         return None
 
     def names_in(self, text: str) -> list[str]:
+        """Store names mentioned in free text, matched by full name or by its distinctive part."""
         tl = text.lower()
         found = []
         for name in sorted({p.name for p in self.mall.places.values()}, key=len, reverse=True):
-            nl = name.lower()
-            if len(nl) <= MIN_NAME_WORD_LEN:
-                hit = re.search(rf"(?<![\w&]){re.escape(nl)}(?![\w&])", tl) is not None
-            else:
-                hit = fuzz.partial_ratio(nl, tl) >= 90
-            if hit and not any(nl in f.lower() for f in found):
+            if any(name.lower() in f.lower() for f in found):
+                continue
+            if any(self._mentions(alias, tl) for alias in _aliases(name)):
                 found.append(name)
         return found
+
+    @staticmethod
+    def _mentions(alias: str, text: str) -> bool:
+        if len(alias) <= SHORT_ALIAS_LEN:
+            return re.search(rf"(?<![\w&]){re.escape(alias)}(?![\w&])", text) is not None
+        return fuzz.partial_ratio(alias, text) >= 90
 
     def place_ids_named(self, name: str) -> list[str]:
         nl = name.lower().strip()

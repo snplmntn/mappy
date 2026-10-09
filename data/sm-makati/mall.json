@@ -1,0 +1,3673 @@
+{
+ "mall": {
+  "id": "sm-makati",
+  "name": "SM Makati",
+  "note": "Store names from public listings; layout reconstructed."
+ },
+ "floors": [
+  {
+   "id": "LG",
+   "name": "Lower Ground",
+   "level": -1,
+   "width": 1000,
+   "height": 814,
+   "scale_m_per_px": 0.2012,
+   "outline": [
+    [
+     735.7,
+     599.0
+    ],
+    [
+     695.3,
+     592.9
+    ],
+    [
+     665.1,
+     588.3
+    ],
+    [
+     640.2,
+     703.6
+    ],
+    [
+     615.0,
+     715.8
+    ],
+    [
+     432.9,
+     687.1
+    ],
+    [
+     110.6,
+     626.2
+    ],
+    [
+     81.6,
+     620.7
+    ],
+    [
+     40.0,
+     583.7
+    ],
+    [
+     83.3,
+     345.7
+    ],
+    [
+     97.6,
+     273.1
+    ],
+    [
+     140.8,
+     40.0
+    ],
+    [
+     706.2,
+     139.2
+    ],
+    [
+     737.4,
+     178.5
+    ],
+    [
+     711.7,
+     342.0
+    ],
+    [
+     740.1,
+     348.1
+    ],
+    [
+     782.5,
+     357.1
+    ],
+    [
+     773.3,
+     404.5
+    ],
+    [
+     750.2,
+     523.7
+    ]
+   ]
+  },
+  {
+   "id": "GF",
+   "name": "Ground Floor",
+   "level": 0,
+   "width": 1000,
+   "height": 814,
+   "scale_m_per_px": 0.2012,
+   "outline": [
+    [
+     735.7,
+     599.0
+    ],
+    [
+     695.3,
+     592.9
+    ],
+    [
+     665.1,
+     588.3
+    ],
+    [
+     640.2,
+     703.6
+    ],
+    [
+     615.0,
+     715.8
+    ],
+    [
+     432.9,
+     687.1
+    ],
+    [
+     110.6,
+     626.2
+    ],
+    [
+     81.6,
+     620.7
+    ],
+    [
+     40.0,
+     583.7
+    ],
+    [
+     83.3,
+     345.7
+    ],
+    [
+     97.6,
+     273.1
+    ],
+    [
+     140.8,
+     40.0
+    ],
+    [
+     706.2,
+     139.2
+    ],
+    [
+     737.4,
+     178.5
+    ],
+    [
+     711.7,
+     342.0
+    ],
+    [
+     740.1,
+     348.1
+    ],
+    [
+     782.5,
+     357.1
+    ],
+    [
+     773.3,
+     404.5
+    ],
+    [
+     750.2,
+     523.7
+    ]
+   ]
+  },
+  {
+   "id": "2F",
+   "name": "2nd Floor",
+   "level": 1,
+   "width": 1000,
+   "height": 814,
+   "scale_m_per_px": 0.2012,
+   "outline": [
+    [
+     735.7,
+     599.0
+    ],
+    [
+     695.3,
+     592.9
+    ],
+    [
+     665.1,
+     588.3
+    ],
+    [
+     640.2,
+     703.6
+    ],
+    [
+     615.0,
+     715.8
+    ],
+    [
+     432.9,
+     687.1
+    ],
+    [
+     110.6,
+     626.2
+    ],
+    [
+     81.6,
+     620.7
+    ],
+    [
+     40.0,
+     583.7
+    ],
+    [
+     83.3,
+     345.7
+    ],
+    [
+     97.6,
+     273.1
+    ],
+    [
+     140.8,
+     40.0
+    ],
+    [
+     706.2,
+     139.2
+    ],
+    [
+     737.4,
+     178.5
+    ],
+    [
+     711.7,
+     342.0
+    ],
+    [
+     740.1,
+     348.1
+    ],
+    [
+     782.5,
+     357.1
+    ],
+    [
+     773.3,
+     404.5
+    ],
+    [
+     750.2,
+     523.7
+    ]
+   ]
+  },
+  {
+   "id": "3F",
+   "name": "3rd Floor",
+   "level": 2,
+   "width": 1000,
+   "height": 814,
+   "scale_m_per_px": 0.2012,
+   "outline": [
+    [
+     735.7,
+     599.0
+    ],
+    [
+     695.3,
+     592.9
+    ],
+    [
+     665.1,
+     588.3
+    ],
+    [
+     640.2,
+     703.6
+    ],
+    [
+     615.0,
+     715.8
+    ],
+    [
+     432.9,
+     687.1
+    ],
+    [
+     110.6,
+     626.2
+    ],
+    [
+     81.6,
+     620.7
+    ],
+    [
+     40.0,
+     583.7
+    ],
+    [
+     83.3,
+     345.7
+    ],
+    [
+     97.6,
+     273.1
+    ],
+    [
+     140.8,
+     40.0
+    ],
+    [
+     706.2,
+     139.2
+    ],
+    [
+     737.4,
+     178.5
+    ],
+    [
+     711.7,
+     342.0
+    ],
+    [
+     740.1,
+     348.1
+    ],
+    [
+     782.5,
+     357.1
+    ],
+    [
+     773.3,
+     404.5
+    ],
+    [
+     750.2,
+     523.7
+    ]
+   ]
+  },
+  {
+   "id": "4F",
+   "name": "4th Floor · Cyberzone",
+   "level": 3,
+   "width": 1000,
+   "height": 814,
+   "scale_m_per_px": 0.2012,
+   "outline": [
+    [
+     735.7,
+     599.0
+    ],
+    [
+     695.3,
+     592.9
+    ],
+    [
+     665.1,
+     588.3
+    ],
+    [
+     640.2,
+     703.6
+    ],
+    [
+     615.0,
+     715.8
+    ],
+    [
+     432.9,
+     687.1
+    ],
+    [
+     110.6,
+     626.2
+    ],
+    [
+     81.6,
+     620.7
+    ],
+    [
+     40.0,
+     583.7
+    ],
+    [
+     83.3,
+     345.7
+    ],
+    [
+     97.6,
+     273.1
+    ],
+    [
+     140.8,
+     40.0
+    ],
+    [
+     706.2,
+     139.2
+    ],
+    [
+     737.4,
+     178.5
+    ],
+    [
+     711.7,
+     342.0
+    ],
+    [
+     740.1,
+     348.1
+    ],
+    [
+     782.5,
+     357.1
+    ],
+    [
+     773.3,
+     404.5
+    ],
+    [
+     750.2,
+     523.7
+    ]
+   ]
+  },
+  {
+   "id": "AX",
+   "name": "Annex",
+   "level": 0,
+   "width": 1000,
+   "height": 814,
+   "scale_m_per_px": 0.2012,
+   "outline": [
+    [
+     782.5,
+     357.1
+    ],
+    [
+     817.7,
+     174.6
+    ],
+    [
+     887.8,
+     186.9
+    ],
+    [
+     937.9,
+     195.6
+    ],
+    [
+     960.0,
+     232.4
+    ],
+    [
+     913.3,
+     488.5
+    ],
+    [
+     866.5,
+     744.6
+    ],
+    [
+     820.9,
+     773.7
+    ],
+    [
+     706.2,
+     751.5
+    ],
+    [
+     735.7,
+     599.0
+    ],
+    [
+     750.2,
+     523.7
+    ],
+    [
+     773.3,
+     404.5
+    ]
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "id": "LG-c0",
+   "floor": "LG",
+   "x": 104,
+   "y": 352
+  },
+  {
+   "id": "LG-c1",
+   "floor": "LG",
+   "x": 168,
+   "y": 352
+  },
+  {
+   "id": "LG-c2",
+   "floor": "LG",
+   "x": 232,
+   "y": 352
+  },
+  {
+   "id": "LG-c3",
+   "floor": "LG",
+   "x": 296,
+   "y": 352
+  },
+  {
+   "id": "LG-c4",
+   "floor": "LG",
+   "x": 360,
+   "y": 352
+  },
+  {
+   "id": "LG-c5",
+   "floor": "LG",
+   "x": 424,
+   "y": 352
+  },
+  {
+   "id": "LG-c6",
+   "floor": "LG",
+   "x": 488,
+   "y": 352
+  },
+  {
+   "id": "LG-c7",
+   "floor": "LG",
+   "x": 552,
+   "y": 352
+  },
+  {
+   "id": "LG-c8",
+   "floor": "LG",
+   "x": 616,
+   "y": 352
+  },
+  {
+   "id": "LG-c9",
+   "floor": "LG",
+   "x": 680,
+   "y": 352
+  },
+  {
+   "id": "LG-c10",
+   "floor": "LG",
+   "x": 744,
+   "y": 352
+  },
+  {
+   "id": "LG-x0n1",
+   "floor": "LG",
+   "x": 296,
+   "y": 288
+  },
+  {
+   "id": "LG-x0n2",
+   "floor": "LG",
+   "x": 296,
+   "y": 224
+  },
+  {
+   "id": "LG-x0n3",
+   "floor": "LG",
+   "x": 296,
+   "y": 160
+  },
+  {
+   "id": "LG-x0s1",
+   "floor": "LG",
+   "x": 296,
+   "y": 416
+  },
+  {
+   "id": "LG-x0s2",
+   "floor": "LG",
+   "x": 296,
+   "y": 480
+  },
+  {
+   "id": "LG-x0s3",
+   "floor": "LG",
+   "x": 296,
+   "y": 544
+  },
+  {
+   "id": "LG-x0s4",
+   "floor": "LG",
+   "x": 296,
+   "y": 608
+  },
+  {
+   "id": "LG-x1n1",
+   "floor": "LG",
+   "x": 552,
+   "y": 288
+  },
+  {
+   "id": "LG-x1n2",
+   "floor": "LG",
+   "x": 552,
+   "y": 224
+  },
+  {
+   "id": "LG-x1n3",
+   "floor": "LG",
+   "x": 552,
+   "y": 160
+  },
+  {
+   "id": "LG-x1s1",
+   "floor": "LG",
+   "x": 552,
+   "y": 416
+  },
+  {
+   "id": "LG-x1s2",
+   "floor": "LG",
+   "x": 552,
+   "y": 480
+  },
+  {
+   "id": "LG-x1s3",
+   "floor": "LG",
+   "x": 552,
+   "y": 544
+  },
+  {
+   "id": "LG-x1s4",
+   "floor": "LG",
+   "x": 552,
+   "y": 608
+  },
+  {
+   "id": "LG-x1s5",
+   "floor": "LG",
+   "x": 552,
+   "y": 672
+  },
+  {
+   "id": "LG-esc-a-up",
+   "floor": "LG",
+   "x": 280,
+   "y": 374
+  },
+  {
+   "id": "LG-esc-a-dn",
+   "floor": "LG",
+   "x": 312,
+   "y": 374
+  },
+  {
+   "id": "LG-esc-b-up",
+   "floor": "LG",
+   "x": 536,
+   "y": 374
+  },
+  {
+   "id": "LG-esc-b-dn",
+   "floor": "LG",
+   "x": 568,
+   "y": 374
+  },
+  {
+   "id": "LG-el1",
+   "floor": "LG",
+   "x": 424,
+   "y": 330
+  },
+  {
+   "id": "GF-c0",
+   "floor": "GF",
+   "x": 104,
+   "y": 352
+  },
+  {
+   "id": "GF-c1",
+   "floor": "GF",
+   "x": 168,
+   "y": 352
+  },
+  {
+   "id": "GF-c2",
+   "floor": "GF",
+   "x": 232,
+   "y": 352
+  },
+  {
+   "id": "GF-c3",
+   "floor": "GF",
+   "x": 296,
+   "y": 352
+  },
+  {
+   "id": "GF-c4",
+   "floor": "GF",
+   "x": 360,
+   "y": 352
+  },
+  {
+   "id": "GF-c5",
+   "floor": "GF",
+   "x": 424,
+   "y": 352
+  },
+  {
+   "id": "GF-c6",
+   "floor": "GF",
+   "x": 488,
+   "y": 352
+  },
+  {
+   "id": "GF-c7",
+   "floor": "GF",
+   "x": 552,
+   "y": 352
+  },
+  {
+   "id": "GF-c8",
+   "floor": "GF",
+   "x": 616,
+   "y": 352
+  },
+  {
+   "id": "GF-c9",
+   "floor": "GF",
+   "x": 680,
+   "y": 352
+  },
+  {
+   "id": "GF-c10",
+   "floor": "GF",
+   "x": 744,
+   "y": 352
+  },
+  {
+   "id": "GF-x0n1",
+   "floor": "GF",
+   "x": 296,
+   "y": 288
+  },
+  {
+   "id": "GF-x0n2",
+   "floor": "GF",
+   "x": 296,
+   "y": 224
+  },
+  {
+   "id": "GF-x0n3",
+   "floor": "GF",
+   "x": 296,
+   "y": 160
+  },
+  {
+   "id": "GF-x0s1",
+   "floor": "GF",
+   "x": 296,
+   "y": 416
+  },
+  {
+   "id": "GF-x0s2",
+   "floor": "GF",
+   "x": 296,
+   "y": 480
+  },
+  {
+   "id": "GF-x0s3",
+   "floor": "GF",
+   "x": 296,
+   "y": 544
+  },
+  {
+   "id": "GF-x0s4",
+   "floor": "GF",
+   "x": 296,
+   "y": 608
+  },
+  {
+   "id": "GF-x1n1",
+   "floor": "GF",
+   "x": 552,
+   "y": 288
+  },
+  {
+   "id": "GF-x1n2",
+   "floor": "GF",
+   "x": 552,
+   "y": 224
+  },
+  {
+   "id": "GF-x1n3",
+   "floor": "GF",
+   "x": 552,
+   "y": 160
+  },
+  {
+   "id": "GF-x1s1",
+   "floor": "GF",
+   "x": 552,
+   "y": 416
+  },
+  {
+   "id": "GF-x1s2",
+   "floor": "GF",
+   "x": 552,
+   "y": 480
+  },
+  {
+   "id": "GF-x1s3",
+   "floor": "GF",
+   "x": 552,
+   "y": 544
+  },
+  {
+   "id": "GF-x1s4",
+   "floor": "GF",
+   "x": 552,
+   "y": 608
+  },
+  {
+   "id": "GF-x1s5",
+   "floor": "GF",
+   "x": 552,
+   "y": 672
+  },
+  {
+   "id": "GF-esc-a-up",
+   "floor": "GF",
+   "x": 280,
+   "y": 374
+  },
+  {
+   "id": "GF-esc-a-dn",
+   "floor": "GF",
+   "x": 312,
+   "y": 374
+  },
+  {
+   "id": "GF-esc-b-up",
+   "floor": "GF",
+   "x": 536,
+   "y": 374
+  },
+  {
+   "id": "GF-esc-b-dn",
+   "floor": "GF",
+   "x": 568,
+   "y": 374
+  },
+  {
+   "id": "GF-el1",
+   "floor": "GF",
+   "x": 424,
+   "y": 330
+  },
+  {
+   "id": "GF-br-annex",
+   "floor": "GF",
+   "x": 744,
+   "y": 328
+  },
+  {
+   "id": "2F-c0",
+   "floor": "2F",
+   "x": 104,
+   "y": 352
+  },
+  {
+   "id": "2F-c1",
+   "floor": "2F",
+   "x": 168,
+   "y": 352
+  },
+  {
+   "id": "2F-c2",
+   "floor": "2F",
+   "x": 232,
+   "y": 352
+  },
+  {
+   "id": "2F-c3",
+   "floor": "2F",
+   "x": 296,
+   "y": 352
+  },
+  {
+   "id": "2F-c4",
+   "floor": "2F",
+   "x": 360,
+   "y": 352
+  },
+  {
+   "id": "2F-c5",
+   "floor": "2F",
+   "x": 424,
+   "y": 352
+  },
+  {
+   "id": "2F-c6",
+   "floor": "2F",
+   "x": 488,
+   "y": 352
+  },
+  {
+   "id": "2F-c7",
+   "floor": "2F",
+   "x": 552,
+   "y": 352
+  },
+  {
+   "id": "2F-c8",
+   "floor": "2F",
+   "x": 616,
+   "y": 352
+  },
+  {
+   "id": "2F-c9",
+   "floor": "2F",
+   "x": 680,
+   "y": 352
+  },
+  {
+   "id": "2F-c10",
+   "floor": "2F",
+   "x": 744,
+   "y": 352
+  },
+  {
+   "id": "2F-x0n1",
+   "floor": "2F",
+   "x": 296,
+   "y": 288
+  },
+  {
+   "id": "2F-x0n2",
+   "floor": "2F",
+   "x": 296,
+   "y": 224
+  },
+  {
+   "id": "2F-x0n3",
+   "floor": "2F",
+   "x": 296,
+   "y": 160
+  },
+  {
+   "id": "2F-x0s1",
+   "floor": "2F",
+   "x": 296,
+   "y": 416
+  },
+  {
+   "id": "2F-x0s2",
+   "floor": "2F",
+   "x": 296,
+   "y": 480
+  },
+  {
+   "id": "2F-x0s3",
+   "floor": "2F",
+   "x": 296,
+   "y": 544
+  },
+  {
+   "id": "2F-x0s4",
+   "floor": "2F",
+   "x": 296,
+   "y": 608
+  },
+  {
+   "id": "2F-x1n1",
+   "floor": "2F",
+   "x": 552,
+   "y": 288
+  },
+  {
+   "id": "2F-x1n2",
+   "floor": "2F",
+   "x": 552,
+   "y": 224
+  },
+  {
+   "id": "2F-x1n3",
+   "floor": "2F",
+   "x": 552,
+   "y": 160
+  },
+  {
+   "id": "2F-x1s1",
+   "floor": "2F",
+   "x": 552,
+   "y": 416
+  },
+  {
+   "id": "2F-x1s2",
+   "floor": "2F",
+   "x": 552,
+   "y": 480
+  },
+  {
+   "id": "2F-x1s3",
+   "floor": "2F",
+   "x": 552,
+   "y": 544
+  },
+  {
+   "id": "2F-x1s4",
+   "floor": "2F",
+   "x": 552,
+   "y": 608
+  },
+  {
+   "id": "2F-x1s5",
+   "floor": "2F",
+   "x": 552,
+   "y": 672
+  },
+  {
+   "id": "2F-esc-a-up",
+   "floor": "2F",
+   "x": 280,
+   "y": 374
+  },
+  {
+   "id": "2F-esc-a-dn",
+   "floor": "2F",
+   "x": 312,
+   "y": 374
+  },
+  {
+   "id": "2F-esc-b-up",
+   "floor": "2F",
+   "x": 536,
+   "y": 374
+  },
+  {
+   "id": "2F-esc-b-dn",
+   "floor": "2F",
+   "x": 568,
+   "y": 374
+  },
+  {
+   "id": "2F-el1",
+   "floor": "2F",
+   "x": 424,
+   "y": 330
+  },
+  {
+   "id": "3F-c0",
+   "floor": "3F",
+   "x": 104,
+   "y": 352
+  },
+  {
+   "id": "3F-c1",
+   "floor": "3F",
+   "x": 168,
+   "y": 352
+  },
+  {
+   "id": "3F-c2",
+   "floor": "3F",
+   "x": 232,
+   "y": 352
+  },
+  {
+   "id": "3F-c3",
+   "floor": "3F",
+   "x": 296,
+   "y": 352
+  },
+  {
+   "id": "3F-c4",
+   "floor": "3F",
+   "x": 360,
+   "y": 352
+  },
+  {
+   "id": "3F-c5",
+   "floor": "3F",
+   "x": 424,
+   "y": 352
+  },
+  {
+   "id": "3F-c6",
+   "floor": "3F",
+   "x": 488,
+   "y": 352
+  },
+  {
+   "id": "3F-c7",
+   "floor": "3F",
+   "x": 552,
+   "y": 352
+  },
+  {
+   "id": "3F-c8",
+   "floor": "3F",
+   "x": 616,
+   "y": 352
+  },
+  {
+   "id": "3F-c9",
+   "floor": "3F",
+   "x": 680,
+   "y": 352
+  },
+  {
+   "id": "3F-c10",
+   "floor": "3F",
+   "x": 744,
+   "y": 352
+  },
+  {
+   "id": "3F-x0n1",
+   "floor": "3F",
+   "x": 296,
+   "y": 288
+  },
+  {
+   "id": "3F-x0n2",
+   "floor": "3F",
+   "x": 296,
+   "y": 224
+  },
+  {
+   "id": "3F-x0n3",
+   "floor": "3F",
+   "x": 296,
+   "y": 160
+  },
+  {
+   "id": "3F-x0s1",
+   "floor": "3F",
+   "x": 296,
+   "y": 416
+  },
+  {
+   "id": "3F-x0s2",
+   "floor": "3F",
+   "x": 296,
+   "y": 480
+  },
+  {
+   "id": "3F-x0s3",
+   "floor": "3F",
+   "x": 296,
+   "y": 544
+  },
+  {
+   "id": "3F-x0s4",
+   "floor": "3F",
+   "x": 296,
+   "y": 608
+  },
+  {
+   "id": "3F-x1n1",
+   "floor": "3F",
+   "x": 552,
+   "y": 288
+  },
+  {
+   "id": "3F-x1n2",
+   "floor": "3F",
+   "x": 552,
+   "y": 224
+  },
+  {
+   "id": "3F-x1n3",
+   "floor": "3F",
+   "x": 552,
+   "y": 160
+  },
+  {
+   "id": "3F-x1s1",
+   "floor": "3F",
+   "x": 552,
+   "y": 416
+  },
+  {
+   "id": "3F-x1s2",
+   "floor": "3F",
+   "x": 552,
+   "y": 480
+  },
+  {
+   "id": "3F-x1s3",
+   "floor": "3F",
+   "x": 552,
+   "y": 544
+  },
+  {
+   "id": "3F-x1s4",
+   "floor": "3F",
+   "x": 552,
+   "y": 608
+  },
+  {
+   "id": "3F-x1s5",
+   "floor": "3F",
+   "x": 552,
+   "y": 672
+  },
+  {
+   "id": "3F-esc-a-up",
+   "floor": "3F",
+   "x": 280,
+   "y": 374
+  },
+  {
+   "id": "3F-esc-a-dn",
+   "floor": "3F",
+   "x": 312,
+   "y": 374
+  },
+  {
+   "id": "3F-esc-b-up",
+   "floor": "3F",
+   "x": 536,
+   "y": 374
+  },
+  {
+   "id": "3F-esc-b-dn",
+   "floor": "3F",
+   "x": 568,
+   "y": 374
+  },
+  {
+   "id": "3F-el1",
+   "floor": "3F",
+   "x": 424,
+   "y": 330
+  },
+  {
+   "id": "4F-c0",
+   "floor": "4F",
+   "x": 104,
+   "y": 352
+  },
+  {
+   "id": "4F-c1",
+   "floor": "4F",
+   "x": 168,
+   "y": 352
+  },
+  {
+   "id": "4F-c2",
+   "floor": "4F",
+   "x": 232,
+   "y": 352
+  },
+  {
+   "id": "4F-c3",
+   "floor": "4F",
+   "x": 296,
+   "y": 352
+  },
+  {
+   "id": "4F-c4",
+   "floor": "4F",
+   "x": 360,
+   "y": 352
+  },
+  {
+   "id": "4F-c5",
+   "floor": "4F",
+   "x": 424,
+   "y": 352
+  },
+  {
+   "id": "4F-c6",
+   "floor": "4F",
+   "x": 488,
+   "y": 352
+  },
+  {
+   "id": "4F-c7",
+   "floor": "4F",
+   "x": 552,
+   "y": 352
+  },
+  {
+   "id": "4F-c8",
+   "floor": "4F",
+   "x": 616,
+   "y": 352
+  },
+  {
+   "id": "4F-c9",
+   "floor": "4F",
+   "x": 680,
+   "y": 352
+  },
+  {
+   "id": "4F-c10",
+   "floor": "4F",
+   "x": 744,
+   "y": 352
+  },
+  {
+   "id": "4F-x0n1",
+   "floor": "4F",
+   "x": 296,
+   "y": 288
+  },
+  {
+   "id": "4F-x0n2",
+   "floor": "4F",
+   "x": 296,
+   "y": 224
+  },
+  {
+   "id": "4F-x0n3",
+   "floor": "4F",
+   "x": 296,
+   "y": 160
+  },
+  {
+   "id": "4F-x0s1",
+   "floor": "4F",
+   "x": 296,
+   "y": 416
+  },
+  {
+   "id": "4F-x0s2",
+   "floor": "4F",
+   "x": 296,
+   "y": 480
+  },
+  {
+   "id": "4F-x0s3",
+   "floor": "4F",
+   "x": 296,
+   "y": 544
+  },
+  {
+   "id": "4F-x0s4",
+   "floor": "4F",
+   "x": 296,
+   "y": 608
+  },
+  {
+   "id": "4F-x1n1",
+   "floor": "4F",
+   "x": 552,
+   "y": 288
+  },
+  {
+   "id": "4F-x1n2",
+   "floor": "4F",
+   "x": 552,
+   "y": 224
+  },
+  {
+   "id": "4F-x1n3",
+   "floor": "4F",
+   "x": 552,
+   "y": 160
+  },
+  {
+   "id": "4F-x1s1",
+   "floor": "4F",
+   "x": 552,
+   "y": 416
+  },
+  {
+   "id": "4F-x1s2",
+   "floor": "4F",
+   "x": 552,
+   "y": 480
+  },
+  {
+   "id": "4F-x1s3",
+   "floor": "4F",
+   "x": 552,
+   "y": 544
+  },
+  {
+   "id": "4F-x1s4",
+   "floor": "4F",
+   "x": 552,
+   "y": 608
+  },
+  {
+   "id": "4F-x1s5",
+   "floor": "4F",
+   "x": 552,
+   "y": 672
+  },
+  {
+   "id": "4F-esc-a-up",
+   "floor": "4F",
+   "x": 280,
+   "y": 374
+  },
+  {
+   "id": "4F-esc-a-dn",
+   "floor": "4F",
+   "x": 312,
+   "y": 374
+  },
+  {
+   "id": "4F-esc-b-up",
+   "floor": "4F",
+   "x": 536,
+   "y": 374
+  },
+  {
+   "id": "4F-esc-b-dn",
+   "floor": "4F",
+   "x": 568,
+   "y": 374
+  },
+  {
+   "id": "4F-el1",
+   "floor": "4F",
+   "x": 424,
+   "y": 330
+  },
+  {
+   "id": "AX-c0",
+   "floor": "AX",
+   "x": 808,
+   "y": 228
+  },
+  {
+   "id": "AX-c1",
+   "floor": "AX",
+   "x": 872,
+   "y": 228
+  },
+  {
+   "id": "AX-c2",
+   "floor": "AX",
+   "x": 936,
+   "y": 228
+  },
+  {
+   "id": "AX-x0s1",
+   "floor": "AX",
+   "x": 872,
+   "y": 292
+  },
+  {
+   "id": "AX-x0s2",
+   "floor": "AX",
+   "x": 872,
+   "y": 356
+  },
+  {
+   "id": "AX-x0s3",
+   "floor": "AX",
+   "x": 872,
+   "y": 420
+  },
+  {
+   "id": "AX-x0s4",
+   "floor": "AX",
+   "x": 872,
+   "y": 484
+  },
+  {
+   "id": "AX-x0s5",
+   "floor": "AX",
+   "x": 872,
+   "y": 548
+  },
+  {
+   "id": "AX-x0s6",
+   "floor": "AX",
+   "x": 872,
+   "y": 612
+  },
+  {
+   "id": "AX-x0s7",
+   "floor": "AX",
+   "x": 872,
+   "y": 676
+  },
+  {
+   "id": "AX-br-main",
+   "floor": "AX",
+   "x": 808,
+   "y": 204
+  }
+ ],
+ "edges": [
+  [
+   "LG-c0",
+   "LG-c1"
+  ],
+  [
+   "LG-c1",
+   "LG-c2"
+  ],
+  [
+   "LG-c2",
+   "LG-c3"
+  ],
+  [
+   "LG-c3",
+   "LG-c4"
+  ],
+  [
+   "LG-c4",
+   "LG-c5"
+  ],
+  [
+   "LG-c5",
+   "LG-c6"
+  ],
+  [
+   "LG-c6",
+   "LG-c7"
+  ],
+  [
+   "LG-c7",
+   "LG-c8"
+  ],
+  [
+   "LG-c8",
+   "LG-c9"
+  ],
+  [
+   "LG-c9",
+   "LG-c10"
+  ],
+  [
+   "LG-c3",
+   "LG-x0n1"
+  ],
+  [
+   "LG-x0n1",
+   "LG-x0n2"
+  ],
+  [
+   "LG-x0n2",
+   "LG-x0n3"
+  ],
+  [
+   "LG-c3",
+   "LG-x0s1"
+  ],
+  [
+   "LG-x0s1",
+   "LG-x0s2"
+  ],
+  [
+   "LG-x0s2",
+   "LG-x0s3"
+  ],
+  [
+   "LG-x0s3",
+   "LG-x0s4"
+  ],
+  [
+   "LG-c7",
+   "LG-x1n1"
+  ],
+  [
+   "LG-x1n1",
+   "LG-x1n2"
+  ],
+  [
+   "LG-x1n2",
+   "LG-x1n3"
+  ],
+  [
+   "LG-c7",
+   "LG-x1s1"
+  ],
+  [
+   "LG-x1s1",
+   "LG-x1s2"
+  ],
+  [
+   "LG-x1s2",
+   "LG-x1s3"
+  ],
+  [
+   "LG-x1s3",
+   "LG-x1s4"
+  ],
+  [
+   "LG-x1s4",
+   "LG-x1s5"
+  ],
+  [
+   "LG-c3",
+   "LG-esc-a-up"
+  ],
+  [
+   "LG-c3",
+   "LG-esc-a-dn"
+  ],
+  [
+   "LG-c7",
+   "LG-esc-b-up"
+  ],
+  [
+   "LG-c7",
+   "LG-esc-b-dn"
+  ],
+  [
+   "LG-c5",
+   "LG-el1"
+  ],
+  [
+   "GF-c0",
+   "GF-c1"
+  ],
+  [
+   "GF-c1",
+   "GF-c2"
+  ],
+  [
+   "GF-c2",
+   "GF-c3"
+  ],
+  [
+   "GF-c3",
+   "GF-c4"
+  ],
+  [
+   "GF-c4",
+   "GF-c5"
+  ],
+  [
+   "GF-c5",
+   "GF-c6"
+  ],
+  [
+   "GF-c6",
+   "GF-c7"
+  ],
+  [
+   "GF-c7",
+   "GF-c8"
+  ],
+  [
+   "GF-c8",
+   "GF-c9"
+  ],
+  [
+   "GF-c9",
+   "GF-c10"
+  ],
+  [
+   "GF-c3",
+   "GF-x0n1"
+  ],
+  [
+   "GF-x0n1",
+   "GF-x0n2"
+  ],
+  [
+   "GF-x0n2",
+   "GF-x0n3"
+  ],
+  [
+   "GF-c3",
+   "GF-x0s1"
+  ],
+  [
+   "GF-x0s1",
+   "GF-x0s2"
+  ],
+  [
+   "GF-x0s2",
+   "GF-x0s3"
+  ],
+  [
+   "GF-x0s3",
+   "GF-x0s4"
+  ],
+  [
+   "GF-c7",
+   "GF-x1n1"
+  ],
+  [
+   "GF-x1n1",
+   "GF-x1n2"
+  ],
+  [
+   "GF-x1n2",
+   "GF-x1n3"
+  ],
+  [
+   "GF-c7",
+   "GF-x1s1"
+  ],
+  [
+   "GF-x1s1",
+   "GF-x1s2"
+  ],
+  [
+   "GF-x1s2",
+   "GF-x1s3"
+  ],
+  [
+   "GF-x1s3",
+   "GF-x1s4"
+  ],
+  [
+   "GF-x1s4",
+   "GF-x1s5"
+  ],
+  [
+   "GF-c3",
+   "GF-esc-a-up"
+  ],
+  [
+   "GF-c3",
+   "GF-esc-a-dn"
+  ],
+  [
+   "GF-c7",
+   "GF-esc-b-up"
+  ],
+  [
+   "GF-c7",
+   "GF-esc-b-dn"
+  ],
+  [
+   "GF-c5",
+   "GF-el1"
+  ],
+  [
+   "GF-c10",
+   "GF-br-annex"
+  ],
+  [
+   "2F-c0",
+   "2F-c1"
+  ],
+  [
+   "2F-c1",
+   "2F-c2"
+  ],
+  [
+   "2F-c2",
+   "2F-c3"
+  ],
+  [
+   "2F-c3",
+   "2F-c4"
+  ],
+  [
+   "2F-c4",
+   "2F-c5"
+  ],
+  [
+   "2F-c5",
+   "2F-c6"
+  ],
+  [
+   "2F-c6",
+   "2F-c7"
+  ],
+  [
+   "2F-c7",
+   "2F-c8"
+  ],
+  [
+   "2F-c8",
+   "2F-c9"
+  ],
+  [
+   "2F-c9",
+   "2F-c10"
+  ],
+  [
+   "2F-c3",
+   "2F-x0n1"
+  ],
+  [
+   "2F-x0n1",
+   "2F-x0n2"
+  ],
+  [
+   "2F-x0n2",
+   "2F-x0n3"
+  ],
+  [
+   "2F-c3",
+   "2F-x0s1"
+  ],
+  [
+   "2F-x0s1",
+   "2F-x0s2"
+  ],
+  [
+   "2F-x0s2",
+   "2F-x0s3"
+  ],
+  [
+   "2F-x0s3",
+   "2F-x0s4"
+  ],
+  [
+   "2F-c7",
+   "2F-x1n1"
+  ],
+  [
+   "2F-x1n1",
+   "2F-x1n2"
+  ],
+  [
+   "2F-x1n2",
+   "2F-x1n3"
+  ],
+  [
+   "2F-c7",
+   "2F-x1s1"
+  ],
+  [
+   "2F-x1s1",
+   "2F-x1s2"
+  ],
+  [
+   "2F-x1s2",
+   "2F-x1s3"
+  ],
+  [
+   "2F-x1s3",
+   "2F-x1s4"
+  ],
+  [
+   "2F-x1s4",
+   "2F-x1s5"
+  ],
+  [
+   "2F-c3",
+   "2F-esc-a-up"
+  ],
+  [
+   "2F-c3",
+   "2F-esc-a-dn"
+  ],
+  [
+   "2F-c7",
+   "2F-esc-b-up"
+  ],
+  [
+   "2F-c7",
+   "2F-esc-b-dn"
+  ],
+  [
+   "2F-c5",
+   "2F-el1"
+  ],
+  [
+   "3F-c0",
+   "3F-c1"
+  ],
+  [
+   "3F-c1",
+   "3F-c2"
+  ],
+  [
+   "3F-c2",
+   "3F-c3"
+  ],
+  [
+   "3F-c3",
+   "3F-c4"
+  ],
+  [
+   "3F-c4",
+   "3F-c5"
+  ],
+  [
+   "3F-c5",
+   "3F-c6"
+  ],
+  [
+   "3F-c6",
+   "3F-c7"
+  ],
+  [
+   "3F-c7",
+   "3F-c8"
+  ],
+  [
+   "3F-c8",
+   "3F-c9"
+  ],
+  [
+   "3F-c9",
+   "3F-c10"
+  ],
+  [
+   "3F-c3",
+   "3F-x0n1"
+  ],
+  [
+   "3F-x0n1",
+   "3F-x0n2"
+  ],
+  [
+   "3F-x0n2",
+   "3F-x0n3"
+  ],
+  [
+   "3F-c3",
+   "3F-x0s1"
+  ],
+  [
+   "3F-x0s1",
+   "3F-x0s2"
+  ],
+  [
+   "3F-x0s2",
+   "3F-x0s3"
+  ],
+  [
+   "3F-x0s3",
+   "3F-x0s4"
+  ],
+  [
+   "3F-c7",
+   "3F-x1n1"
+  ],
+  [
+   "3F-x1n1",
+   "3F-x1n2"
+  ],
+  [
+   "3F-x1n2",
+   "3F-x1n3"
+  ],
+  [
+   "3F-c7",
+   "3F-x1s1"
+  ],
+  [
+   "3F-x1s1",
+   "3F-x1s2"
+  ],
+  [
+   "3F-x1s2",
+   "3F-x1s3"
+  ],
+  [
+   "3F-x1s3",
+   "3F-x1s4"
+  ],
+  [
+   "3F-x1s4",
+   "3F-x1s5"
+  ],
+  [
+   "3F-c3",
+   "3F-esc-a-up"
+  ],
+  [
+   "3F-c3",
+   "3F-esc-a-dn"
+  ],
+  [
+   "3F-c7",
+   "3F-esc-b-up"
+  ],
+  [
+   "3F-c7",
+   "3F-esc-b-dn"
+  ],
+  [
+   "3F-c5",
+   "3F-el1"
+  ],
+  [
+   "4F-c0",
+   "4F-c1"
+  ],
+  [
+   "4F-c1",
+   "4F-c2"
+  ],
+  [
+   "4F-c2",
+   "4F-c3"
+  ],
+  [
+   "4F-c3",
+   "4F-c4"
+  ],
+  [
+   "4F-c4",
+   "4F-c5"
+  ],
+  [
+   "4F-c5",
+   "4F-c6"
+  ],
+  [
+   "4F-c6",
+   "4F-c7"
+  ],
+  [
+   "4F-c7",
+   "4F-c8"
+  ],
+  [
+   "4F-c8",
+   "4F-c9"
+  ],
+  [
+   "4F-c9",
+   "4F-c10"
+  ],
+  [
+   "4F-c3",
+   "4F-x0n1"
+  ],
+  [
+   "4F-x0n1",
+   "4F-x0n2"
+  ],
+  [
+   "4F-x0n2",
+   "4F-x0n3"
+  ],
+  [
+   "4F-c3",
+   "4F-x0s1"
+  ],
+  [
+   "4F-x0s1",
+   "4F-x0s2"
+  ],
+  [
+   "4F-x0s2",
+   "4F-x0s3"
+  ],
+  [
+   "4F-x0s3",
+   "4F-x0s4"
+  ],
+  [
+   "4F-c7",
+   "4F-x1n1"
+  ],
+  [
+   "4F-x1n1",
+   "4F-x1n2"
+  ],
+  [
+   "4F-x1n2",
+   "4F-x1n3"
+  ],
+  [
+   "4F-c7",
+   "4F-x1s1"
+  ],
+  [
+   "4F-x1s1",
+   "4F-x1s2"
+  ],
+  [
+   "4F-x1s2",
+   "4F-x1s3"
+  ],
+  [
+   "4F-x1s3",
+   "4F-x1s4"
+  ],
+  [
+   "4F-x1s4",
+   "4F-x1s5"
+  ],
+  [
+   "4F-c3",
+   "4F-esc-a-up"
+  ],
+  [
+   "4F-c3",
+   "4F-esc-a-dn"
+  ],
+  [
+   "4F-c7",
+   "4F-esc-b-up"
+  ],
+  [
+   "4F-c7",
+   "4F-esc-b-dn"
+  ],
+  [
+   "4F-c5",
+   "4F-el1"
+  ],
+  [
+   "AX-c0",
+   "AX-c1"
+  ],
+  [
+   "AX-c1",
+   "AX-c2"
+  ],
+  [
+   "AX-c1",
+   "AX-x0s1"
+  ],
+  [
+   "AX-x0s1",
+   "AX-x0s2"
+  ],
+  [
+   "AX-x0s2",
+   "AX-x0s3"
+  ],
+  [
+   "AX-x0s3",
+   "AX-x0s4"
+  ],
+  [
+   "AX-x0s4",
+   "AX-x0s5"
+  ],
+  [
+   "AX-x0s5",
+   "AX-x0s6"
+  ],
+  [
+   "AX-x0s6",
+   "AX-x0s7"
+  ],
+  [
+   "AX-c0",
+   "AX-br-main"
+  ]
+ ],
+ "connectors": [
+  {
+   "id": "esc-a-up",
+   "name": "Escalator A",
+   "kind": "escalator",
+   "direction": "up",
+   "stops": [
+    "LG-esc-a-up",
+    "GF-esc-a-up",
+    "2F-esc-a-up",
+    "3F-esc-a-up",
+    "4F-esc-a-up"
+   ]
+  },
+  {
+   "id": "esc-a-down",
+   "name": "Escalator A",
+   "kind": "escalator",
+   "direction": "down",
+   "stops": [
+    "4F-esc-a-dn",
+    "3F-esc-a-dn",
+    "2F-esc-a-dn",
+    "GF-esc-a-dn",
+    "LG-esc-a-dn"
+   ]
+  },
+  {
+   "id": "esc-b-up",
+   "name": "Escalator B",
+   "kind": "escalator",
+   "direction": "up",
+   "stops": [
+    "LG-esc-b-up",
+    "GF-esc-b-up",
+    "2F-esc-b-up",
+    "3F-esc-b-up",
+    "4F-esc-b-up"
+   ]
+  },
+  {
+   "id": "esc-b-down",
+   "name": "Escalator B",
+   "kind": "escalator",
+   "direction": "down",
+   "stops": [
+    "4F-esc-b-dn",
+    "3F-esc-b-dn",
+    "2F-esc-b-dn",
+    "GF-esc-b-dn",
+    "LG-esc-b-dn"
+   ]
+  },
+  {
+   "id": "elev-1",
+   "name": "Elevator 1",
+   "kind": "elevator",
+   "direction": "both",
+   "stops": [
+    "LG-el1",
+    "GF-el1",
+    "2F-el1",
+    "3F-el1",
+    "4F-el1"
+   ]
+  },
+  {
+   "id": "walk-annex",
+   "name": "Annex Walkway",
+   "kind": "bridge",
+   "direction": "both",
+   "stops": [
+    "GF-br-annex",
+    "AX-br-main"
+   ],
+   "seconds": 90
+  }
+ ],
+ "places": [
+  {
+   "id": "restroom-lg",
+   "name": "Restroom",
+   "floor": "LG",
+   "rect": [
+    76.0,
+    390.0,
+    56,
+    40
+   ],
+   "node": "LG-c0",
+   "category": "restroom",
+   "tags": [
+    "cr",
+    "banyo",
+    "toilet",
+    "comfort room"
+   ]
+  },
+  {
+   "id": "sm-supermarket-lg",
+   "name": "SM Supermarket",
+   "floor": "LG",
+   "rect": [
+    210.0,
+    268.0,
+    56,
+    40
+   ],
+   "node": "LG-x0n1",
+   "category": "grocery",
+   "tags": [
+    "grocery",
+    "supermarket",
+    "groceries"
+   ]
+  },
+  {
+   "id": "western-union-lg",
+   "name": "Western Union",
+   "floor": "LG",
+   "rect": [
+    326.0,
+    204.0,
+    56,
+    40
+   ],
+   "node": "LG-x0n2",
+   "category": "remittance",
+   "tags": [
+    "padala",
+    "pera",
+    "remittance",
+    "money transfer"
+   ]
+  },
+  {
+   "id": "dhl-express-lg",
+   "name": "DHL Express",
+   "floor": "LG",
+   "rect": [
+    466.0,
+    140.0,
+    56,
+    40
+   ],
+   "node": "LG-x1n3",
+   "category": "courier",
+   "tags": [
+    "package",
+    "shipping",
+    "courier",
+    "padala"
+   ]
+  },
+  {
+   "id": "mr-quickie-lg",
+   "name": "Mr. Quickie",
+   "floor": "LG",
+   "rect": [
+    466.0,
+    588.0,
+    56,
+    40
+   ],
+   "node": "LG-x1s4",
+   "category": "shoe_repair",
+   "tags": [
+    "sapatos",
+    "takong",
+    "repair",
+    "ayos",
+    "paayos",
+    "magpaayos",
+    "ipaayos",
+    "bag",
+    "susi",
+    "key",
+    "takong"
+   ],
+   "service": {
+    "duration_min": 20
+   }
+  },
+  {
+   "id": "bdo-atm-lg",
+   "name": "BDO ATM",
+   "floor": "LG",
+   "rect": [
+    582.0,
+    460.0,
+    56,
+    40
+   ],
+   "node": "LG-x1s2",
+   "category": "atm",
+   "tags": [
+    "atm",
+    "withdraw",
+    "cash",
+    "pera"
+   ]
+  },
+  {
+   "id": "restroom-gf",
+   "name": "Restroom",
+   "floor": "GF",
+   "rect": [
+    76.0,
+    390.0,
+    56,
+    40
+   ],
+   "node": "GF-c0",
+   "category": "restroom",
+   "tags": [
+    "cr",
+    "banyo",
+    "toilet",
+    "comfort room"
+   ]
+  },
+  {
+   "id": "starbucks-gf",
+   "name": "Starbucks",
+   "floor": "GF",
+   "rect": [
+    140.0,
+    390.0,
+    56,
+    40
+   ],
+   "node": "GF-c1",
+   "category": "cafe",
+   "tags": [
+    "kape",
+    "coffee",
+    "drink",
+    "drinks",
+    "inumin",
+    "juice",
+    "pastry",
+    "frappuccino"
+   ]
+  },
+  {
+   "id": "bdo-gf",
+   "name": "BDO",
+   "floor": "GF",
+   "rect": [
+    210.0,
+    268.0,
+    56,
+    40
+   ],
+   "node": "GF-x0n1",
+   "category": "bank",
+   "tags": [
+    "bangko",
+    "bank",
+    "deposit",
+    "withdraw"
+   ]
+  },
+  {
+   "id": "bdo-atm-gf",
+   "name": "BDO ATM",
+   "floor": "GF",
+   "rect": [
+    210.0,
+    524.0,
+    56,
+    40
+   ],
+   "node": "GF-x0s3",
+   "category": "atm",
+   "tags": [
+    "atm",
+    "withdraw",
+    "cash",
+    "pera"
+   ]
+  },
+  {
+   "id": "h-m-gf",
+   "name": "H&M",
+   "floor": "GF",
+   "rect": [
+    326.0,
+    204.0,
+    56,
+    40
+   ],
+   "node": "GF-x0n2",
+   "category": "clothing",
+   "tags": [
+    "damit",
+    "clothes",
+    "shirt",
+    "fashion"
+   ]
+  },
+  {
+   "id": "kultura-filipino-gf",
+   "name": "Kultura Filipino",
+   "floor": "GF",
+   "rect": [
+    326.0,
+    460.0,
+    56,
+    40
+   ],
+   "node": "GF-x0s2",
+   "category": "gift",
+   "tags": [
+    "regalo",
+    "pasalubong",
+    "souvenir",
+    "gift",
+    "filipino",
+    "barong"
+   ]
+  },
+  {
+   "id": "auntie-anne-s-gf",
+   "name": "Auntie Anne's",
+   "floor": "GF",
+   "rect": [
+    466.0,
+    140.0,
+    56,
+    40
+   ],
+   "node": "GF-x1n3",
+   "category": "food",
+   "tags": [
+    "kain",
+    "meal",
+    "gutom",
+    "pagkain",
+    "lunch",
+    "merienda",
+    "pretzel"
+   ]
+  },
+  {
+   "id": "la-botica-gf",
+   "name": "La Botica",
+   "floor": "GF",
+   "rect": [
+    466.0,
+    396.0,
+    56,
+    40
+   ],
+   "node": "GF-x1s1",
+   "category": "pharmacy",
+   "tags": [
+    "gamot",
+    "botika",
+    "medicine",
+    "drugstore"
+   ]
+  },
+  {
+   "id": "the-sm-store-gf",
+   "name": "The SM Store",
+   "floor": "GF",
+   "rect": [
+    466.0,
+    588.0,
+    56,
+    40
+   ],
+   "node": "GF-x1s4",
+   "category": "department_store",
+   "tags": [
+    "department store",
+    "clothes",
+    "home"
+   ]
+  },
+  {
+   "id": "seattle-s-best-coffee-gf",
+   "name": "Seattle's Best Coffee",
+   "floor": "GF",
+   "rect": [
+    582.0,
+    204.0,
+    56,
+    40
+   ],
+   "node": "GF-x1n2",
+   "category": "cafe",
+   "tags": [
+    "kape",
+    "coffee",
+    "drink",
+    "drinks",
+    "inumin",
+    "juice",
+    "pastry"
+   ]
+  },
+  {
+   "id": "sipyo-coco-fluff-gf",
+   "name": "SipYO Coco Fluff",
+   "floor": "GF",
+   "rect": [
+    582.0,
+    460.0,
+    56,
+    40
+   ],
+   "node": "GF-x1s2",
+   "category": "food",
+   "tags": [
+    "kain",
+    "meal",
+    "gutom",
+    "pagkain",
+    "lunch",
+    "merienda",
+    "ice cream",
+    "buko",
+    "dessert"
+   ]
+  },
+  {
+   "id": "mary-grace-cafe-gf",
+   "name": "Mary Grace Cafe",
+   "floor": "GF",
+   "rect": [
+    582.0,
+    652.0,
+    56,
+    40
+   ],
+   "node": "GF-x1s5",
+   "category": "cafe",
+   "tags": [
+    "kape",
+    "coffee",
+    "drink",
+    "drinks",
+    "inumin",
+    "juice",
+    "pastry",
+    "ensaymada"
+   ]
+  },
+  {
+   "id": "restroom-2f",
+   "name": "Restroom",
+   "floor": "2F",
+   "rect": [
+    76.0,
+    390.0,
+    56,
+    40
+   ],
+   "node": "2F-c0",
+   "category": "restroom",
+   "tags": [
+    "cr",
+    "banyo",
+    "toilet",
+    "comfort room"
+   ]
+  },
+  {
+   "id": "sfera-2f",
+   "name": "Sfera",
+   "floor": "2F",
+   "rect": [
+    140.0,
+    390.0,
+    56,
+    40
+   ],
+   "node": "2F-c1",
+   "category": "clothing",
+   "tags": [
+    "damit",
+    "clothes",
+    "shirt",
+    "fashion"
+   ]
+  },
+  {
+   "id": "dear-flora-2f",
+   "name": "Dear Flora",
+   "floor": "2F",
+   "rect": [
+    210.0,
+    268.0,
+    56,
+    40
+   ],
+   "node": "2F-x0n1",
+   "category": "clothing",
+   "tags": [
+    "damit",
+    "clothes",
+    "shirt",
+    "fashion"
+   ]
+  },
+  {
+   "id": "uniqlo-2f",
+   "name": "Uniqlo",
+   "floor": "2F",
+   "rect": [
+    210.0,
+    524.0,
+    56,
+    40
+   ],
+   "node": "2F-x0s3",
+   "category": "clothing",
+   "tags": [
+    "damit",
+    "clothes",
+    "shirt",
+    "fashion"
+   ]
+  },
+  {
+   "id": "crocs-2f",
+   "name": "Crocs",
+   "floor": "2F",
+   "rect": [
+    326.0,
+    204.0,
+    56,
+    40
+   ],
+   "node": "2F-x0n2",
+   "category": "shoes",
+   "tags": [
+    "sapatos",
+    "shoes",
+    "sandals",
+    "tsinelas"
+   ]
+  },
+  {
+   "id": "tissot-2f",
+   "name": "Tissot",
+   "floor": "2F",
+   "rect": [
+    326.0,
+    460.0,
+    56,
+    40
+   ],
+   "node": "2F-x0s2",
+   "category": "accessories",
+   "tags": [
+    "relo",
+    "watch",
+    "alahas",
+    "jewelry",
+    "accessories"
+   ]
+  },
+  {
+   "id": "wenger-2f",
+   "name": "Wenger",
+   "floor": "2F",
+   "rect": [
+    466.0,
+    140.0,
+    56,
+    40
+   ],
+   "node": "2F-x1n3",
+   "category": "accessories",
+   "tags": [
+    "relo",
+    "watch",
+    "alahas",
+    "jewelry",
+    "accessories"
+   ]
+  },
+  {
+   "id": "broadway-gems-2f",
+   "name": "Broadway Gems",
+   "floor": "2F",
+   "rect": [
+    466.0,
+    396.0,
+    56,
+    40
+   ],
+   "node": "2F-x1s1",
+   "category": "accessories",
+   "tags": [
+    "relo",
+    "watch",
+    "alahas",
+    "jewelry",
+    "accessories"
+   ]
+  },
+  {
+   "id": "miniso-2f",
+   "name": "Miniso",
+   "floor": "2F",
+   "rect": [
+    466.0,
+    588.0,
+    56,
+    40
+   ],
+   "node": "2F-x1s4",
+   "category": "home",
+   "tags": [
+    "gamit sa bahay",
+    "home",
+    "kitchen",
+    "cute",
+    "gift"
+   ]
+  },
+  {
+   "id": "paperdollzco-2f",
+   "name": "PaperDollzCo",
+   "floor": "2F",
+   "rect": [
+    582.0,
+    204.0,
+    56,
+    40
+   ],
+   "node": "2F-x1n2",
+   "category": "books_stationery",
+   "tags": [
+    "notebook",
+    "ballpen",
+    "school supplies",
+    "books"
+   ]
+  },
+  {
+   "id": "buttons-wrap-2f",
+   "name": "Buttons & Wrap",
+   "floor": "2F",
+   "rect": [
+    582.0,
+    460.0,
+    56,
+    40
+   ],
+   "node": "2F-x1s2",
+   "category": "gift",
+   "tags": [
+    "regalo",
+    "pasalubong",
+    "souvenir",
+    "gift",
+    "gift wrap"
+   ]
+  },
+  {
+   "id": "vmv-hypoallergenics-2f",
+   "name": "VMV Hypoallergenics",
+   "floor": "2F",
+   "rect": [
+    582.0,
+    652.0,
+    56,
+    40
+   ],
+   "node": "2F-x1s5",
+   "category": "beauty",
+   "tags": [
+    "skincare",
+    "makeup",
+    "beauty"
+   ]
+  },
+  {
+   "id": "restroom-3f",
+   "name": "Restroom",
+   "floor": "3F",
+   "rect": [
+    76.0,
+    390.0,
+    56,
+    40
+   ],
+   "node": "3F-c0",
+   "category": "restroom",
+   "tags": [
+    "cr",
+    "banyo",
+    "toilet",
+    "comfort room"
+   ]
+  },
+  {
+   "id": "sm-makati-foodcourt-3f",
+   "name": "SM Makati Foodcourt",
+   "floor": "3F",
+   "rect": [
+    140.0,
+    390.0,
+    56,
+    40
+   ],
+   "node": "3F-c1",
+   "category": "food",
+   "tags": [
+    "kain",
+    "meal",
+    "gutom",
+    "pagkain",
+    "lunch",
+    "merienda",
+    "food court",
+    "foodcourt"
+   ]
+  },
+  {
+   "id": "kyu-kyu-ramen-99-3f",
+   "name": "Kyu Kyu Ramen 99",
+   "floor": "3F",
+   "rect": [
+    210.0,
+    204.0,
+    56,
+    40
+   ],
+   "node": "3F-x0n2",
+   "category": "food",
+   "tags": [
+    "kain",
+    "meal",
+    "gutom",
+    "pagkain",
+    "lunch",
+    "merienda",
+    "ramen",
+    "japanese"
+   ]
+  },
+  {
+   "id": "goldilocks-3f",
+   "name": "Goldilocks",
+   "floor": "3F",
+   "rect": [
+    210.0,
+    396.0,
+    56,
+    40
+   ],
+   "node": "3F-x0s1",
+   "category": "food",
+   "tags": [
+    "kain",
+    "meal",
+    "gutom",
+    "pagkain",
+    "lunch",
+    "merienda",
+    "cake",
+    "bakery"
+   ]
+  },
+  {
+   "id": "delifrance-3f",
+   "name": "Delifrance",
+   "floor": "3F",
+   "rect": [
+    210.0,
+    524.0,
+    56,
+    40
+   ],
+   "node": "3F-x0s3",
+   "category": "cafe",
+   "tags": [
+    "kape",
+    "coffee",
+    "drink",
+    "drinks",
+    "inumin",
+    "juice",
+    "pastry",
+    "bread",
+    "sandwich"
+   ]
+  },
+  {
+   "id": "brownies-unlimited-3f",
+   "name": "Brownies Unlimited",
+   "floor": "3F",
+   "rect": [
+    326.0,
+    140.0,
+    56,
+    40
+   ],
+   "node": "3F-x0n3",
+   "category": "food",
+   "tags": [
+    "kain",
+    "meal",
+    "gutom",
+    "pagkain",
+    "lunch",
+    "merienda",
+    "brownies",
+    "dessert"
+   ]
+  },
+  {
+   "id": "sizzling-plate-3f",
+   "name": "Sizzling Plate",
+   "floor": "3F",
+   "rect": [
+    326.0,
+    396.0,
+    56,
+    40
+   ],
+   "node": "3F-x0s1",
+   "category": "food",
+   "tags": [
+    "kain",
+    "meal",
+    "gutom",
+    "pagkain",
+    "lunch",
+    "merienda",
+    "sizzling",
+    "steak"
+   ]
+  },
+  {
+   "id": "cucina-norte-3f",
+   "name": "Cucina Norte",
+   "floor": "3F",
+   "rect": [
+    326.0,
+    524.0,
+    56,
+    40
+   ],
+   "node": "3F-x0s3",
+   "category": "food",
+   "tags": [
+    "kain",
+    "meal",
+    "gutom",
+    "pagkain",
+    "lunch",
+    "merienda",
+    "pasta"
+   ]
+  },
+  {
+   "id": "fuel-burgers-3f",
+   "name": "Fuel Burgers",
+   "floor": "3F",
+   "rect": [
+    466.0,
+    140.0,
+    56,
+    40
+   ],
+   "node": "3F-x1n3",
+   "category": "food",
+   "tags": [
+    "kain",
+    "meal",
+    "gutom",
+    "pagkain",
+    "lunch",
+    "merienda",
+    "burger"
+   ]
+  },
+  {
+   "id": "gong-cha-3f",
+   "name": "Gong Cha",
+   "floor": "3F",
+   "rect": [
+    466.0,
+    268.0,
+    56,
+    40
+   ],
+   "node": "3F-x1n1",
+   "category": "food",
+   "tags": [
+    "kain",
+    "meal",
+    "gutom",
+    "pagkain",
+    "lunch",
+    "merienda",
+    "milk tea",
+    "tea"
+   ]
+  },
+  {
+   "id": "yakiudon-3f",
+   "name": "Yakiudon",
+   "floor": "3F",
+   "rect": [
+    466.0,
+    460.0,
+    56,
+    40
+   ],
+   "node": "3F-x1s2",
+   "category": "food",
+   "tags": [
+    "kain",
+    "meal",
+    "gutom",
+    "pagkain",
+    "lunch",
+    "merienda",
+    "udon",
+    "japanese"
+   ]
+  },
+  {
+   "id": "ssamjang-express-3f",
+   "name": "Ssamjang Express",
+   "floor": "3F",
+   "rect": [
+    466.0,
+    652.0,
+    56,
+    40
+   ],
+   "node": "3F-x1s5",
+   "category": "food",
+   "tags": [
+    "kain",
+    "meal",
+    "gutom",
+    "pagkain",
+    "lunch",
+    "merienda",
+    "korean"
+   ]
+  },
+  {
+   "id": "turks-3f",
+   "name": "Turks",
+   "floor": "3F",
+   "rect": [
+    582.0,
+    204.0,
+    56,
+    40
+   ],
+   "node": "3F-x1n2",
+   "category": "food",
+   "tags": [
+    "kain",
+    "meal",
+    "gutom",
+    "pagkain",
+    "lunch",
+    "merienda",
+    "shawarma"
+   ]
+  },
+  {
+   "id": "yococo-3f",
+   "name": "YoCoCo",
+   "floor": "3F",
+   "rect": [
+    582.0,
+    396.0,
+    56,
+    40
+   ],
+   "node": "3F-x1s1",
+   "category": "food",
+   "tags": [
+    "kain",
+    "meal",
+    "gutom",
+    "pagkain",
+    "lunch",
+    "merienda",
+    "dessert"
+   ]
+  },
+  {
+   "id": "decs-3f",
+   "name": "DECS",
+   "floor": "3F",
+   "rect": [
+    582.0,
+    524.0,
+    56,
+    40
+   ],
+   "node": "3F-x1s3",
+   "category": "food",
+   "tags": [
+    "kain",
+    "meal",
+    "gutom",
+    "pagkain",
+    "lunch",
+    "merienda"
+   ]
+  },
+  {
+   "id": "kumori-3f",
+   "name": "Kumori",
+   "floor": "3F",
+   "rect": [
+    582.0,
+    652.0,
+    56,
+    40
+   ],
+   "node": "3F-x1s5",
+   "category": "cafe",
+   "tags": [
+    "kape",
+    "coffee",
+    "drink",
+    "drinks",
+    "inumin",
+    "juice",
+    "pastry",
+    "bakery",
+    "japanese"
+   ]
+  },
+  {
+   "id": "restroom-4f",
+   "name": "Restroom",
+   "floor": "4F",
+   "rect": [
+    76.0,
+    390.0,
+    56,
+    40
+   ],
+   "node": "4F-c0",
+   "category": "restroom",
+   "tags": [
+    "cr",
+    "banyo",
+    "toilet",
+    "comfort room"
+   ]
+  },
+  {
+   "id": "asus-concept-store-4f",
+   "name": "ASUS Concept Store",
+   "floor": "4F",
+   "rect": [
+    210.0,
+    140.0,
+    56,
+    40
+   ],
+   "node": "4F-x0n3",
+   "category": "electronics",
+   "tags": [
+    "gadget",
+    "laptop",
+    "charger",
+    "cellphone",
+    "computer",
+    "laptop"
+   ]
+  },
+  {
+   "id": "lenovo-legion-store-4f",
+   "name": "Lenovo Legion Store",
+   "floor": "4F",
+   "rect": [
+    210.0,
+    460.0,
+    56,
+    40
+   ],
+   "node": "4F-x0s2",
+   "category": "electronics",
+   "tags": [
+    "gadget",
+    "laptop",
+    "charger",
+    "cellphone",
+    "computer",
+    "laptop",
+    "gaming laptop"
+   ]
+  },
+  {
+   "id": "techno-4f",
+   "name": "Techno",
+   "floor": "4F",
+   "rect": [
+    326.0,
+    140.0,
+    56,
+    40
+   ],
+   "node": "4F-x0n3",
+   "category": "electronics",
+   "tags": [
+    "gadget",
+    "laptop",
+    "charger",
+    "cellphone",
+    "computer",
+    "cellphone",
+    "phone"
+   ]
+  },
+  {
+   "id": "mi-store-4f",
+   "name": "Mi Store",
+   "floor": "4F",
+   "rect": [
+    326.0,
+    460.0,
+    56,
+    40
+   ],
+   "node": "4F-x0s2",
+   "category": "electronics",
+   "tags": [
+    "gadget",
+    "laptop",
+    "charger",
+    "cellphone",
+    "computer",
+    "xiaomi",
+    "phone"
+   ]
+  },
+  {
+   "id": "gamextreme-4f",
+   "name": "GameXtreme",
+   "floor": "4F",
+   "rect": [
+    466.0,
+    140.0,
+    56,
+    40
+   ],
+   "node": "4F-x1n3",
+   "category": "gaming",
+   "tags": [
+    "games",
+    "console",
+    "arcade",
+    "laro"
+   ]
+  },
+  {
+   "id": "nintendo-authorized-store-4f",
+   "name": "Nintendo Authorized Store",
+   "floor": "4F",
+   "rect": [
+    466.0,
+    460.0,
+    56,
+    40
+   ],
+   "node": "4F-x1s2",
+   "category": "gaming",
+   "tags": [
+    "games",
+    "console",
+    "arcade",
+    "laro",
+    "switch"
+   ]
+  },
+  {
+   "id": "fixhub-mobile-4f",
+   "name": "FixHub Mobile",
+   "floor": "4F",
+   "rect": [
+    466.0,
+    652.0,
+    56,
+    40
+   ],
+   "node": "4F-x1s5",
+   "category": "phone_repair",
+   "tags": [
+    "phone",
+    "cellphone",
+    "cellfone",
+    "screen",
+    "battery",
+    "sira",
+    "ayos",
+    "paayos",
+    "magpaayos",
+    "ipaayos",
+    "repair",
+    "basag"
+   ],
+   "service": {
+    "duration_min": 45
+   },
+   "fictional": true
+  },
+  {
+   "id": "quickfix-gadget-clinic-4f",
+   "name": "QuickFix Gadget Clinic",
+   "floor": "4F",
+   "rect": [
+    582.0,
+    396.0,
+    56,
+    40
+   ],
+   "node": "4F-x1s1",
+   "category": "phone_repair",
+   "tags": [
+    "phone",
+    "cellphone",
+    "cellfone",
+    "screen",
+    "battery",
+    "sira",
+    "ayos",
+    "paayos",
+    "magpaayos",
+    "ipaayos",
+    "repair",
+    "basag",
+    "tablet",
+    "laptop repair"
+   ],
+   "service": {
+    "duration_min": 60
+   },
+   "fictional": true
+  },
+  {
+   "id": "screendoc-4f",
+   "name": "ScreenDoc",
+   "floor": "4F",
+   "rect": [
+    582.0,
+    588.0,
+    56,
+    40
+   ],
+   "node": "4F-x1s4",
+   "category": "phone_repair",
+   "tags": [
+    "phone",
+    "cellphone",
+    "cellfone",
+    "screen",
+    "battery",
+    "sira",
+    "ayos",
+    "paayos",
+    "magpaayos",
+    "ipaayos",
+    "repair",
+    "basag",
+    "screen replacement"
+   ],
+   "service": {
+    "duration_min": 30
+   },
+   "fictional": true
+  },
+  {
+   "id": "restroom-ax",
+   "name": "Restroom",
+   "floor": "AX",
+   "rect": [
+    786.0,
+    400.0,
+    56,
+    40
+   ],
+   "node": "AX-x0s3",
+   "category": "restroom",
+   "tags": [
+    "cr",
+    "banyo",
+    "toilet",
+    "comfort room"
+   ]
+  },
+  {
+   "id": "sm-appliance-center-ax",
+   "name": "SM Appliance Center",
+   "floor": "AX",
+   "rect": [
+    786.0,
+    464.0,
+    56,
+    40
+   ],
+   "node": "AX-x0s4",
+   "category": "appliances",
+   "tags": [
+    "appliance",
+    "aircon",
+    "ref",
+    "electric fan"
+   ]
+  },
+  {
+   "id": "dyson-ax",
+   "name": "Dyson",
+   "floor": "AX",
+   "rect": [
+    786.0,
+    528.0,
+    56,
+    40
+   ],
+   "node": "AX-x0s5",
+   "category": "appliances",
+   "tags": [
+    "appliance",
+    "aircon",
+    "ref",
+    "electric fan",
+    "vacuum"
+   ]
+  },
+  {
+   "id": "pet-express-ax",
+   "name": "Pet Express",
+   "floor": "AX",
+   "rect": [
+    786.0,
+    592.0,
+    56,
+    40
+   ],
+   "node": "AX-x0s6",
+   "category": "pet",
+   "tags": [
+    "pet",
+    "aso",
+    "pusa",
+    "dog",
+    "cat"
+   ]
+  },
+  {
+   "id": "bos-shoes-bags-repair-ax",
+   "name": "BOS Shoes & Bags Repair",
+   "floor": "AX",
+   "rect": [
+    786.0,
+    656.0,
+    56,
+    40
+   ],
+   "node": "AX-x0s7",
+   "category": "shoe_repair",
+   "tags": [
+    "sapatos",
+    "takong",
+    "repair",
+    "ayos",
+    "paayos",
+    "magpaayos",
+    "ipaayos",
+    "bag",
+    "bag repair"
+   ],
+   "service": {
+    "duration_min": 30
+   }
+  }
+ ],
+ "category_defaults": {
+  "phone_repair": {
+   "duration_min": 45,
+   "async": true
+  },
+  "shoe_repair": {
+   "duration_min": 30,
+   "async": true
+  },
+  "food": {
+   "duration_min": 30,
+   "async": false
+  },
+  "cafe": {
+   "duration_min": 20,
+   "async": false
+  },
+  "clothing": {
+   "duration_min": 25,
+   "async": false
+  },
+  "shoes": {
+   "duration_min": 20,
+   "async": false
+  },
+  "accessories": {
+   "duration_min": 15,
+   "async": false
+  },
+  "gift": {
+   "duration_min": 15,
+   "async": false
+  },
+  "home": {
+   "duration_min": 15,
+   "async": false
+  },
+  "books_stationery": {
+   "duration_min": 15,
+   "async": false
+  },
+  "beauty": {
+   "duration_min": 15,
+   "async": false
+  },
+  "department_store": {
+   "duration_min": 30,
+   "async": false
+  },
+  "electronics": {
+   "duration_min": 20,
+   "async": false
+  },
+  "gaming": {
+   "duration_min": 20,
+   "async": false
+  },
+  "appliances": {
+   "duration_min": 20,
+   "async": false
+  },
+  "grocery": {
+   "duration_min": 30,
+   "async": false
+  },
+  "pharmacy": {
+   "duration_min": 5,
+   "async": false
+  },
+  "bank": {
+   "duration_min": 15,
+   "async": false
+  },
+  "atm": {
+   "duration_min": 3,
+   "async": false
+  },
+  "remittance": {
+   "duration_min": 10,
+   "async": false
+  },
+  "courier": {
+   "duration_min": 10,
+   "async": false
+  },
+  "pet": {
+   "duration_min": 15,
+   "async": false
+  },
+  "restroom": {
+   "duration_min": 5,
+   "async": false
+  }
+ },
+ "anchors": [
+  {
+   "id": "gf-mrt-entrance",
+   "label": "GF · MRT/Ayala Entrance",
+   "floor": "GF",
+   "node": "GF-c10",
+   "heading_deg": 270
+  },
+  {
+   "id": "lg-supermarket",
+   "label": "LG · SM Supermarket",
+   "floor": "LG",
+   "node": "LG-x0n1",
+   "heading_deg": 0
+  },
+  {
+   "id": "2f-escalator-a",
+   "label": "2F · Escalator A",
+   "floor": "2F",
+   "node": "2F-esc-a-up",
+   "heading_deg": 90
+  },
+  {
+   "id": "3f-foodcourt",
+   "label": "3F · Foodcourt",
+   "floor": "3F",
+   "node": "3F-c1",
+   "heading_deg": 0
+  },
+  {
+   "id": "4f-cyberzone-entrance",
+   "label": "4F · Cyberzone Entrance",
+   "floor": "4F",
+   "node": "4F-esc-a-up",
+   "heading_deg": 90
+  },
+  {
+   "id": "ax-entrance",
+   "label": "Annex · Walkway Entrance",
+   "floor": "AX",
+   "node": "AX-br-main",
+   "heading_deg": 90
+  }
+ ]
+}

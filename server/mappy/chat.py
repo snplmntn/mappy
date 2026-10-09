@@ -23,7 +23,7 @@ CANDIDATES = 3
 SCORE_BAND = 0.06
 LLM_TIMEOUT_S = 8.5
 # Minimum fused search score that counts as "found", per embedder (calibrated on the eval set).
-MIN_SCORE = {"hash-256": 0.35, "multilingual-e5-small": 0.62}
+MIN_SCORE = {"hash-256": 0.35, "multilingual-e5-small": 0.60}
 HELP = "Sabihin mo lang ang kailangan mo — hal. “papaayos ng phone, tapos kain”."
 
 

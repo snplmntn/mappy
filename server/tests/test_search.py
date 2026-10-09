@@ -44,3 +44,33 @@ def test_place_ids_named_returns_all_instances(search):
 
 def test_floor_filter(search):
     assert all(pid.endswith("-2f") for pid, _ in search.search("Starbucks", floor="2F"))
+
+
+class FlatEmbedder:
+    """Every text gets the same vector, so ranking must come from lexical signals."""
+
+    model_id = "flat"
+
+    def embed(self, texts, kind):
+        v = np.ones((len(texts), 4), dtype=np.float32)
+        return v / np.linalg.norm(v, axis=1, keepdims=True)
+
+
+def test_exact_tag_beats_noise(mall):
+    from mappy.search import Search
+
+    s = Search(mall, FlatEmbedder())
+    assert s.search("ramen")[0][0] == "foodcourt-2f"
+    assert s.search("pasalubong")[0][0] == "kultura-gf"
+
+
+def test_unrelated_query_scores_below_tag_match(mall):
+    from mappy.search import Search
+
+    s = Search(mall, FlatEmbedder())
+    assert s.search("spaceship")[0][1] < s.search("ramen")[0][1] - 0.15
+
+
+def test_names_in_matches_without_generic_suffix(search):
+    assert search.names_in("nasa tabi ako ng FixIt") == ["FixIt Mobile"]
+    assert search.names_in("kita ko yung Food Court") == ["Food Court"]

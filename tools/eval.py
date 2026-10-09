@@ -86,7 +86,8 @@ async def run(args) -> str:
             detail.append(f"ops {sorted(got_ops)} {'ok' if ok else 'MISS'}")
         if "landmarks" in exp:
             got_lm = {lm.lower() for lm in x.landmarks}
-            ok = {lm.lower() for lm in exp["landmarks"]} <= got_lm
+            # A landmark counts as found when it resolves to the store's full name ("asus" -> "asus concept store").
+            ok = all(any(lm.lower() in g for g in got_lm) for lm in exp["landmarks"])
             stats["lm"].append(ok)
             detail.append(f"landmarks {sorted(got_lm)} {'ok' if ok else 'MISS'}")
         rows.append(f"| {'✓' if ok_intent else '✗'} | {x.source} | {case['msg']} | {x.intent} | {'; '.join(detail)} |")
