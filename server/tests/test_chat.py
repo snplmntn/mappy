@@ -211,7 +211,7 @@ def test_llm_category_guess_lists_alternatives(mall, search):
 def test_alternatives_lead_with_matching_traits(mall, search):
     out = run(svc(mall, search).chat("ramen nagi", AT, "14:00", Trip()))
     assert out["result"]["places"][0]["id"] == "foodcourt-2f"
-    assert "also do ramen" in out["reply"]
+    assert "Food Court also does ramen." in out["reply"]
 
 
 def test_plan_swaps_a_missing_brand(mall, search):
@@ -221,3 +221,46 @@ def test_plan_swaps_a_missing_brand(mall, search):
     food = next(e for e in errands if e["category"] == "food")
     assert set(food["candidates"]) <= set(search.by_category("food"))
     assert "No McDonald's here, so I added other food places instead." in out["reply"]
+
+
+def test_brand_nickname_of_a_store_here_is_a_name_hit(mall, search):
+    out = run(svc(mall, search).chat("jabee", AT, "14:00", Trip()))
+    assert out["result"]["type"] == "places" and "alternatives_for" not in out["result"]
+    assert out["result"]["places"][0]["id"] == "jollibee-gf"
+    assert out["reply"].startswith("Here's what I found")
+
+
+def test_llm_category_does_not_hide_a_brand_swap(mall, search):
+    x = Extraction(intent="plan", source="llm", errands=[
+        ErrandReq(query="ramen nagi", category="food"), ErrandReq(query="phone repair", category="phone_repair")])
+    out = run(svc(mall, search, FixedLLM(x)).chat("ramen nagi tapos phone repair", AT, "14:00", Trip()))
+    food = next(e for e in out["trip"]["errands"] if e["category"] == "food")
+    assert food["candidates"] == search.alternatives("food", ("ramen", "japanese"))[:3]
+    assert food["candidates"][0] == "foodcourt-2f"
+    assert "No Ramen Nagi here, so I added other food places instead." in out["reply"]
+
+
+def test_llm_category_mcdo_in_plan_swaps(mall, search):
+    x = Extraction(intent="plan", source="llm", errands=[
+        ErrandReq(query="mcdo", category="food"), ErrandReq(query="phone repair", category="phone_repair")])
+    out = run(svc(mall, search, FixedLLM(x)).chat("mcdo tapos phone repair", AT, "14:00", Trip()))
+    assert "No McDonald's here, so I added other food places instead." in out["reply"]
+
+
+def test_same_missing_brand_twice_says_it_once(mall, search):
+    x = Extraction(intent="plan", source="llm", errands=[
+        ErrandReq(query="mcdo", category="food"), ErrandReq(query="mcdonalds"),
+        ErrandReq(query="phone repair", category="phone_repair")])
+    out = run(svc(mall, search, FixedLLM(x)).chat("mcdo, mcdonalds, phone repair", AT, "14:00", Trip()))
+    assert out["reply"].count("No McDonald's here") == 1
+
+
+def test_alternatives_without_walk_time_skip_the_distance(mall, search, monkeypatch):
+    monkeypatch.setattr(ChatService, "_walk_min", lambda self, start, pid, router: None)
+    out = run(svc(mall, search).chat("mcdo", AT, "14:00", Trip()))
+    assert out["result"]["type"] == "places" and "min away" not in out["reply"]
+
+
+def test_alternatives_without_matching_traits_skip_the_trait_sentence(mall, search):
+    out = run(svc(mall, search).chat("mcdo", AT, "14:00", Trip()))
+    assert " also do" not in out["reply"]

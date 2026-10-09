@@ -41,6 +41,15 @@ def _text(reply: str, trip: Trip) -> dict:
     return {"reply": reply, "result": {"type": "text"}, "trip": trip.model_dump(by_alias=True)}
 
 
+@dataclass(frozen=True)
+class StandIn:
+    """Same-kind places listed in place of a store this mall doesn't have."""
+    name: str                       # what the shopper asked for, as shown: "McDonald's"
+    category: str
+    traits: tuple[str, ...] = ()
+    swapped: bool = False           # a known brand (so plans say so), not just the LLM's category guess
+
+
 def _not_found(queries: list[str]) -> str:
     return f"I couldn't find “{', '.join(queries)}” in this mall. {TRY_INSTEAD}"
 
@@ -106,10 +115,6 @@ class ChatService:
         return [pid for pid, s in hits
                 if s >= hits[0][1] - SCORE_BAND and self.mall.places[pid].category == top_cat][:CANDIDATES]
 
-    def _category(self, query: str, category: str | None) -> str | None:
-        """A category word in the user's own text beats the small LLM's guess."""
-        return self.search.alias_category(query) or category
-
     def _find_category(self, req: ErrandReq) -> str | None:
         """The category to list for a search. The LLM's guess only counts when search agrees with it,
         so "sinehan" in a mall without a cinema isn't answered with gift shops."""
@@ -125,26 +130,31 @@ class ChatService:
                       category=first.category, candidates=ids, duration_min=duration,
                       duration_source="store" if first.service else "default", **{"async": is_async})
 
-    def _alternative_category(self, req: ErrandReq) -> tuple[str, str, tuple[str, ...]] | None:
-        """(display name, category, traits) to list when nothing matched `req.query`: the brand table
-        first, then the LLM's category guess; None when this mall has no such category."""
-        brand = brand_in(req.query)
+    def _resolve(self, query: str, category: str | None) -> tuple[list[str], StandIn | None]:
+        """Places for a store request: a known brand that is here, then a search hit, then same-kind
+        stand-ins for a known brand that isn't, then the LLM's category guess."""
+        brand = brand_in(query)
+        if brand and (named := self.search.place_ids_named(brand.name)):
+            return named, None
+        if hits := self._matches(query, None):
+            return hits, None
         if brand and self.search.by_category(brand.category):
-            return brand.name, brand.category, brand.traits
-        if req.category and self.search.by_category(req.category):
-            return req.query, req.category, ()
-        return None
+            return (self.search.alternatives(brand.category, brand.traits),
+                    StandIn(brand.name, brand.category, brand.traits, swapped=True))
+        if category and self.search.by_category(category):
+            return self._matches(query, category), StandIn(query, category)
+        return [], None
 
     def _errand_or_alternative(self, query: str, category: str | None,
-                               new_id: str) -> tuple[Errand | None, str | None]:
-        """The errand for a request, and the missing store's name when same-kind places stand in for it."""
-        if ids := self._matches(query, self._category(query, category)):
-            return self._errand(new_id, query, ids), None
-        if alt := self._alternative_category(ErrandReq(query=query, category=category)):
-            name, cat, traits = alt
-            ids = self.search.alternatives(cat, traits)[:CANDIDATES]
-            return self._errand(new_id, query, ids), name
-        return None, None
+                               new_id: str) -> tuple[Errand | None, StandIn | None]:
+        """The errand for a request, and what it stands in for when a missing brand was swapped."""
+        if cat := self.search.alias_category(query):  # a category word in the user's own text beats the LLM's guess
+            ids, stand_in = self._matches(query, cat), None
+        else:
+            ids, stand_in = self._resolve(query, category)
+        if not ids:
+            return None, None
+        return self._errand(new_id, query, ids[:CANDIDATES]), stand_in if stand_in and stand_in.swapped else None
 
     def make_errand(self, query: str, category: str | None, new_id: str) -> Errand | None:
         return self._errand_or_alternative(query, category, new_id)[0]
@@ -181,19 +191,20 @@ class ChatService:
         rows.sort(key=lambda r: (-scores.get(r["id"], 0), r["walk_min"] is None, r["walk_min"] or 0))
         return {"type": "places", "query": query, "places": rows[:FIND_RESULTS]}
 
-    def _alternatives_result(self, name: str, category: str, traits: tuple[str, ...], start: str,
-                             router: Router, exclude: tuple[str, ...] = ()) -> dict:
-        ids = self.search.alternatives(category, traits, exclude)
-        scores = {pid: self.search.trait_score(pid, traits) for pid in ids}
-        result = self._places_result(name, ids, start, router, scores)
-        return {**result, "category": category, "alternatives_for": name}
+    def _alternatives_result(self, alt: StandIn, start: str, router: Router, exclude: tuple[str, ...] = ()) -> dict:
+        ids = self.search.alternatives(alt.category, alt.traits, exclude)
+        scores = {pid: self.search.trait_score(pid, alt.traits) for pid in ids}
+        result = self._places_result(alt.name, ids, start, router, scores)
+        return {**result, "category": alt.category, "alternatives_for": alt.name}
 
-    def _alternatives_reply(self, name: str, category: str, traits: tuple[str, ...], rows: list[dict]) -> str:
-        reply = f"No {name} in this mall, but here are other {_label(category)} places."
-        matched = [(r, m) for r in rows if (m := self.search.matched_traits(r["id"], traits))]
+    def _alternatives_reply(self, alt: StandIn, rows: list[dict]) -> str:
+        reply = f"No {alt.name} in this mall, but here are other {_label(alt.category)} places."
+        matched = [(r, m) for r in rows if (m := self.search.matched_traits(r["id"], alt.traits))]
         if matched:
-            names = " and ".join(r["name"] for r, _ in matched[:MAX_REPLY_NAMES])
-            reply += f" {names} also do {' and '.join(matched[0][1][:MAX_REPLY_TRAITS])}."
+            shown = matched[:MAX_REPLY_NAMES]
+            verb = "does" if len(shown) == 1 else "do"
+            names = " and ".join(r["name"] for r, _ in shown)
+            reply += f" {names} also {verb} {' and '.join(matched[0][1][:MAX_REPLY_TRAITS])}."
         if rows and rows[0]["walk_min"] is not None:
             reply += f" {rows[0]['name']} is {rows[0]['walk_min']} min away."
         return reply
@@ -222,13 +233,15 @@ class ChatService:
 
         if x.intent == "find" and x.errands:
             req = x.errands[0]
-            cat = self._find_category(req)
-            ids = self.search.by_category(cat) if cat and self.search.by_category(cat) else self._matches(req.query, None)
+            if (cat := self._find_category(req)) and self.search.by_category(cat):
+                ids, alt = self.search.by_category(cat), None
+            else:
+                ids, alt = self._resolve(req.query, req.category)
+            if alt:
+                result = self._alternatives_result(alt, start, router)
+                return {"reply": self._alternatives_reply(alt, result["places"]), "result": result,
+                        "trip": trip.model_dump(by_alias=True)}
             if not ids:
-                if alt := self._alternative_category(req):
-                    result = self._alternatives_result(*alt, start, router)
-                    return {"reply": self._alternatives_reply(*alt, result["places"]), "result": result,
-                            "trip": trip.model_dump(by_alias=True)}
                 return _text(_not_found([req.query]), trip)
             result = self._places_result(req.query, ids, start, router)
             return {"reply": f"Here's what I found for “{req.query}”:", "result": result,
@@ -237,21 +250,21 @@ class ChatService:
         if x.intent == "plan" and x.errands:
             t = trip.model_copy(deep=True)
             capped = len(x.errands) > MAX_ERRANDS
-            missing, swapped, added = [], [], 0
+            missing, swapped, added = [], {}, 0
             for req in x.errands[:MAX_ERRANDS]:
-                made, swapped_for = self._errand_or_alternative(req.query, req.category, new_errand_id(t))
+                made, stand_in = self._errand_or_alternative(req.query, req.category, new_errand_id(t))
                 if made is None:
                     missing.append(req.query)
                     continue
                 t.errands.append(made)
                 added += 1
-                if swapped_for:
-                    swapped.append((swapped_for, made.category))
+                if stand_in:
+                    swapped[stand_in.name] = stand_in.category  # one sentence per missing brand
             if not added:
                 return _text(_not_found(missing), trip)
             payload = self._plan_payload(t, start, now_min, [])
             reply = f"Here's your plan: {len(payload['plan']['stops'])} stops, done by {payload['plan']['finish_at']}."
-            for name, cat in swapped:
+            for name, cat in swapped.items():
                 reply += f" No {name} here, so I added other {_label(cat)} places instead."
             if missing:
                 reply += f" I couldn't find: {', '.join(missing)}."
