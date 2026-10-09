@@ -64,3 +64,9 @@ def test_time_fields_normalize_or_drop():
     assert e.ready_at == "15:00" and e.dropped_at == "15:30"
     assert Constraints(deadline="5:00 PM").deadline == "17:00"
     assert Edit(op="deadline", time="garbage").time is None
+
+
+def test_center_uses_label_point_when_given(tmp_path, sample_raw):
+    sample_raw["places"][0]["label"] = [90, 190, 30]
+    m = load_mall(write_mall(tmp_path, sample_raw))
+    assert m.center("cr-gf") == (90, 190)

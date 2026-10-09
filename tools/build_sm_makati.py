@@ -27,12 +27,6 @@ ANNEX_LATLON = [
     (14.548844, 121.0267663), (14.5490282, 121.0269864), (14.5491192, 121.0270951), (14.5492631, 121.0272671),
 ]
 
-WIDTH = 1000
-MARGIN = 40
-
-MAIN_FLOORS = [("LG", "Lower Ground", -1), ("GF", "Ground Floor", 0), ("2F", "2nd Floor", 1),
-               ("3F", "3rd Floor", 2), ("4F", "4th Floor (Cyberzone)", 3)]
-
 CATEGORY_DEFAULTS = {
     "phone_repair": (45, True), "shoe_repair": (30, True), "food": (30, False), "cafe": (20, False),
     "clothing": (25, False), "shoes": (20, False), "accessories": (15, False), "gift": (15, False),
@@ -129,11 +123,22 @@ STORES = [
 
 
 
-# Stores that occupy several storefront units (anchor stores look big, like in a real mall).
-UNITS = {
-    "SM Supermarket": 3, "The SM Store": 3, "SM Makati Foodcourt": 3, "SM Appliance Center": 2,
-    "H&M": 2, "Uniqlo": 2,
-}
+
+from shapely.geometry import LineString, MultiPoint, Point, Polygon, box
+from shapely.ops import nearest_points, polylabel, unary_union, voronoi_diagram
+
+M_PER_PX = 0.15          # every floor uses the same scale, so distances are real
+MARGIN = 40
+MAIN_FLOORS = [("LG", "Lower Ground", -1), ("GF", "Ground Floor", 0), ("2F", "2nd Floor", 1),
+               ("3F", "3rd Floor", 2), ("4F", "4th Floor (Cyberzone)", 3)]
+MAIN = dict(depth=110, corridor=56, unit_len=96)       # ~16 m deep stores, ~8 m walkways, ~10 m frontages
+ANNEX = dict(depth=62, corridor=40, unit_len=80)
+CROSSES = [(0.26, 58, "atrium"), (0.5, 26, "lift"), (0.74, 58, "atrium")]
+MITRE = dict(join_style="mitre", mitre_limit=3.0)
+NODE_STEP = 30
+# Stores that span several storefronts, and where they go.
+PERIMETER_ANCHORS = {"SM Supermarket": 9, "The SM Store": 7, "SM Appliance Center": 5, "H&M": 2, "Uniqlo": 2}
+ISLAND_ANCHORS = {"SM Makati Foodcourt"}
 
 
 def project(latlon, angle=None):
@@ -152,200 +157,368 @@ def project(latlon, angle=None):
     return [(x * c - y * s, x * s + y * c) for x, y in pts], angle
 
 
-def fit(pts):
-    minx, maxx = min(p[0] for p in pts), max(p[0] for p in pts)
-    miny, maxy = min(p[1] for p in pts), max(p[1] for p in pts)
-    k = (WIDTH - 2 * MARGIN) / (maxx - minx)
-    out = [(round((x - minx) * k + MARGIN, 1), round((y - miny) * k + MARGIN, 1)) for x, y in pts]
-    return out, round((maxy - miny) * k + 2 * MARGIN), 1 / k
+def portrait_px(pts_m):
+    """Meters with the long axis horizontal -> pixels with the long axis vertical (fits phones)."""
+    rot = [(-y, x) for x, y in pts_m]
+    minx, miny = min(p[0] for p in rot), min(p[1] for p in rot)
+    out = [(round((x - minx) / M_PER_PX + MARGIN, 1), round((y - miny) / M_PER_PX + MARGIN, 1)) for x, y in rot]
+    w = max(p[0] for p in out) + MARGIN
+    h = max(p[1] for p in out) + MARGIN
+    return out, round(w), round(h), (minx, miny)
 
 
-def inside(poly, x, y) -> bool:
-    hit = False
-    for (x1, y1), (x2, y2) in zip(poly, poly[1:] + poly[:1]):
-        if (y1 > y) != (y2 > y) and x < (x2 - x1) * (y - y1) / (y2 - y1) + x1:
-            hit = not hit
-    return hit
+def largest(g):
+    if g is None or g.is_empty:
+        return None
+    if g.geom_type == "Polygon":
+        return g
+    polys = [p for p in getattr(g, "geoms", []) if p.geom_type == "Polygon"]
+    return max(polys, key=lambda p: p.area) if polys else None
 
 
-def rect_inside(poly, x, y, w, h) -> bool:
-    xs = (x + 2, x + w / 2, x + w - 2)
-    ys = (y + 2, y + h / 2, y + h - 2)
-    return all(inside(poly, px, py) for px in xs for py in ys)
+def coords(poly, tol=0.6):
+    return [[round(x, 1), round(y, 1)] for x, y in poly.simplify(tol).exterior.coords[:-1]]
 
 
-CORRIDOR_HALF = 34      # corridor is 68 px wide
-ATRIUM_HALF_W = 66
-ATRIUM_HALF_H = 96
-LIFT_HALF_W = 32
-UNIT_W = 68
-UNIT_GAP = 3
-NODE_STEP = 60
-MAX_DEPTH = 150
-MIN_DEPTH = 44
-WALL_GAP = 8
+def svg_path(geom):
+    """Polygon/MultiPolygon (with holes) as an SVG path; render with fill-rule evenodd."""
+    polys = [geom] if geom.geom_type == "Polygon" else list(geom.geoms)
+    parts = []
+    for p in polys:
+        for ring in [p.exterior, *p.interiors]:
+            pts = list(ring.simplify(0.6).coords)[:-1]
+            parts.append("M" + "L".join(f"{x:.1f} {y:.1f}" for x, y in pts) + "Z")
+    return "".join(parts)
 
 
-class MallFloor:
-    """One floor: a long corridor with storefront units on both sides, escalator atriums, a lift lobby."""
+class Unit:
+    def __init__(self, poly, door, zone, pos, island=None):
+        self.poly, self.door, self.zone, self.pos, self.island = poly, door, zone, pos, island
 
-    def __init__(self, fid: str, poly, height: int, atria=(0.28, 0.72), lift=0.5):
-        self.fid, self.poly = fid, poly
-        self.nodes: list[dict] = []
-        self.edges: list[list[str]] = []
-        self.mid = self._spine_y(height)
-        self.x0, self.x1 = self._spine_extent()
-        span = self.x1 - self.x0
-        xs = [self.x0 + 20 + i * NODE_STEP for i in range(int((span - 40) // NODE_STEP) + 1)]
-        self.spine = [self._node(f"c{i}", x, self.mid) for i, x in enumerate(xs)]
-        for a, b in zip(self.spine, self.spine[1:]):
-            self.edges.append([a, b])
-        self.atria = [self._snap(self.x0 + f * span) for f in atria] if atria else []
-        self.lift_x = self._snap(self.x0 + lift * span)
-        self.walkways = [[self.x0, self.mid - CORRIDOR_HALF, span, 2 * CORRIDOR_HALF]]
-        self.atrium_rects = []
-        for ax in self.atria:
-            r = [ax - ATRIUM_HALF_W, self.mid - ATRIUM_HALF_H, 2 * ATRIUM_HALF_W, 2 * ATRIUM_HALF_H]
-            self.walkways.append(r)
-            self.atrium_rects.append(r)
-        self.lift_rect = [self.lift_x - LIFT_HALF_W, self.mid - CORRIDOR_HALF - 44, 2 * LIFT_HALF_W, 46]
-        self.walkways.append(self.lift_rect)
-        self.units = {-1: self._row(-1), 1: self._row(1)}
 
-    def _spine_y(self, height) -> float:
-        best, best_y = -1, height / 2
-        for y in range(MARGIN + 80, height - MARGIN - 80, 4):
-            count = sum(1 for x in range(MARGIN, WIDTH - MARGIN, 8) if inside(self.poly, x, y))
-            room = sum(1 for x in range(MARGIN, WIDTH - MARGIN, 8)
-                       if inside(self.poly, x, y - 110) and inside(self.poly, x, y + 110))
-            score = count + room
-            if score > best:
-                best, best_y = score, y
-        return best_y
+class Plan:
+    """A floor laid out from the building outline: storefronts along every exterior wall, a walkway loop
+    following the outline, and (if there is room) a core with cross walkways, atria and island stores."""
 
-    def _spine_extent(self):
-        run, best, start = 0, (0, 0, 0), None
-        for x in range(0, WIDTH + 1, 4):
-            ok = all(inside(self.poly, x, self.mid + d) for d in (-CORRIDOR_HALF, 0, CORRIDOR_HALF))
-            if ok:
-                start = x if start is None else start
-                if x - start > best[0]:
-                    best = (x - start, start, x)
-            else:
-                start = None
-        return best[1] + 6, best[2] - 6
+    def __init__(self, fid, outline, depth, corridor, unit_len, crosses=(), entrances=()):
+        self.fid = fid
+        self.B = B = Polygon(outline).buffer(0)
+        self.corridor = corridor
+        ring_out = largest(B.buffer(-depth, **MITRE))
+        core = largest(ring_out.buffer(-corridor, **MITRE))
+        self.core = core if core is not None and core.area > 6000 else None
+        self.ring_out = ring_out
+        walk = ring_out if self.core is None else ring_out.difference(self.core)
+        # Cross walkways through the core: atria with escalators, and a lift lobby.
+        self.crosses = []
+        islands = []
+        if self.core is not None:
+            minx, miny, maxx, maxy = self.core.bounds
+            center = largest(ring_out.buffer(-corridor / 2, **MITRE))
+            for frac, half, kind in crosses:
+                y = miny + frac * (maxy - miny)
+                cut = box(minx - 60, y - half, maxx + 60, y + half)
+                band = cut.intersection(self.core)
+                line = LineString([(B.bounds[0] - 50, y), (B.bounds[2] + 50, y)]).intersection(center)
+                if line.geom_type != "LineString":
+                    line = max(line.geoms, key=lambda g: g.length)
+                self.crosses.append({"y": y, "half": half, "kind": kind, "band": band, "cut": cut, "line": line})
+                walk = walk.union(band)
+            rest = self.core.difference(unary_union([c["cut"] for c in self.crosses]))
+            islands = [g for g in getattr(rest, "geoms", [rest]) if g.area > 2500]
+            self.center_line = center.exterior
+        else:
+            minx, miny, maxx, maxy = ring_out.bounds
+            spine = LineString([((minx + maxx) / 2, miny - 20), ((minx + maxx) / 2, maxy + 20)]).intersection(ring_out)
+            self.center_line = spine if spine.geom_type == "LineString" else max(spine.geoms, key=lambda g: g.length)
+        perimeter = B.difference(ring_out)
+        # Entrances cut through the storefront band to the outside.
+        self.entrances = []
+        strips = []
+        for name, target in entrances:
+            pb = nearest_points(B.exterior, Point(target))[0]
+            pr = nearest_points(ring_out.exterior, pb)[0]
+            dx, dy = pb.x - pr.x, pb.y - pr.y
+            n = math.hypot(dx, dy) or 1
+            ux, uy = dx / n, dy / n
+            strip = LineString([(pr.x - ux * 6, pr.y - uy * 6), (pb.x + ux * 30, pb.y + uy * 30)]).buffer(corridor / 2, cap_style="flat")
+            strips.append(strip)
+            perimeter = perimeter.difference(strip)
+            walk = walk.union(strip.intersection(B))
+            self.entrances.append((name, (pb.x - ux * 14, pb.y - uy * 14)))
+        self.walk = walk
+        # Storefront units: Voronoi cells around frontage points along each walkway edge.
+        self.units: list[Unit] = []
+        edge = ring_out.exterior
+        count = max(4, int(edge.length // unit_len))
+        seeds = []
+        for i in range(count):
+            d = i * edge.length / count
+            p = edge.interpolate(d)
+            if not any(st.buffer(8).contains(p) for st in strips):
+                seeds.append((d, p))
+        for d, p, cell in self._cells(seeds, perimeter):
+            self.units.append(Unit(cell, (p.x, p.y), "perimeter", d))
+        for k, isl in enumerate(islands):
+            self.units += self._island_units(isl, k, unit_len)
+        self.islands = islands
+        # Space no storefront covered (corners, slivers) becomes plain unnamed storefront, never a hole.
+        covered = unary_union([u.poly for u in self.units])
+        spare = perimeter.union(unary_union(islands)) if islands else perimeter
+        leftover = spare.difference(covered.buffer(0.3))
+        self.leftovers = [g for g in getattr(leftover, "geoms", [leftover]) if g.geom_type == "Polygon" and g.area > 150]
 
-    def _snap(self, x) -> float:
-        return min((self._xy(n)[0] for n in self.spine), key=lambda sx: abs(sx - x))
-
-    def _node(self, suffix, x, y) -> str:
-        nid = f"{self.fid}-{suffix}"
-        self.nodes.append({"id": nid, "floor": self.fid, "x": round(x, 1), "y": round(y, 1)})
-        return nid
-
-    def _xy(self, nid):
-        n = next(n for n in self.nodes if n["id"] == nid)
-        return n["x"], n["y"]
-
-    def nearest_spine(self, x) -> str:
-        return min(self.spine, key=lambda n: abs(self._xy(n)[0] - x))
-
-    def add_point(self, suffix, x, y) -> str:
-        nid = self._node(suffix, x, y)
-        self.edges.append([self.nearest_spine(x), nid])
-        return nid
-
-    def _blocked(self, side: int) -> list[tuple[float, float]]:
-        blocks = [(ax - ATRIUM_HALF_W, ax + ATRIUM_HALF_W) for ax in self.atria]
-        if side < 0:
-            blocks.append((self.lift_x - LIFT_HALF_W - 2, self.lift_x + LIFT_HALF_W + 2))
-        return sorted(blocks)
-
-    def _wall(self, x: float, side: int, edge: float | None = None) -> float:
-        """Distance from a frontage line to the building wall, straight out at column x."""
-        edge = self.mid + side * CORRIDOR_HALF if edge is None else edge
-        d = 0
-        while d < MAX_DEPTH + 40 and inside(self.poly, x, edge + side * (d + 3)):
-            d += 3
-        return d
-
-    def _units_between(self, a: float, b: float, side: int, edge: float, n: int | None = None):
-        length = b - a
-        if length < UNIT_W * 0.6:
-            return []
-        n = n or max(1, round(length / UNIT_W))
-        w = (length - (n - 1) * UNIT_GAP) / n
+    def _island_units(self, isl, k, unit_len):
+        """Rectangular storefronts in a core island: columns across, and back-to-back rows when deep enough,
+        each opening onto the walkway above or below it."""
+        minx, miny, maxx, maxy = isl.bounds
+        cols = max(1, round((maxx - minx) / unit_len))
+        rows = 2 if maxy - miny > 110 else 1
         out = []
-        for i in range(n):
-            ux = a + i * (w + UNIT_GAP)
-            depth = min(self._wall(cx, side, edge) for cx in (ux + 4, ux + w / 2, ux + w - 4)) - WALL_GAP
-            depth = min(depth, MAX_DEPTH)
-            if depth >= MIN_DEPTH:
-                y = edge - depth if side < 0 else edge
-                out.append([round(ux, 1), round(y, 1), round(w, 1), round(depth, 1)])
+        for c in range(cols):
+            x0 = minx + c * (maxx - minx) / cols
+            x1 = minx + (c + 1) * (maxx - minx) / cols
+            for r in range(rows):
+                y0 = miny + r * (maxy - miny) / rows
+                y1 = miny + (r + 1) * (maxy - miny) / rows
+                piece = largest(isl.intersection(box(x0, y0, x1, y1)))
+                if piece is None or piece.area < 700 or piece.buffer(-8).is_empty:
+                    continue
+                door_y = y0 if r == 0 else y1
+                door = nearest_points(piece.exterior, Point((x0 + x1) / 2, door_y))[0]
+                out.append(Unit(piece, (door.x, door.y), "island", c * rows + r, island=k))
         return out
 
-    def _row(self, side: int) -> list[list[float]]:
-        """Storefronts along one side: units lining the corridor between atria and the lift, plus
-        units ringing each atrium. Each reaches back toward the building wall."""
-        corridor_edge = self.mid + side * CORRIDOR_HALF
-        atrium_edge = self.mid + side * ATRIUM_HALF_H
-        units, x = [], self.x0
-        for a, b in self._blocked(side):
-            units += self._units_between(x, a - UNIT_GAP, side, corridor_edge)
-            if any(abs((a + b) / 2 - ax) < 1 for ax in self.atria):
-                units += self._units_between(a, b, side, atrium_edge, n=2)
-            x = max(x, b + UNIT_GAP)
-        units += self._units_between(x, self.x1, side, corridor_edge)
-        return sorted(units, key=lambda u: u[0])
-
-    def _in_atrium_band(self, x) -> bool:
-        return any(abs(x - ax) < ATRIUM_HALF_W for ax in self.atria)
-
-    def runs(self, side: int) -> list[list[list[float]]]:
-        """Group a row's units into runs of physically adjacent storefronts."""
-        out: list[list[list[float]]] = []
-        for u in self.units[side]:
-            prev = out[-1][-1] if out else None
-            same_frontage = prev is not None and abs(frontage(prev, side) - frontage(u, side)) < 1
-            if prev and same_frontage and abs(prev[0] + prev[2] + UNIT_GAP - u[0]) < 1.5:
-                out[-1].append(u)
-            else:
-                out.append([u])
+    def _cells(self, seeds, region):
+        if not seeds:
+            return []
+        if len(seeds) == 1:
+            return [(seeds[0][0], seeds[0][1], region)]
+        vor = voronoi_diagram(MultiPoint([p for _, p in seeds]), envelope=self.B.envelope.buffer(600))
+        out = []
+        for d, p in seeds:
+            cell = next((c for c in vor.geoms if c.buffer(0.01).contains(p)), None)
+            piece = largest(cell.intersection(region)) if cell is not None else None
+            if piece is not None and piece.area > 700 and not piece.buffer(-8).is_empty:  # skip slivers
+                out.append((d, p, piece))
         return out
 
 
-def frontage(u: list[float], side: int) -> float:
-    """The y of the storefront's open side (the edge facing the walkway)."""
-    return u[1] if side > 0 else u[1] + u[3]
+class Graph:
+    def __init__(self, fid):
+        self.fid = fid
+        self.nodes: dict[str, tuple[float, float]] = {}
+        self.edges: list[list[str]] = []
+
+    def add(self, suffix, xy):
+        nid = f"{self.fid}-{suffix}"
+        self.nodes[nid] = (round(xy[0], 1), round(xy[1], 1))
+        return nid
+
+    def link(self, a, b):
+        self.edges.append([a, b])
+
+    def nearest(self, xy, among):
+        return min(among, key=lambda n: math.dist(self.nodes[n], xy))
 
 
-def merge(units: list[list[float]], side: int) -> list[float]:
-    x = units[0][0]
-    w = units[-1][0] + units[-1][2] - x
-    depth = min(u[3] for u in units)
-    y = units[0][1] if side > 0 else units[0][1] + units[0][3] - depth
-    return [x, y, w, depth]
+def sample(line, step):
+    n = max(1, int(line.length // step))
+    return [line.interpolate(i * line.length / n) for i in range(n + (0 if line.is_ring else 1))]
 
 
-def allocate(floor: MallFloor, rows: list[tuple]) -> tuple[list[tuple], list[list[float]]]:
-    """Give each store adjacent units (anchors get several); leftover units become unnamed storefronts."""
-    runs = [(side, run) for side in (-1, 1) for run in floor.runs(side)]
-    free = [(side, list(run)) for side, run in runs]
+def build_graph(plan: Plan) -> tuple[Graph, list[str], dict]:
+    g = Graph(plan.fid)
+    walk_nodes = []
+    ring_pts = sample(plan.center_line, NODE_STEP)
+    ring = [g.add(f"w{i}", (p.x, p.y)) for i, p in enumerate(ring_pts)]
+    for a, b in zip(ring, ring[1:]):
+        g.link(a, b)
+    if plan.center_line.is_ring and len(ring) > 2:
+        g.link(ring[-1], ring[0])
+    walk_nodes += ring
+    special = {}
+    for k, c in enumerate(plan.crosses):
+        pts = sample(c["line"], NODE_STEP)
+        ids = [g.add(f"x{k}-{j}", (p.x, p.y)) for j, p in enumerate(pts)]
+        for a, b in zip(ids, ids[1:]):
+            g.link(a, b)
+        g.link(ids[0], g.nearest(g.nodes[ids[0]], ring))
+        g.link(ids[-1], g.nearest(g.nodes[ids[-1]], ring))
+        walk_nodes += ids
+        cx = (c["line"].bounds[0] + c["line"].bounds[2]) / 2
+        if c["kind"] == "atrium":
+            up = g.add(f"esc{k}-up", (cx - 30, c["y"]))
+            dn = g.add(f"esc{k}-dn", (cx + 30, c["y"]))
+            g.link(up, g.nearest(g.nodes[up], ids))
+            g.link(dn, g.nearest(g.nodes[dn], ids))
+            special.setdefault("atria", []).append((k, up, dn, cx, c))
+        else:
+            lift = g.add("lift", (cx, c["y"]))
+            g.link(lift, g.nearest(g.nodes[lift], ids))
+            special["lift"] = lift
+    for name, xy in plan.entrances:
+        e = g.add(f"entrance-{name}", xy)
+        g.link(e, g.nearest(xy, walk_nodes))
+        special.setdefault("entrances", {})[name] = e
+    return g, walk_nodes, special
+
+
+def label_for(poly):
+    p = polylabel(poly, tolerance=1.0)
+    r = poly.exterior.distance(p)
+    minx, _, maxx, _ = poly.bounds
+    return [round(p.x, 1), round(p.y, 1), round(min(maxx - minx - 8, max(40.0, 2.6 * r)), 1)]
+
+
+def allocate(plan: Plan, rows, lift_xy):
+    """Assign stores to storefront units. Anchors take several adjacent units; the foodcourt takes an island."""
+    perim = sorted([u for u in plan.units if u.zone == "perimeter"], key=lambda u: u.pos)
+    island_units = [u for u in plan.units if u.zone == "island"]
+    used: set[int] = set()
     placed = []
-    ordered = sorted(rows, key=lambda r: -UNITS.get(r[0], 1))
-    for row in ordered:
-        need = UNITS.get(row[0], 1)
-        options = [(i, side, run) for i, (side, run) in enumerate(free) if len(run) >= need]
-        if not options:
-            sys.exit(f"{floor.fid}: no room for {row[0]} ({need} units)")
-        # Spread stores out: take from the run with the most free units, preferring the north row for anchors.
-        i, side, run = max(options, key=lambda o: (len(o[2]), -o[1] if need > 1 else 0))
-        take, rest = run[:need], run[need:]
-        free[i] = (side, rest)
-        placed.append((row, merge(take, side), side))
-    blanks = [u for _, run in free for u in run]
+    spacing = (plan.ring_out.exterior.length / max(1, len(perim))) * 1.6
+
+    def adjacent_run(k):
+        best = None
+        for i in range(len(perim)):
+            run = [perim[(i + j) % len(perim)] for j in range(k)]
+            if any(id(u) in used for u in run):
+                continue
+            gaps = [((run[j + 1].pos - run[j].pos) % plan.ring_out.exterior.length) for j in range(k - 1)]
+            if any(gp > spacing for gp in gaps):
+                continue
+            area = sum(u.poly.area for u in run)
+            if best is None or area > best[0]:
+                best = (area, run)
+        return best[1] if best else None
+
+    for row in sorted([r for r in rows if r[0] in PERIMETER_ANCHORS], key=lambda r: -PERIMETER_ANCHORS[r[0]]):
+        run = adjacent_run(PERIMETER_ANCHORS[row[0]]) or adjacent_run(1)
+        used.update(id(u) for u in run)
+        placed.append((row, run))
+    for row in [r for r in rows if r[0] in ISLAND_ANCHORS]:
+        best_island = max(range(len(plan.islands)), key=lambda k: plan.islands[k].area)
+        run = [u for u in island_units if u.island == best_island and id(u) not in used]
+        used.update(id(u) for u in run)
+        placed.append((row, run))
+    for row in [r for r in rows if r[0] == "Restrooms"]:
+        pool = [u for u in island_units if id(u) not in used] or [u for u in perim if id(u) not in used]
+        u = min(pool, key=lambda u: math.dist(u.door, lift_xy) if lift_xy else u.poly.area)
+        used.add(id(u))
+        placed.append((row, [u]))
+    rest = [r for r in rows if r[0] not in PERIMETER_ANCHORS and r[0] not in ISLAND_ANCHORS and r[0] != "Restrooms"]
+    free = [u for u in perim + island_units if id(u) not in used]
+    if len(rest) > len(free):
+        sys.exit(f"{plan.fid}: {len(rest)} stores but only {len(free)} free storefronts")
+    picks = [free[int(i * len(free) / len(rest))] for i in range(len(rest))] if rest else []
+    for row, u in zip(rest, picks):
+        used.add(id(u))
+        placed.append((row, [u]))
+    blanks = [u for u in plan.units if id(u) not in used]
     return placed, blanks
+
+
+def build() -> dict:
+    main_m, angle = project(MAIN_LATLON)
+    annex_m, _ = project(ANNEX_LATLON, angle)
+    main_px, main_w, main_h, _ = portrait_px(main_m)
+    annex_px, annex_w, annex_h, _ = portrait_px(annex_m)
+    # Where the annex sits relative to the main building, in the main building's frame.
+    rot_main = [(-y, x) for x, y in main_m]
+    rot_annex = [(-y, x) for x, y in annex_m]
+    mminx, mminy = min(p[0] for p in rot_main), min(p[1] for p in rot_main)
+    acx = sum(p[0] for p in rot_annex) / len(rot_annex)
+    acy = sum(p[1] for p in rot_annex) / len(rot_annex)
+    annex_dir_px = ((acx - mminx) / M_PER_PX + MARGIN, (acy - mminy) / M_PER_PX + MARGIN)
+
+    floors, nodes, edges, places, connectors = [], [], [], [], []
+    plans, graphs, specials = {}, {}, {}
+    main_poly = Polygon(main_px)
+    far_end = (main_poly.centroid.x * 2 - annex_dir_px[0], main_poly.centroid.y * 2 - annex_dir_px[1])
+    for fid, name, level in MAIN_FLOORS:
+        entrances = [("main", far_end), ("annex", annex_dir_px)] if fid == "GF" else []
+        plans[fid] = Plan(fid, main_px, crosses=CROSSES, entrances=entrances, **MAIN)
+    annex_poly = Polygon(annex_px)
+    plans["AX"] = Plan("AX", annex_px, entrances=[("main", (annex_poly.centroid.x, 0))], **ANNEX)
+    for fid, plan in plans.items():
+        graphs[fid], _, specials[fid] = build_graph(plan)
+
+    # Vertical connectors: escalators in both atria (up and down), one elevator.
+    order = [f for f, _, _ in MAIN_FLOORS]
+    atria = {fid: specials[fid]["atria"] for fid in order}
+    for idx, letter in ((0, "A"), (1, "B")):
+        connectors.append({"id": f"esc-{letter.lower()}-up", "name": f"Escalator {letter}", "kind": "escalator",
+                           "direction": "up", "stops": [atria[f][idx][1] for f in order]})
+        connectors.append({"id": f"esc-{letter.lower()}-down", "name": f"Escalator {letter}", "kind": "escalator",
+                           "direction": "down", "stops": [atria[f][idx][2] for f in reversed(order)]})
+    connectors.append({"id": "elev-1", "name": "Elevator", "kind": "elevator", "direction": "both",
+                       "stops": [specials[f]["lift"] for f in order]})
+    connectors.append({"id": "walk-annex", "name": "Annex Walkway", "kind": "bridge", "direction": "both",
+                       "stops": [specials["GF"]["entrances"]["annex"], specials["AX"]["entrances"]["main"]], "seconds": 60})
+
+    by_floor = {f: [("Restrooms", f, "restroom", [], None, False)] for f in plans}
+    for row in STORES:
+        by_floor[row[1]].append(row)
+    used_ids: set[str] = set()
+    for fid, plan in plans.items():
+        g = graphs[fid]
+        lift = specials[fid].get("lift")
+        lift_xy = g.nodes[lift] if lift else None
+        placed, blanks = allocate(plan, by_floor[fid], lift_xy)
+        walk_nodes = [n for n in g.nodes if "-w" in n or "-x" in n]
+        for k, ((name, _, cat, extra, minutes, fictional), units) in enumerate(placed):
+            poly = largest(unary_union([u.poly for u in units]).buffer(0.5).buffer(-0.5)) or max((u.poly for u in units), key=lambda q: q.area)
+            door_xy = units[len(units) // 2].door
+            door = g.add(f"d{k}", door_xy)
+            g.link(door, g.nearest(door_xy, walk_nodes))
+            pid = slug(name, fid)
+            while pid in used_ids:
+                pid += "-2"
+            used_ids.add(pid)
+            minx, miny, maxx, maxy = poly.bounds
+            place = {"id": pid, "name": name, "floor": fid,
+                     "rect": [round(minx, 1), round(miny, 1), round(maxx - minx, 1), round(maxy - miny, 1)],
+                     "shape": coords(poly), "label": label_for(poly), "node": door,
+                     "category": cat, "tags": CATEGORY_TAGS[cat] + extra}
+            if minutes:
+                place["service"] = {"duration_min": minutes}
+            if fictional:
+                place["fictional"] = True
+            places.append(place)
+        rails = []
+        for _, up, dn, cx, c in specials[fid].get("atria", []):
+            rail = box(cx - 62, c["y"] - c["half"] + 14, cx + 62, c["y"] + c["half"] - 14)
+            rails.append(coords(rail))
+        poly_px, w, h = (annex_px, annex_w, annex_h) if fid == "AX" else (main_px, main_w, main_h)
+        name = "Annex" if fid == "AX" else next(n for f, n, _ in MAIN_FLOORS if f == fid)
+        level = 0 if fid == "AX" else next(lv for f, _, lv in MAIN_FLOORS if f == fid)
+        floors.append({"id": fid, "name": name, "level": level, "width": w, "height": h,
+                       "scale_m_per_px": M_PER_PX, "outline": [list(p) for p in poly_px],
+                       "walk_path": svg_path(plan.walk), "atria": rails,
+                       "blanks": [coords(u.poly) for u in blanks] + [coords(g) for g in plan.leftovers]})
+        nodes += [{"id": n, "floor": fid, "x": x, "y": y} for n, (x, y) in g.nodes.items()]
+        edges += g.edges
+
+    def node_of(pid):
+        return next(p["node"] for p in places if p["id"] == pid)
+
+    anchors = [
+        {"id": "gf-mrt-entrance", "label": "Ground Floor, main entrance", "floor": "GF",
+         "node": specials["GF"]["entrances"]["main"], "heading_deg": 0},
+        {"id": "lg-supermarket", "label": "Lower Ground, SM Supermarket", "floor": "LG", "node": node_of("sm-supermarket-lg"), "heading_deg": 0},
+        {"id": "2f-escalator-a", "label": "2nd Floor, Escalator A", "floor": "2F", "node": connectors[0]["stops"][2], "heading_deg": 0},
+        {"id": "3f-foodcourt", "label": "3rd Floor, Foodcourt", "floor": "3F", "node": node_of("sm-makati-foodcourt-3f"), "heading_deg": 0},
+        {"id": "4f-cyberzone-entrance", "label": "Cyberzone, 4th Floor escalators", "floor": "4F", "node": connectors[0]["stops"][4], "heading_deg": 0},
+        {"id": "ax-entrance", "label": "Annex entrance", "floor": "AX", "node": specials["AX"]["entrances"]["main"], "heading_deg": 0},
+    ]
+    return {
+        "mall": {"id": "sm-makati", "name": "SM Makati",
+                 "note": "Store names from public listings. Layout reconstructed for this demo."},
+        "floors": floors, "nodes": nodes, "edges": edges, "connectors": connectors, "places": places,
+        "category_defaults": {k: {"duration_min": d, "async": a} for k, (d, a) in CATEGORY_DEFAULTS.items()},
+        "anchors": anchors,
+    }
 
 
 def slug(name: str, floor: str) -> str:
@@ -355,143 +528,19 @@ def slug(name: str, floor: str) -> str:
     return f"{base}-{floor.lower()}"
 
 
-def build() -> dict:
-    main_raw, angle = project(MAIN_LATLON)
-    annex_raw, _ = project(ANNEX_LATLON, angle)
-    main_poly, main_h, main_scale = fit(main_raw)
-    annex_poly, annex_h, annex_scale = fit(annex_raw)
-
-    floors, nodes, edges, places, connectors = [], [], [], [], []
-    layouts: dict[str, MallFloor] = {}
-    for fid, name, level in MAIN_FLOORS:
-        layouts[fid] = MallFloor(fid, main_poly, main_h)
-    layouts["AX"] = MallFloor("AX", annex_poly, annex_h, atria=(), lift=0.5)
-
-    # Escalators sit in the two atria (A west, B east): up on the north side, down on the south side.
-    stops = {k: {} for k in ("a_up", "a_dn", "b_up", "b_dn", "lift")}
-    for fid, _, _ in MAIN_FLOORS:
-        lay = layouts[fid]
-        ax, bx = lay.atria
-        stops["a_up"][fid] = lay.add_point("esc-a-up", ax, lay.mid - 64)
-        stops["a_dn"][fid] = lay.add_point("esc-a-dn", ax, lay.mid + 64)
-        stops["b_up"][fid] = lay.add_point("esc-b-up", bx, lay.mid - 64)
-        stops["b_dn"][fid] = lay.add_point("esc-b-dn", bx, lay.mid + 64)
-        stops["lift"][fid] = lay.add_point("lift", lay.lift_x, lay.mid - CORRIDOR_HALF - 22)
-    order = [f for f, _, _ in MAIN_FLOORS]
-    connectors += [
-        {"id": "esc-a-up", "name": "Escalator A", "kind": "escalator", "direction": "up",
-         "stops": [stops["a_up"][f] for f in order]},
-        {"id": "esc-a-down", "name": "Escalator A", "kind": "escalator", "direction": "down",
-         "stops": [stops["a_dn"][f] for f in reversed(order)]},
-        {"id": "esc-b-up", "name": "Escalator B", "kind": "escalator", "direction": "up",
-         "stops": [stops["b_up"][f] for f in order]},
-        {"id": "esc-b-down", "name": "Escalator B", "kind": "escalator", "direction": "down",
-         "stops": [stops["b_dn"][f] for f in reversed(order)]},
-        {"id": "elev-1", "name": "Elevator", "kind": "elevator", "direction": "both",
-         "stops": [stops["lift"][f] for f in order]},
-    ]
-    # Annex walkway from the GF corridor end nearest the annex.
-    annex_cx = sum(p[0] for p in annex_raw) / len(annex_raw)
-    main_cx = sum(p[0] for p in main_raw) / len(main_raw)
-    gf, ax_lay = layouts["GF"], layouts["AX"]
-    gf_end = gf.spine[-1] if annex_cx > main_cx else gf.spine[0]
-    ax_end = ax_lay.spine[0] if annex_cx > main_cx else ax_lay.spine[-1]
-    gx, gy = gf._xy(gf_end)
-    gf_br = gf.add_point("walk-annex", gx + (14 if annex_cx > main_cx else -14), gy)
-    hx, hy = ax_lay._xy(ax_end)
-    ax_br = ax_lay.add_point("walk-main", hx + (-14 if annex_cx > main_cx else 14), hy)
-    connectors.append({"id": "walk-annex", "name": "Annex Walkway", "kind": "bridge", "direction": "both",
-                       "stops": [gf_br, ax_br], "seconds": 60})
-
-    by_floor: dict[str, list] = {f: [("Restrooms", f, "restroom", [], None, False)] for f in layouts}
-    for row in STORES:
-        by_floor[row[1]].append(row)
-    used: set[str] = set()
-    for fid, rows in by_floor.items():
-        lay = layouts[fid]
-        placed, blanks = allocate(lay, rows)
-        for k, ((name, _, cat, extra, minutes, fictional), rect, side) in enumerate(placed):
-            pid = slug(name, fid)
-            while pid in used:
-                pid += "-2"
-            used.add(pid)
-            door_x = rect[0] + rect[2] / 2
-            door_y = lay.mid + side * (CORRIDOR_HALF - 6)
-            door = lay.add_point(f"door{k}", door_x, door_y)
-            place = {"id": pid, "name": name, "floor": fid, "rect": rect, "node": door,
-                     "category": cat, "tags": CATEGORY_TAGS[cat] + extra}
-            if minutes:
-                place["service"] = {"duration_min": minutes}
-            if fictional:
-                place["fictional"] = True
-            places.append(place)
-        poly, h, scale = (annex_poly, annex_h, annex_scale) if fid == "AX" else (main_poly, main_h, main_scale)
-        name = "Annex" if fid == "AX" else next(n for f, n, _ in MAIN_FLOORS if f == fid)
-        level = 0 if fid == "AX" else next(lv for f, _, lv in MAIN_FLOORS if f == fid)
-        floors.append({"id": fid, "name": name, "level": level, "width": WIDTH, "height": h,
-                       "scale_m_per_px": round(scale, 4), "outline": [list(p) for p in poly],
-                       "walkways": lay.walkways, "atria": lay.atrium_rects, "blanks": blanks})
-        nodes += lay.nodes
-        edges += lay.edges
-
-    def node_of(pid):
-        return next(p["node"] for p in places if p["id"] == pid)
-
-    gf_east = max(gf.spine, key=lambda n: gf._xy(n)[0])
-    anchors = [
-        {"id": "gf-mrt-entrance", "label": "Ground Floor, Ayala MRT entrance", "floor": "GF", "node": gf_east, "heading_deg": 270},
-        {"id": "lg-supermarket", "label": "Lower Ground, SM Supermarket", "floor": "LG", "node": node_of("sm-supermarket-lg"), "heading_deg": 0},
-        {"id": "2f-escalator-a", "label": "2nd Floor, Escalator A", "floor": "2F", "node": stops["a_up"]["2F"], "heading_deg": 90},
-        {"id": "3f-foodcourt", "label": "3rd Floor, Foodcourt", "floor": "3F", "node": node_of("sm-makati-foodcourt-3f"), "heading_deg": 0},
-        {"id": "4f-cyberzone-entrance", "label": "Cyberzone entrance, 4th Floor", "floor": "4F", "node": stops["a_up"]["4F"], "heading_deg": 90},
-        {"id": "ax-entrance", "label": "Annex entrance", "floor": "AX", "node": ax_br, "heading_deg": 90},
-    ]
-    return portrait({
-        "mall": {"id": "sm-makati", "name": "SM Makati",
-                 "note": "Store names from public listings. Layout reconstructed for this demo."},
-        "floors": floors, "nodes": nodes, "edges": edges, "connectors": connectors, "places": places,
-        "category_defaults": {k: {"duration_min": d, "async": a} for k, (d, a) in CATEGORY_DEFAULTS.items()},
-        "anchors": anchors,
-    })
-
-
-def portrait(data: dict) -> dict:
-    """Turn every floor 90 degrees so the long walkway runs top to bottom, which fits phone screens
-    and makes storefronts wide enough for their names."""
-    heights = {f["id"]: f["height"] for f in data["floors"]}
-
-    def pt(fid, x, y):
-        return [round(heights[fid] - y, 1), round(x, 1)]
-
-    def rect(fid, r):
-        x, y, w, h = r
-        return [round(heights[fid] - y - h, 1), round(x, 1), h, w]
-
-    for f in data["floors"]:
-        fid = f["id"]
-        f["outline"] = [pt(fid, x, y) for x, y in f["outline"]]
-        for key in ("walkways", "atria", "blanks"):
-            f[key] = [rect(fid, r) for r in f[key]]
-        f["width"], f["height"] = f["height"], f["width"]
-    for n in data["nodes"]:
-        n["x"], n["y"] = pt(n["floor"], n["x"], n["y"])
-    for p in data["places"]:
-        p["rect"] = rect(p["floor"], p["rect"])
-    return data
-
-
 def main() -> None:
     data = build()
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+    OUT.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     sys.path.insert(0, str(ROOT / "server"))
     from mappy.mall import load_mall
 
     m = load_mall(OUT)
     per_floor = {f: sum(1 for p in m.places.values() if p.floor == f) for f in m.floor_order()}
     blanks = {f["id"]: len(f["blanks"]) for f in data["floors"]}
-    print(f"wrote {OUT.relative_to(ROOT)}: {len(m.places)} places {per_floor}, blank units {blanks}, "
-          f"{len(m.nodes)} nodes, GF {m.floors['GF'].height:.0f}px tall at {m.floors['GF'].scale:.3f} m/px")
+    size_kb = OUT.stat().st_size // 1024
+    print(f"wrote {OUT.relative_to(ROOT)} ({size_kb} KB): {len(m.places)} places {per_floor}, empty storefronts {blanks}, "
+          f"{len(m.nodes)} nodes")
 
 
 if __name__ == "__main__":

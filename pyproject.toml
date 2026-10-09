@@ -18,6 +18,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
+data = ["shapely>=2.0"]  # only for tools/build_sm_makati.py
 
 [build-system]
 requires = ["setuptools>=68"]

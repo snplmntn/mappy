@@ -19,7 +19,6 @@ export const CATEGORY_NAMES = {
   remittance: "Money transfer", courier: "Courier", pet: "Pets", restroom: "Restroom",
 };
 const LABEL_UNITS = 13;
-const LABEL_MIN_PPU = 0.5;
 const MIN_PPU = 0.25;
 const MAX_PPU = 4;
 const TWEEN_MS = 420;
@@ -58,19 +57,27 @@ export function renderFloor(svgEl, floorId, opts = {}) {
   const g = s("g");
   g.append(s("rect", { class: "m-outside", x: -3000, y: -3000, width: floor.width + 6000, height: floor.height + 6000 }));
   g.append(s("polygon", { class: "m-building", points: pts(floor.outline) }));
+  if (floor.walk_path) g.append(s("path", { class: "m-walk", d: floor.walk_path, "fill-rule": "evenodd" }));
   for (const [x, y, w, hh] of floor.walkways || []) g.append(s("rect", { class: "m-walk", x, y, width: w, height: hh, rx: 10 }));
-  for (const [x, y, w, hh] of floor.atria || []) {
-    g.append(s("rect", { class: "m-atrium-rail", x: x + 18, y: y + 18, width: w - 36, height: hh - 36, rx: 14 }));
+  for (const shape of floor.atria || []) {
+    if (Array.isArray(shape[0])) g.append(s("polygon", { class: "m-atrium-rail", points: pts(shape) }));
+    else g.append(s("rect", { class: "m-atrium-rail", x: shape[0] + 18, y: shape[1] + 18, width: shape[2] - 36, height: shape[3] - 36, rx: 14 }));
   }
-  for (const [x, y, w, hh] of floor.blanks || []) g.append(s("rect", { class: "m-unit", x, y, width: w, height: hh, rx: 3 }));
+  for (const shape of floor.blanks || []) {
+    if (Array.isArray(shape[0])) g.append(s("polygon", { class: "m-unit", points: pts(shape) }));
+    else g.append(s("rect", { class: "m-unit", x: shape[0], y: shape[1], width: shape[2], height: shape[3], rx: 3 }));
+  }
   for (const p of mall.places) {
     if (p.floor !== floorId) continue;
     const [x, y, w, hh] = p.rect;
     const cls = `m-shop ${CAT_CLASS[p.category] || "m-other"}${opts.hit === p.id ? " hit" : ""}`;
-    g.append(s("rect", { class: cls, x, y, width: w, height: hh, rx: 3 }));
-    const lines = wrapLabel(p.name, w - 6);
-    const y0 = y + hh / 2 - ((lines.length - 1) * LABEL_UNITS * 1.15) / 2 + LABEL_UNITS * 0.35;
-    lines.forEach((line, i) => g.append(s("text", { class: "m-label", x: x + w / 2, y: y0 + i * LABEL_UNITS * 1.15 }, line)));
+    if (p.shape) g.append(s("polygon", { class: cls, points: pts(p.shape) }));
+    else g.append(s("rect", { class: cls, x, y, width: w, height: hh, rx: 3 }));
+    const [lx, ly, lw] = p.label || [x + w / 2, y + hh / 2, w - 6];
+    const lines = wrapLabel(p.name, lw);
+    const t = s("text", { class: "m-label", x: lx, y: ly, "data-w": lw, "data-chars": Math.max(...lines.map((l) => l.length)) });
+    lines.forEach((line, i) => t.append(s("tspan", { x: lx, dy: i ? "1.15em" : `${-(lines.length - 1) * 0.575}em` }, line)));
+    g.append(t);
   }
   for (const route of opts.otherRoutes || []) {
     if (route.floor === floorId && route.path.length > 1) g.append(s("polyline", { class: "m-route-other", points: pts(route.path) }));
@@ -138,6 +145,17 @@ function insidePlace(p, x, y) {
   return x >= rx && x <= rx + w && y >= ry && y <= ry + hh;
 }
 
+const LABEL_PX = 11;
+const CHAR_PX = 6.3;
+
+/** Keep store names a readable size on screen and hide the ones that would not fit their store. */
+export function fitLabels(svgEl, ppu) {
+  svgEl.style.setProperty("--lbl", `${LABEL_PX / ppu}px`);
+  for (const t of svgEl.querySelectorAll(".m-label")) {
+    t.style.display = Number(t.dataset.w) * ppu >= Number(t.dataset.chars) * CHAR_PX ? "" : "none";
+  }
+}
+
 export function bbox(points, pad = 60, minSize = 240) {
   const xs = points.map((p) => p[0]);
   const ys = points.map((p) => p[1]);
@@ -149,6 +167,7 @@ export function bbox(points, pad = 60, minSize = 240) {
 
 /** The part of a floor people care about: walkways and storefronts, not back-of-house space. */
 function floorContentBox(floor) {
+  if (floor.walk_path) return bbox(floor.outline, 20, 200);
   const rects = [...(floor.walkways || []), ...(floor.blanks || []),
     ...state.mall.places.filter((p) => p.floor === floor.id).map((p) => p.rect)];
   if (!rects.length) return { x: 0, y: 0, w: floor.width, h: floor.height };
@@ -465,7 +484,7 @@ export class Navigator {
     const { x, y, w, h: hh } = this.camera;
     this.svg.setAttribute("viewBox", `${x} ${y} ${w} ${hh}`);
     const ppu = (this.svg.getBoundingClientRect().width || 360) / w;
-    this.svg.classList.toggle("zoom-low", ppu < LABEL_MIN_PPU);
+    fitLabels(this.svg, ppu);
   }
 
   toMap(clientX, clientY) {
@@ -579,5 +598,6 @@ export function miniMap(floorId, candidates, placeIds = []) {
   const box = bbox(points, 70, 360);
   svgEl.setAttribute("viewBox", `${box.x} ${box.y} ${box.w} ${box.h}`);
   svgEl.setAttribute("preserveAspectRatio", "xMidYMid slice");
+  requestAnimationFrame(() => fitLabels(svgEl, (svgEl.getBoundingClientRect().width || 340) / box.w));
   return svgEl;
 }

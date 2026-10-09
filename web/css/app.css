@@ -21,7 +21,7 @@
   --m-wall: #b8bdc6;
   --m-walk: #ffffff;
   --m-rail: #c3c8d0;
-  --m-unit: #dfe2e7;
+  --m-unit: #f7f7f9;
   --m-food: #ffe8d1;
   --m-shop: #e3ebff;
   --m-service: #ddf3e6;
@@ -56,7 +56,7 @@
     --m-wall: #4a4f57;
     --m-walk: #3b3f45;
     --m-rail: #555b64;
-    --m-unit: #33363b;
+    --m-unit: #303338;
     --m-food: #4a3a2a;
     --m-shop: #2d3650;
     --m-service: #29453a;
@@ -237,8 +237,8 @@ svg.icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-w
 .m-food { fill: var(--m-food); } .m-shopping { fill: var(--m-shop); } .m-service { fill: var(--m-service); }
 .m-tech { fill: var(--m-tech); } .m-rest { fill: var(--m-rest); } .m-other { fill: var(--m-other); }
 .m-shop.hit { stroke: var(--blue); stroke-width: 3; }
-.m-label { font-size: var(--lbl, 12px); font-weight: 600; fill: var(--m-label); text-anchor: middle; pointer-events: none; }
-.zoom-low .m-label { display: none; }
+.m-label { font-size: var(--lbl, 12px); font-weight: 600; dominant-baseline: middle; fill: var(--m-label); text-anchor: middle; pointer-events: none; }
+
 .m-conn { fill: #4a4f57; }
 .m-conn-glyph { fill: none; stroke: #fff; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .m-conn-focus { fill: none; stroke: var(--blue); stroke-width: 4; transform-box: fill-box; transform-origin: center; animation: ring 1.6s ease-out infinite; }

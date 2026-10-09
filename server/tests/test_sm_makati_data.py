@@ -23,11 +23,30 @@ def test_elevator_only_reaches_everything():
     assert all(r.seconds(a, p.node) is not None for p in m.places.values())
 
 
+def _inside(poly, x, y):
+    hit = False
+    for (x1, y1), (x2, y2) in zip(poly, poly[1:] + poly[:1]):
+        if (y1 > y) != (y2 > y) and x < (x2 - x1) * (y - y1) / (y2 - y1) + x1:
+            hit = not hit
+    return hit
+
+
 def test_every_floor_has_restroom_and_stores_do_not_overlap():
+    import json
+
     m = load_mall(P)
     assert {p.floor for p in m.places.values() if p.category == "restroom"} == set(m.floors)
-    for f in m.floors:
-        rects = [p.rect for p in m.places.values() if p.floor == f]
-        for i, (x1, y1, w1, h1) in enumerate(rects):
-            for x2, y2, w2, h2 in rects[i + 1:]:
-                assert x1 + w1 <= x2 or x2 + w2 <= x1 or y1 + h1 <= y2 or y2 + h2 <= y1
+    raw = json.loads(P.read_text(encoding="utf-8"))
+    for place in raw["places"]:
+        x, y = place["label"][:2]
+        assert _inside(place["shape"], x, y), place["id"]
+        others = [o for o in raw["places"] if o["floor"] == place["floor"] and o["id"] != place["id"]]
+        assert not any(_inside(o["shape"], x, y) for o in others), place["id"]
+
+
+def test_floors_are_shaped_like_the_building():
+    import json
+
+    raw = json.loads(P.read_text(encoding="utf-8"))
+    for f in raw["floors"]:
+        assert f["walk_path"].startswith("M") and len(f["outline"]) >= 10, f["id"]

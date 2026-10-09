@@ -43,6 +43,7 @@ class Place:
     tags: tuple[str, ...]
     service: dict | None
     fictional: bool
+    label: tuple[float, float] | None = None
 
 
 @dataclass(frozen=True)
@@ -83,7 +84,8 @@ class Mall:
         ]
         self.places = {
             p["id"]: Place(p["id"], p["name"], p["floor"], tuple(p["rect"]), p["node"], p["category"],
-                           tuple(p.get("tags", [])), p.get("service"), bool(p.get("fictional", False)))
+                           tuple(p.get("tags", [])), p.get("service"), bool(p.get("fictional", False)),
+                           tuple(p["label"][:2]) if p.get("label") else None)
             for p in raw["places"]
         }
         self.anchors = {
@@ -99,7 +101,11 @@ class Mall:
         return int(svc.get("duration_min", default["duration_min"])), bool(svc.get("async", default["async"]))
 
     def center(self, place_id: str) -> tuple[float, float]:
-        x, y, w, h = self.places[place_id].rect
+        """A point inside the store: its label point for shaped stores, else the middle of its box."""
+        place = self.places[place_id]
+        if place.label:
+            return place.label
+        x, y, w, h = place.rect
         return (x + w / 2, y + h / 2)
 
     def meters(self, floor_id: str, a: tuple[float, float], b: tuple[float, float]) -> float:
