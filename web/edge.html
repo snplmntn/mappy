@@ -5,58 +5,98 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Mappy · Edge Box</title>
   <link rel="icon" href="data:,">
+  <meta name="theme-color" content="#f7f4e9" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#242424" media="(prefers-color-scheme: dark)">
   <style>
+    /* Same neobrutalist tokens as css/neobrutal.css, so the edge box reads as part of the app. */
     :root {
-      --bg: #0e0f12;
-      --panel: #17191e;
-      --line: #262931;
-      --text: #f2f3f5;
-      --text-2: #9a9faa;
-      --green: #34c759;
-      --amber: #ffb340;
-      --blue: #0a84ff;
-      --purple: #bf5af2;
-      --gray: #8e8e93;
-      color-scheme: dark;
+      --bg: #f7f4e9;
+      --surface: #fffef8;
+      --text: #191919;
+      --text-2: #51514b;
+      --ink: #191919;
+      --edge: #191919;
+      --dots: #77756830;
+      --blue: #4933b8;
+      --yellow: #e5f75d;
+      --lilac: #c8b5ff;
+      --peach: #ffb493;
+      --mint: #bde1ca;
+      --sky: #bfdbef;
+      color-scheme: light;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #242424; --surface: #30302e; --text: #fffbed; --text-2: #c5c3b7; --ink: #000;
+        --edge: #79786d; --dots: #ffffff22; --blue: #b4a0ff; color-scheme: dark; }
     }
     * { box-sizing: border-box; }
-    body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
-    .wrap { display: grid; grid-template-rows: auto auto 1fr; gap: 20px; height: 100vh; padding: 28px; }
-    header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-    h1 { margin: 0; font-size: 34px; letter-spacing: -0.02em; }
-    header p { margin: 2px 0 0; color: var(--text-2); font-size: 18px; }
-    .net { margin-left: auto; display: flex; align-items: center; gap: 10px; padding: 10px 18px; border-radius: 999px;
-      background: var(--panel); border: 1px solid var(--line); font-size: 20px; font-weight: 600; }
-    .net i { width: 12px; height: 12px; border-radius: 50%; background: var(--gray); }
-    .net.off i { background: var(--green); box-shadow: 0 0 12px var(--green); }
-    .net.on i { background: var(--amber); }
-    .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
-    .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; }
-    .tile b { display: block; font-size: 34px; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
-    .tile span { color: var(--text-2); font-size: 15px; }
-    .tile small { display: block; color: var(--text-2); font-size: 13px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .feed { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
-    .feed h2 { margin: 0; padding: 14px 18px; font-size: 15px; color: var(--text-2); font-weight: 600; border-bottom: 1px solid var(--line); }
+    body { margin: 0; background: var(--bg); color: var(--text); font-size: 16px; line-height: 1.4;
+      background-image: radial-gradient(var(--dots) .8px, transparent .8px); background-size: 18px 18px; }
+    .wrap { display: grid; grid-template-rows: auto auto 1fr; gap: 24px; height: 100vh; padding: 26px 32px 32px; }
+    header { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding-bottom: 22px; border-bottom: 3px solid var(--edge); }
+    .brand { display: flex; align-items: center; gap: 16px; min-width: 0; }
+    .brand-symbol { display: grid; place-items: center; width: 44px; height: 48px; padding-bottom: 5px; flex: none; color: #191919;
+      background: var(--yellow); border: 2px solid var(--edge); border-radius: 3px; box-shadow: 3px 3px 0 var(--ink);
+      transform: rotate(-7deg); font-size: 34px; font-weight: 900; }
+    h1 { margin: 0; font-size: 38px; font-weight: 900; letter-spacing: -2px; line-height: 1; }
+    h1 .period { color: var(--blue); }
+    h1 .tag { display: inline-block; margin-left: 12px; padding: 4px 10px 6px; font-size: 22px; letter-spacing: -.8px; color: #191919;
+      background: var(--lilac); border: 2px solid var(--edge); box-shadow: 3px 3px 0 var(--ink); transform: rotate(-2deg); vertical-align: 5px; }
+    header p { margin: 8px 0 0; color: var(--text-2); font-size: 17px; font-weight: 700; }
+    .net { margin-left: auto; display: flex; align-items: center; gap: 10px; padding: 10px 18px; color: var(--text);
+      background: var(--surface); border: 2px solid var(--edge); border-radius: 3px; box-shadow: 4px 4px 0 var(--ink);
+      font-size: 19px; font-weight: 800; }
+    .net i { width: 14px; height: 14px; border: 2px solid #191919; background: #aaa89b; }
+    .net.off { color: #191919; background: var(--yellow); }
+    .net.off i { background: #407340; }
+    .net.on { color: #191919; background: var(--peach); }
+    .net.on i { background: #b52534; }
+    .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 18px; }
+    .tile { min-width: 0; padding: 14px 18px 16px; background: var(--surface); border: 2px solid var(--edge); border-radius: 3px; box-shadow: 5px 5px 0 var(--ink); }
+    .tile span { display: inline-block; padding: 3px 8px; color: #191919; background: var(--yellow); border: 2px solid var(--edge);
+      font-size: 12px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; }
+    .tile:nth-child(2) span, .tile:nth-child(6) span { background: var(--lilac); }
+    .tile:nth-child(3) span { background: var(--mint); }
+    .tile:nth-child(4) span { background: var(--peach); }
+    .tile:nth-child(5) span { background: var(--sky); }
+    .tile b { display: block; margin-top: 10px; font-size: 40px; font-weight: 900; letter-spacing: -2px; line-height: 1.05; font-variant-numeric: tabular-nums; }
+    .tile small { display: block; margin-top: 4px; color: var(--text-2); font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .feed { display: flex; flex-direction: column; min-height: 0; overflow: hidden; background: var(--surface);
+      border: 2px solid var(--edge); border-radius: 3px; box-shadow: 6px 6px 0 var(--ink); }
+    .feed h2 { display: flex; align-items: center; gap: 10px; margin: 0; padding: 14px 18px; font-size: 22px; font-weight: 900; letter-spacing: -.8px; border-bottom: 3px solid var(--edge); }
+    .feed h2::before { content: ""; width: 12px; height: 12px; background: #b52534; border: 2px solid #191919; border-radius: 50%; animation: blink 1.4s steps(2, start) infinite; }
+    @keyframes blink { to { visibility: hidden; } }
     ol { list-style: none; margin: 0; padding: 0; overflow: auto; }
-    li { display: grid; grid-template-columns: 84px 92px 1fr auto auto; gap: 14px; align-items: center; padding: 12px 18px; border-bottom: 1px solid var(--line); font-size: 19px; }
+    li { display: grid; grid-template-columns: 84px 96px 1fr auto auto; gap: 14px; align-items: center; padding: 12px 18px; border-bottom: 2px solid var(--edge); font-size: 19px; }
     li.new { animation: flash 1.6s ease-out; }
-    @keyframes flash { from { background: rgba(10, 132, 255, 0.22); } to { background: transparent; } }
-    .when, .ms { color: var(--text-2); font-variant-numeric: tabular-nums; font-size: 16px; }
+    @keyframes flash { from { background: var(--yellow); color: #191919; } to { background: transparent; } }
+    .when, .ms { color: var(--text-2); font-variant-numeric: tabular-nums; font-size: 16px; font-weight: 700; }
     .ms { text-align: right; min-width: 72px; }
-    .who { font-weight: 600; }
-    .msg { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .pill { font-size: 14px; font-weight: 600; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
-    .pill.llm { background: rgba(191, 90, 242, 0.18); color: var(--purple); }
-    .pill.rules { background: rgba(52, 199, 89, 0.16); color: var(--green); }
-    .pill.cache { background: rgba(10, 132, 255, 0.18); color: var(--blue); }
-    .pill.fallback { background: rgba(255, 179, 64, 0.18); color: var(--amber); }
-    .empty { padding: 28px 18px; color: var(--text-2); font-size: 18px; }
-    .down { color: var(--amber); }
+    .who { font-weight: 900; }
+    .msg { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+    .pill { padding: 4px 10px; color: #191919; border: 2px solid var(--edge); border-radius: 3px; box-shadow: 2px 2px 0 var(--ink);
+      font-size: 13px; font-weight: 800; white-space: nowrap; }
+    .pill.llm { background: var(--lilac); }
+    .pill.rules { background: var(--yellow); }
+    .pill.cache { background: var(--sky); }
+    .pill.fallback { background: var(--peach); }
+    li.empty { display: block; padding: 28px 18px; color: var(--text-2); font-size: 18px; font-weight: 700; border-bottom: 0; }
+    .down { display: inline-block; padding: 2px 8px; color: #191919; background: var(--peach); border: 2px solid var(--edge); }
+    @media (prefers-reduced-motion: reduce) {
+      li.new, .feed h2::before { animation: none; }
+    }
     @media (max-width: 760px) {
-      .wrap { padding: 16px; height: auto; min-height: 100vh; }
-      h1 { font-size: 26px; }
-      .net { margin-left: 0; }
-      li { grid-template-columns: 1fr auto; font-size: 16px; }
+      .wrap { height: auto; min-height: 100vh; gap: 20px; padding: 16px; }
+      h1 { font-size: 29px; }
+      h1 .tag { margin-left: 6px; font-size: 17px; }
+      .brand-symbol { width: 36px; height: 40px; font-size: 27px; }
+      .net { margin-left: 0; font-size: 16px; }
+      header p { font-size: 14px; }
+      .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+      .tile b { font-size: 30px; }
+      li { grid-template-columns: minmax(0, 1fr) auto; font-size: 16px; }
+      .pill { justify-self: start; }
       .when, .msg { grid-column: 1 / -1; }
     }
   </style>
@@ -64,9 +104,12 @@
 <body>
   <div class="wrap">
     <header>
-      <div>
-        <h1>Mappy Edge Box</h1>
-        <p id="sub">Every answer below is computed on this laptop.</p>
+      <div class="brand">
+        <span class="brand-symbol" aria-hidden="true">m</span>
+        <div>
+          <h1>mappy<span class="period">.</span><span class="tag">Edge Box</span></h1>
+          <p id="sub">Every answer below is computed on this laptop.</p>
+        </div>
       </div>
       <div id="net" class="net"><i></i><span>Checking internet…</span></div>
     </header>
