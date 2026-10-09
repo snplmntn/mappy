@@ -80,3 +80,17 @@ def test_unrelated_query_scores_below_tag_match(mall):
 def test_names_in_matches_without_generic_suffix(search):
     assert search.names_in("nasa tabi ako ng FixIt") == ["FixIt Mobile"]
     assert search.names_in("kita ko yung Food Court") == ["Food Court"]
+
+
+def test_alternatives_rank_by_traits(search):
+    assert search.alternatives("food", ("chickenjoy",)) == ["jollibee-gf", "foodcourt-2f"]
+    assert search.alternatives("food", ("ramen",)) == ["foodcourt-2f", "jollibee-gf"]
+
+
+def test_alternatives_exclude(search):
+    assert search.alternatives("food", (), exclude=("jollibee-gf",)) == ["foodcourt-2f"]
+
+
+def test_trait_score_matches_whole_words(search):
+    assert search.trait_score("foodcourt-2f", ("ramen", "japanese")) == 1
+    assert search.trait_score("foodcourt-2f", ("ram",)) == 0

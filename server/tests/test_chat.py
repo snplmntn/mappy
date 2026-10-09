@@ -178,3 +178,46 @@ def test_help_with_a_trip_suggests_edits(mall, search):
     out = run(s.chat("salamat!", AT, "14:01", trip))
     label = trip.errands[0].label.lower()
     assert f"skip {label}" in out["reply"]
+
+
+def test_missing_brand_lists_same_kind(mall, search):
+    out = run(svc(mall, search).chat("mcdo", AT, "14:00", Trip()))
+    result = out["result"]
+    assert result["type"] == "places" and result["alternatives_for"] == "McDonald's"
+    assert result["places"] and all(p["category"] == "food" for p in result["places"])
+    assert out["reply"].startswith("No McDonald's in this mall, but here are other food places.")
+    assert out["reply"].endswith(" min away.")
+    assert out["meta"]["engine"] == "rules"
+
+
+def test_missing_clothing_brand_lists_clothes(mall, search):
+    out = run(svc(mall, search).chat("zara", AT, "14:00", Trip()))
+    assert out["result"]["type"] == "places" and [p["id"] for p in out["result"]["places"]] == ["hm-gf"]
+    assert "other clothes places" in out["reply"]
+
+
+def test_missing_brand_without_its_category_says_not_found(mall, search):
+    out = run(svc(mall, search).chat("watsons", AT, "14:00", Trip()))
+    assert out["result"]["type"] == "text" and "couldn't find" in out["reply"]
+
+
+def test_llm_category_guess_lists_alternatives(mall, search):
+    x = Extraction(intent="find", source="llm", errands=[ErrandReq(query="Zzyzx Burgers", category="food")])
+    out = run(svc(mall, search, FixedLLM(x)).chat("saan ang Zzyzx Burgers dito", AT, "14:00", Trip()))
+    assert out["result"]["type"] == "places" and out["result"]["alternatives_for"] == "Zzyzx Burgers"
+    assert all(p["category"] == "food" for p in out["result"]["places"])
+
+
+def test_alternatives_lead_with_matching_traits(mall, search):
+    out = run(svc(mall, search).chat("ramen nagi", AT, "14:00", Trip()))
+    assert out["result"]["places"][0]["id"] == "foodcourt-2f"
+    assert "also do ramen" in out["reply"]
+
+
+def test_plan_swaps_a_missing_brand(mall, search):
+    out = run(svc(mall, search).chat("mcdo, phone repair", AT, "14:00", Trip()))
+    errands = out["trip"]["errands"]
+    assert out["result"]["type"] == "plan" and len(errands) == 2
+    food = next(e for e in errands if e["category"] == "food")
+    assert set(food["candidates"]) <= set(search.by_category("food"))
+    assert "No McDonald's here, so I added other food places instead." in out["reply"]

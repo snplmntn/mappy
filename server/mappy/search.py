@@ -155,6 +155,22 @@ class Search:
         ids = [pid for pid in self.ids if self.mall.places[pid].category == category]
         return sorted(ids, key=lambda pid: (order[self.mall.places[pid].floor], pid))
 
+    def matched_traits(self, pid: str, traits: tuple[str, ...]) -> list[str]:
+        """The traits a place matches, by whole word/phrase in its tags or name, in the given order."""
+        p = self.mall.places[pid]
+        texts = [_norm(s) for s in (p.name, *p.tags)]
+        return [t for t in traits
+                if any(re.search(rf"(?<![\w&]){re.escape(_norm(t))}(?![\w&])", s) for s in texts)]
+
+    def trait_score(self, pid: str, traits: tuple[str, ...]) -> int:
+        """How many of the traits a place matches, by whole word/phrase in its tags or name."""
+        return len(self.matched_traits(pid, traits))
+
+    def alternatives(self, category: str, traits: tuple[str, ...], exclude: tuple[str, ...] = ()) -> list[str]:
+        """Places of a category ranked by trait overlap (desc), then floor order; `exclude` ids are dropped."""
+        ids = [pid for pid in self.by_category(category) if pid not in exclude]
+        return sorted(ids, key=lambda pid: -self.trait_score(pid, traits))  # stable: keeps floor order
+
     def alias_category(self, text: str) -> str | None:
         """The one category a short request points at, or None if it names a store or several things."""
         t = _norm(text)
