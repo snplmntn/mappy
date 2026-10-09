@@ -19,10 +19,10 @@ function seconds(ms) {
 function receipt(meta) {
   if (!meta || typeof meta.ms !== "number") return null;
   const label = {
-    llm: `Local AI · ${meta.model} · ${seconds(meta.ms)} · nothing sent online`,
-    cache: `Local AI · remembered answer · ${seconds(meta.ms)}`,
-    rules: `Instant match · ${seconds(meta.ms)} · no AI needed`,
-    fallback: `Quick parser · AI was busy · ${seconds(meta.ms)}`,
+    llm: `On-device · ${meta.model} · ${seconds(meta.ms)} · nothing sent online`,
+    cache: `On-device · remembered answer · ${seconds(meta.ms)}`,
+    rules: `On-device · instant match · ${seconds(meta.ms)} · nothing sent online`,
+    fallback: `On-device · quick parser (AI was busy) · ${seconds(meta.ms)}`,
   }[meta.engine];
   return label ? h("p", { class: "receipt" }, label) : null;
 }
