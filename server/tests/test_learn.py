@@ -49,3 +49,29 @@ def test_wrong_shape_file_is_ignored(tmp_path):
     path = tmp_path / "picks.json"
     path.write_text('["a", "b"]', encoding="utf-8")
     assert Picks(path).ranked("a") == []
+
+
+def test_save_failure_keeps_the_pick_in_memory(tmp_path, monkeypatch, caplog):
+    from pathlib import Path
+
+    def refuse(self, target):
+        raise PermissionError("locked by another writer")
+
+    monkeypatch.setattr(Path, "replace", refuse)
+    p = Picks(tmp_path / "picks.json")
+    p.record("McDonald's", "foodcourt-2f")  # must not raise
+    assert p.top("McDonald's") == "foodcourt-2f"
+    assert "could not save picks" in caplog.text
+
+
+def test_concurrent_records_count_every_pick(tmp_path):
+    import threading
+
+    p = Picks(tmp_path / "picks.json")
+    threads = [threading.Thread(target=p.record, args=("McDonald's", "foodcourt-2f")) for _ in range(20)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert p.counts["mcdonald's"]["foodcourt-2f"] == 20
+    assert Picks(tmp_path / "picks.json").counts["mcdonald's"]["foodcourt-2f"] == 20
