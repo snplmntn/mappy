@@ -63,61 +63,111 @@ CATEGORY_TAGS = {
 }
 
 # (name, floor, category, extra tags, service minutes or None, fictional)
+# Floors checked against the "SM MAKATI Walking Tour 2026" video (Where In PH, uploaded 2026-06-04) and the
+# SM Store directory pylons it shows. "Not seen" rows are unconfirmed, not known closed: the video never visits the
+# Annex, the LG mall corridors or Cyberzone.
 STORES = [
+    # LG: supermarket and Market Food Hall, reached from GF by travelators.
     ("SM Supermarket", "LG", "grocery", [], None, False),
+    ("Market Food Hall", "LG", "food", ["food court", "foodcourt", "food hall"], None, False),
+    ("Goldilocks", "LG", "food", ["cake", "bakery"], None, False),
+    ("Kumori", "LG", "cafe", ["bakery", "japanese"], None, False),
+    ("Sizzling Plate", "LG", "food", ["sizzling", "steak"], None, False),
+    ("Cucina Norte", "LG", "food", ["pasta"], None, False),
+    ("Goto Pilipinas", "LG", "food", ["goto", "lugaw", "arroz caldo"], None, False),
+    ("Dipping Dumpling", "LG", "food", ["dumplings", "chinese"], None, False),
+    ("Ssamjang Express", "LG", "food", ["korean"], None, False),
+    ("The Chinese Kitchen", "LG", "food", ["chinese"], None, False),
+    ("Chooks-to-Go", "LG", "food", ["chicken", "manok", "lechon manok"], None, False),
+    # Listed food tenants not seen in the video. No food court was seen on 3F, so they go with the LG food hall.
+    ("Kyu Kyu Ramen 99", "LG", "food", ["ramen", "japanese"], None, False),
+    ("Delifrance", "LG", "cafe", ["bread", "sandwich"], None, False),
+    ("Brownies Unlimited", "LG", "food", ["brownies", "dessert"], None, False),
+    ("Fuel Burgers", "LG", "food", ["burger"], None, False),
+    ("Gong Cha", "LG", "food", ["milk tea", "tea"], None, False),
+    ("Yakiudon", "LG", "food", ["udon", "japanese"], None, False),
+    ("Turks", "LG", "food", ["shawarma"], None, False),
+    ("DECS", "LG", "food", [], None, False),
+    # Not seen: the video never enters the LG mall corridors.
     ("Western Union", "LG", "remittance", [], None, False),
     ("DHL Express", "LG", "courier", [], None, False),
     ("Mr. Quickie", "LG", "shoe_repair", ["susi", "key", "takong"], 20, False),
     ("BDO ATM", "LG", "atm", [], None, False),
+    # GF
+    ("The SM Store", "GF", "department_store", [], None, False),
+    ("H&M", "GF", "clothing", [], None, False),
+    ("Uniqlo", "GF", "clothing", [], None, False),
+    ("Crate & Barrel", "GF", "home", ["kitchen", "furniture"], None, False),
+    ("Pet Express", "GF", "pet", [], None, False),
+    ("The Body Shop", "GF", "beauty", ["body wash", "lotion"], None, False),
+    ("Sunnies Face", "GF", "beauty", [], None, False),
+    ("Shiseido", "GF", "beauty", [], None, False),
+    ("NARS", "GF", "beauty", [], None, False),
+    ("MAC", "GF", "beauty", ["lipstick"], None, False),
+    ("Clinique", "GF", "beauty", [], None, False),
+    ("Innisfree", "GF", "beauty", ["korean skincare"], None, False),
+    ("BreadTalk", "GF", "food", ["bread", "bakery"], None, False),
     ("Starbucks", "GF", "cafe", ["frappuccino"], None, False),
     ("BDO", "GF", "bank", [], None, False),
     ("BDO ATM", "GF", "atm", [], None, False),
-    ("H&M", "GF", "clothing", [], None, False),
-    ("Kultura Filipino", "GF", "gift", ["filipino", "barong"], None, False),
-    ("Auntie Anne's", "GF", "food", ["pretzel"], None, False),
     ("La Botica", "GF", "pharmacy", [], None, False),
-    ("The SM Store", "GF", "department_store", [], None, False),
-    ("Seattle's Best Coffee", "GF", "cafe", [], None, False),
     ("SipYO Coco Fluff", "GF", "food", ["ice cream", "buko", "dessert"], None, False),
-    ("Mary Grace Cafe", "GF", "cafe", ["ensaymada"], None, False),
+    # 2F: loop around the central void; Cyberzone is on this level per the directory pylons.
+    ("Sports Central", "2F", "clothing", ["sports", "adidas", "nike", "rubber shoes"], None, False),
+    ("KLAD", "2F", "accessories", ["jewelry", "alahas"], None, False),
+    ("@Tokyo", "2F", "accessories", ["bag", "japanese"], None, False),
+    ("JINS", "2F", "accessories", ["eyeglasses", "salamin"], None, False),
+    ("TW Steel", "2F", "accessories", ["watch", "relo"], None, False),
+    ("Citizen", "2F", "accessories", ["watch", "relo"], None, False),
+    ("Tissot", "2F", "accessories", [], None, False),
+    ("ECCO", "2F", "shoes", [], None, False),
+    ("Levi's", "2F", "clothing", ["jeans", "maong"], None, False),
+    ("Kultura Filipino", "2F", "gift", ["filipino", "barong"], None, False),
+    ("Seattle's Best Coffee", "2F", "cafe", [], None, False),
+    ("Miniso", "2F", "home", ["cute", "gift"], None, False),
     ("Sfera", "2F", "clothing", [], None, False),
     ("Dear Flora", "2F", "clothing", [], None, False),
-    ("Uniqlo", "2F", "clothing", [], None, False),
     ("Crocs", "2F", "shoes", [], None, False),
-    ("Tissot", "2F", "accessories", [], None, False),
     ("Wenger", "2F", "accessories", [], None, False),
     ("Broadway Gems", "2F", "accessories", [], None, False),
-    ("Miniso", "2F", "home", ["cute", "gift"], None, False),
     ("PaperDollzCo", "2F", "books_stationery", [], None, False),
     ("Buttons & Wrap", "2F", "gift", ["gift wrap"], None, False),
     ("VMV Hypoallergenics", "2F", "beauty", [], None, False),
-    ("SM Makati Foodcourt", "3F", "food", ["food court", "foodcourt"], None, False),
-    ("Kyu Kyu Ramen 99", "3F", "food", ["ramen", "japanese"], None, False),
-    ("Goldilocks", "3F", "food", ["cake", "bakery"], None, False),
-    ("Delifrance", "3F", "cafe", ["bread", "sandwich"], None, False),
-    ("Brownies Unlimited", "3F", "food", ["brownies", "dessert"], None, False),
-    ("Sizzling Plate", "3F", "food", ["sizzling", "steak"], None, False),
-    ("Cucina Norte", "3F", "food", ["pasta"], None, False),
-    ("Fuel Burgers", "3F", "food", ["burger"], None, False),
-    ("Gong Cha", "3F", "food", ["milk tea", "tea"], None, False),
-    ("Yakiudon", "3F", "food", ["udon", "japanese"], None, False),
-    ("Ssamjang Express", "3F", "food", ["korean"], None, False),
-    ("Turks", "3F", "food", ["shawarma"], None, False),
+    ("ASUS Concept Store", "2F", "electronics", ["laptop", "cyberzone"], None, False),
+    ("Lenovo Legion Store", "2F", "electronics", ["laptop", "gaming laptop", "cyberzone"], None, False),
+    ("Techno", "2F", "electronics", ["cellphone", "phone", "cyberzone"], None, False),
+    ("GameXtreme", "2F", "gaming", ["cyberzone"], None, False),
+    ("Nintendo Authorized Store", "2F", "gaming", ["switch", "cyberzone"], None, False),
+    ("FixHub Mobile", "2F", "phone_repair", ["cyberzone"], 45, True),
+    ("QuickFix Gadget Clinic", "2F", "phone_repair", ["tablet", "laptop repair", "cyberzone"], 60, True),
+    ("ScreenDoc", "2F", "phone_repair", ["screen replacement", "cyberzone"], 30, True),
+    # 3F
+    ("ACE Hardware", "3F", "home", ["hardware", "tools", "pako"], None, False),
+    ("Watsons", "3F", "pharmacy", ["skincare", "shampoo"], None, False),
+    ("Alfamart", "3F", "grocery", ["convenience store", "snacks"], None, False),
+    ("Mi Store", "3F", "electronics", ["xiaomi", "phone"], None, False),
+    ("Decathlon", "3F", "clothing", ["sports", "gym", "bike"], None, False),
+    ("Ideal Vision Center", "3F", "accessories", ["eyeglasses", "salamin", "optical"], None, False),
+    ("Mary Grace Cafe", "3F", "cafe", ["ensaymada"], None, False),
+    ("Auntie Anne's", "3F", "food", ["pretzel"], None, False),
+    ("Zus Coffee", "3F", "cafe", [], None, False),
+    ("Gotcha", "3F", "cafe", ["milk tea", "tea"], None, False),
+    ("Carmen's Best", "3F", "food", ["ice cream", "dessert"], None, False),
     ("YoCoCo", "3F", "food", ["dessert"], None, False),
-    ("DECS", "3F", "food", [], None, False),
-    ("Kumori", "3F", "cafe", ["bakery", "japanese"], None, False),
-    ("ASUS Concept Store", "4F", "electronics", ["laptop"], None, False),
-    ("Lenovo Legion Store", "4F", "electronics", ["laptop", "gaming laptop"], None, False),
-    ("Techno", "4F", "electronics", ["cellphone", "phone"], None, False),
-    ("Mi Store", "4F", "electronics", ["xiaomi", "phone"], None, False),
-    ("GameXtreme", "4F", "gaming", [], None, False),
-    ("Nintendo Authorized Store", "4F", "gaming", ["switch"], None, False),
-    ("FixHub Mobile", "4F", "phone_repair", [], 45, True),
-    ("QuickFix Gadget Clinic", "4F", "phone_repair", ["tablet", "laptop repair"], 60, True),
-    ("ScreenDoc", "4F", "phone_repair", ["screen replacement"], 30, True),
-    ("SM Appliance Center", "AX", "appliances", [], None, False),
+    ("Kiehl's", "3F", "beauty", [], None, False),
+    ("Jo Malone London", "3F", "beauty", ["perfume", "pabango"], None, False),
+    ("Lancome", "3F", "beauty", [], None, False),
+    # 4F
+    ("SM Appliance Center", "4F", "appliances", [], None, False),
+    ("TCL", "4F", "appliances", ["tv", "television"], None, False),
+    ("David's Salon", "4F", "beauty", ["haircut", "gupit", "salon"], None, False),
+    ("Honey Graze Bakery + Kitchen", "4F", "food", ["bakery"], None, False),
+    ("Lojel", "4F", "accessories", ["luggage", "maleta"], None, False),
+    # 5F: SM Store home floor.
+    ("SM Home", "5F", "home", ["bedding", "kitchen"], None, False),
+    ("ACE Express", "5F", "home", ["hardware", "tools"], None, False),
+    # Annex: not visited in the video.
     ("Dyson", "AX", "appliances", ["vacuum"], None, False),
-    ("Pet Express", "AX", "pet", [], None, False),
     ("BOS Shoes & Bags Repair", "AX", "shoe_repair", ["bag repair"], 30, False),
 ]
 
@@ -130,15 +180,22 @@ from shapely.ops import nearest_points, polylabel, unary_union, voronoi_diagram
 M_PER_PX = 0.15          # every floor uses the same scale, so distances are real
 MARGIN = 40
 MAIN_FLOORS = [("LG", "Lower Ground", -1), ("GF", "Ground Floor", 0), ("2F", "2nd Floor", 1),
-               ("3F", "3rd Floor", 2), ("4F", "4th Floor (Cyberzone)", 3)]
+               ("3F", "3rd Floor", 2), ("4F", "4th Floor", 3), ("5F", "5th Floor", 4)]
 MAIN = dict(depth=110, corridor=56, unit_len=96)       # ~16 m deep stores, ~8 m walkways, ~10 m frontages
 ANNEX = dict(depth=62, corridor=40, unit_len=80)
 CROSSES = [(0.26, 58, "atrium"), (0.5, 26, "lift"), (0.74, 58, "atrium")]
+# Main floors loop around one long central void (seen in the 2026 walk-through). Lower Ground sits under it.
+VOID = dict(frac=0.62, width=110)              # ~60% of the core's length, ~16 m across
+VOID_BANKS = (0.3, 0.72)                       # escalator banks A and B, as fractions along the void
+VOID_TRAVELATOR = 0.1                          # travelators between GF and the LG supermarket entrance
+ESCALATOR_FLOORS = {"GF", "2F", "3F", "4F", "5F"}
+TRAVELATOR_FLOORS = {"LG", "GF"}
 MITRE = dict(join_style="mitre", mitre_limit=3.0)
 NODE_STEP = 30
 # Stores that span several storefronts, and where they go.
-PERIMETER_ANCHORS = {"SM Supermarket": 9, "The SM Store": 7, "SM Appliance Center": 5, "H&M": 2, "Uniqlo": 2}
-ISLAND_ANCHORS = {"SM Makati Foodcourt"}
+PERIMETER_ANCHORS = {"SM Supermarket": 9, "The SM Store": 7, "SM Appliance Center": 5, "H&M": 2, "Uniqlo": 2,
+                     "SM Home": 4, "ACE Hardware": 2}
+ISLAND_ANCHORS = {"Market Food Hall"}
 
 
 def project(latlon, angle=None):
@@ -200,7 +257,7 @@ class Plan:
     """A floor laid out from the building outline: storefronts along every exterior wall, a walkway loop
     following the outline, and (if there is room) a core with cross walkways, atria and island stores."""
 
-    def __init__(self, fid, outline, depth, corridor, unit_len, crosses=(), entrances=()):
+    def __init__(self, fid, outline, depth, corridor, unit_len, crosses=(), entrances=(), void=None):
         self.fid = fid
         self.B = B = Polygon(outline).buffer(0)
         self.corridor = corridor
@@ -211,8 +268,33 @@ class Plan:
         walk = ring_out if self.core is None else ring_out.difference(self.core)
         # Cross walkways through the core: atria with escalators, and a lift lobby.
         self.crosses = []
+        self.void = None
         islands = []
-        if self.core is not None:
+        if self.core is not None and void is not None:
+            # A long void down the middle with a balcony walkway around it, joined to the outer walkway
+            # at both ends and both sides. The core left over becomes four blocks of stores.
+            minx, miny, maxx, maxy = self.core.bounds
+            cx, cy = self.core.centroid.x, self.core.centroid.y
+            half_len, half_w = void["frac"] * (maxy - miny) / 2, void["width"] / 2
+            self.void = box(cx - half_w, cy - half_len, cx + half_w, cy + half_len).buffer(-12).buffer(12)
+            self.void_open = void.get("open", False)
+            balcony = self.void.buffer(corridor, **MITRE)
+            self.balcony_line = self.void.buffer(corridor / 2, **MITRE).exterior
+            center = largest(ring_out.buffer(-corridor / 2, **MITRE))
+            self.links = []
+            for sx, sy, dx, dy in ((cx, cy - half_len - corridor / 2, 0, -1), (cx, cy + half_len + corridor / 2, 0, 1),
+                                   (cx - half_w - corridor / 2, cy, -1, 0), (cx + half_w + corridor / 2, cy, 1, 0)):
+                hit = LineString([(sx, sy), (sx + dx * 2000, sy + dy * 2000)]).intersection(center.exterior)
+                end = nearest_points(hit, Point(sx, sy))[0]
+                self.links.append(LineString([(sx, sy), (end.x, end.y)]))
+            bands = unary_union([ln.buffer(corridor / 2, cap_style="flat") for ln in self.links])
+            walk = walk.union(balcony.union(bands).intersection(ring_out))
+            if not self.void_open:
+                walk = walk.difference(self.void)
+            rest = self.core.difference(balcony).difference(bands)
+            islands = [g for g in getattr(rest, "geoms", [rest]) if g.geom_type == "Polygon" and g.area > 2500]
+            self.center_line = center.exterior
+        elif self.core is not None:
             minx, miny, maxx, maxy = self.core.bounds
             center = largest(ring_out.buffer(-corridor / 2, **MITRE))
             for frac, half, kind in crosses:
@@ -274,6 +356,8 @@ class Plan:
         minx, miny, maxx, maxy = isl.bounds
         cols = max(1, round((maxx - minx) / unit_len))
         rows = 2 if maxy - miny > 110 else 1
+        if self.void is not None:
+            return self._block_units(isl, k, unit_len)
         out = []
         for c in range(cols):
             x0 = minx + c * (maxx - minx) / cols
@@ -286,6 +370,29 @@ class Plan:
                     continue
                 door_y = y0 if r == 0 else y1
                 door = nearest_points(piece.exterior, Point((x0 + x1) / 2, door_y))[0]
+                out.append(Unit(piece, (door.x, door.y), "island", c * rows + r, island=k))
+        return out
+
+    def _block_units(self, isl, k, unit_len):
+        """Grid storefronts in a block between walkways. Each opens onto the walkway it shares the longest
+        edge with; cells that touch no walkway stay unnamed storefront."""
+        minx, miny, maxx, maxy = isl.bounds
+        cols = max(1, round((maxx - minx) / unit_len))
+        rows = max(1, round((maxy - miny) / unit_len))
+        edge_zone = self.walk.buffer(2)
+        out = []
+        for c in range(cols):
+            for r in range(rows):
+                x0, x1 = minx + c * (maxx - minx) / cols, minx + (c + 1) * (maxx - minx) / cols
+                y0, y1 = miny + r * (maxy - miny) / rows, miny + (r + 1) * (maxy - miny) / rows
+                piece = largest(isl.intersection(box(x0, y0, x1, y1)))
+                if piece is None or piece.area < 2500 or piece.buffer(-18).is_empty:  # no slivers in the blocks
+                    continue
+                front = piece.exterior.intersection(edge_zone)
+                parts = [g for g in getattr(front, "geoms", [front]) if g.geom_type == "LineString" and g.length > 20]
+                if not parts:
+                    continue
+                door = max(parts, key=lambda g: g.length).interpolate(0.5, normalized=True)
                 out.append(Unit(piece, (door.x, door.y), "island", c * rows + r, island=k))
         return out
 
@@ -338,6 +445,32 @@ def build_graph(plan: Plan) -> tuple[Graph, list[str], dict]:
         g.link(ring[-1], ring[0])
     walk_nodes += ring
     special = {}
+    if plan.void is not None:
+        balcony = [g.add(f"b{i}", (p.x, p.y)) for i, p in enumerate(sample(plan.balcony_line, NODE_STEP))]
+        for a, b in zip(balcony, balcony[1:] + balcony[:1]):
+            g.link(a, b)
+        for k, line in enumerate(plan.links):
+            ids = [g.add(f"x{k}-{j}", (p.x, p.y)) for j, p in enumerate(sample(line, NODE_STEP))]
+            for a, b in zip(ids, ids[1:]):
+                g.link(a, b)
+            g.link(ids[0], g.nearest(g.nodes[ids[0]], balcony))
+            g.link(ids[-1], g.nearest(g.nodes[ids[-1]], ring))
+            walk_nodes += ids
+        walk_nodes += balcony
+        # Escalators, travelators and the glass elevator stand in the void, stepping off onto the balcony.
+        minx, miny, maxx, maxy = plan.void.bounds
+        cx = (minx + maxx) / 2
+
+        def at(name, dx, frac):
+            n = g.add(name, (cx + dx, miny + frac * (maxy - miny)))
+            g.link(n, g.nearest(g.nodes[n], balcony))
+            return n
+
+        if plan.fid in ESCALATOR_FLOORS:
+            special["banks"] = [(at(f"esc{k}-up", -22, f), at(f"esc{k}-dn", 22, f)) for k, f in enumerate(VOID_BANKS)]
+        special["lift"] = at("lift", 0, 0.5)
+        if plan.fid in TRAVELATOR_FLOORS:
+            special["trav"] = (at("trav-up", -22, VOID_TRAVELATOR), at("trav-dn", 22, VOID_TRAVELATOR))
     for k, c in enumerate(plan.crosses):
         pts = sample(c["line"], NODE_STEP)
         ids = [g.add(f"x{k}-{j}", (p.x, p.y)) for j, p in enumerate(pts)]
@@ -438,20 +571,25 @@ def build() -> dict:
     far_end = (main_poly.centroid.x * 2 - annex_dir_px[0], main_poly.centroid.y * 2 - annex_dir_px[1])
     for fid, name, level in MAIN_FLOORS:
         entrances = [("main", far_end), ("annex", annex_dir_px)] if fid == "GF" else []
-        plans[fid] = Plan(fid, main_px, crosses=CROSSES, entrances=entrances, **MAIN)
+        plans[fid] = Plan(fid, main_px, entrances=entrances, void=dict(VOID, open=fid == "LG"), **MAIN)
     annex_poly = Polygon(annex_px)
     plans["AX"] = Plan("AX", annex_px, entrances=[("main", (annex_poly.centroid.x, 0))], **ANNEX)
     for fid, plan in plans.items():
         graphs[fid], _, specials[fid] = build_graph(plan)
 
-    # Vertical connectors: escalators in both atria (up and down), one elevator.
+    # Vertical connectors in the void: escalator banks A and B (GF up), travelators to LG, one glass elevator.
     order = [f for f, _, _ in MAIN_FLOORS]
-    atria = {fid: specials[fid]["atria"] for fid in order}
+    esc = [f for f in order if f in ESCALATOR_FLOORS]
     for idx, letter in ((0, "A"), (1, "B")):
         connectors.append({"id": f"esc-{letter.lower()}-up", "name": f"Escalator {letter}", "kind": "escalator",
-                           "direction": "up", "stops": [atria[f][idx][1] for f in order]})
+                           "direction": "up", "stops": [specials[f]["banks"][idx][0] for f in esc]})
         connectors.append({"id": f"esc-{letter.lower()}-down", "name": f"Escalator {letter}", "kind": "escalator",
-                           "direction": "down", "stops": [atria[f][idx][2] for f in reversed(order)]})
+                           "direction": "down", "stops": [specials[f]["banks"][idx][1] for f in reversed(esc)]})
+    trav = [f for f in order if f in TRAVELATOR_FLOORS]
+    connectors.append({"id": "trav-up", "name": "Travelator", "kind": "escalator", "direction": "up",
+                       "stops": [specials[f]["trav"][0] for f in trav]})
+    connectors.append({"id": "trav-down", "name": "Travelator", "kind": "escalator", "direction": "down",
+                       "stops": [specials[f]["trav"][1] for f in reversed(trav)]})
     connectors.append({"id": "elev-1", "name": "Elevator", "kind": "elevator", "direction": "both",
                        "stops": [specials[f]["lift"] for f in order]})
     connectors.append({"id": "walk-annex", "name": "Annex Walkway", "kind": "bridge", "direction": "both",
@@ -466,7 +604,7 @@ def build() -> dict:
         lift = specials[fid].get("lift")
         lift_xy = g.nodes[lift] if lift else None
         placed, blanks = allocate(plan, by_floor[fid], lift_xy)
-        walk_nodes = [n for n in g.nodes if "-w" in n or "-x" in n]
+        walk_nodes = [n for n in g.nodes if "-w" in n or "-x" in n or "-b" in n]
         for k, ((name, _, cat, extra, minutes, fictional), units) in enumerate(placed):
             poly = largest(unary_union([u.poly for u in units]).buffer(0.5).buffer(-0.5)) or max((u.poly for u in units), key=lambda q: q.area)
             door_xy = units[len(units) // 2].door
@@ -486,7 +624,7 @@ def build() -> dict:
             if fictional:
                 place["fictional"] = True
             places.append(place)
-        rails = []
+        rails = [coords(plan.void)] if plan.void is not None and not plan.void_open else []
         for _, up, dn, cx, c in specials[fid].get("atria", []):
             rail = box(cx - 62, c["y"] - c["half"] + 14, cx + 62, c["y"] + c["half"] - 14)
             rails.append(coords(rail))
@@ -507,14 +645,15 @@ def build() -> dict:
         {"id": "gf-mrt-entrance", "label": "Ground Floor, main entrance", "floor": "GF",
          "node": specials["GF"]["entrances"]["main"], "heading_deg": 0},
         {"id": "lg-supermarket", "label": "Lower Ground, SM Supermarket", "floor": "LG", "node": node_of("sm-supermarket-lg"), "heading_deg": 0},
-        {"id": "2f-escalator-a", "label": "2nd Floor, Escalator A", "floor": "2F", "node": connectors[0]["stops"][2], "heading_deg": 0},
-        {"id": "3f-foodcourt", "label": "3rd Floor, Foodcourt", "floor": "3F", "node": node_of("sm-makati-foodcourt-3f"), "heading_deg": 0},
-        {"id": "4f-cyberzone-entrance", "label": "Cyberzone, 4th Floor escalators", "floor": "4F", "node": connectors[0]["stops"][4], "heading_deg": 0},
+        {"id": "2f-escalator-a", "label": "2nd Floor, Escalator A", "floor": "2F", "node": specials["2F"]["banks"][0][0], "heading_deg": 0},
+        {"id": "lg-food-hall", "label": "Lower Ground, Market Food Hall", "floor": "LG", "node": node_of("market-food-hall-lg"), "heading_deg": 0},
+        {"id": "3f-ace-hardware", "label": "3rd Floor, ACE Hardware", "floor": "3F", "node": node_of("ace-hardware-3f"), "heading_deg": 0},
+        {"id": "4f-escalators", "label": "4th Floor, escalators", "floor": "4F", "node": specials["4F"]["banks"][0][0], "heading_deg": 0},
         {"id": "ax-entrance", "label": "Annex entrance", "floor": "AX", "node": specials["AX"]["entrances"]["main"], "heading_deg": 0},
     ]
     return {
         "mall": {"id": "sm-makati", "name": "SM Makati",
-                 "note": "Store names from public listings. Layout reconstructed for this demo."},
+                 "note": "Store names and floors from public listings and a 2026 walk-through video. Layout reconstructed for this demo."},
         "floors": floors, "nodes": nodes, "edges": edges, "connectors": connectors, "places": places,
         "category_defaults": {k: {"duration_min": d, "async": a} for k, (d, a) in CATEGORY_DEFAULTS.items()},
         "anchors": anchors,

@@ -29,9 +29,9 @@ def ask(svc, text):
 
 
 @pytest.mark.parametrize("text, pid", [
-    ("pet express", "pet-express-ax"),   # not a typo of J&T Express
-    ("mi store", "mi-store-4f"),         # not a typo of SM Store
-    ("xiaomi", "mi-store-4f"),           # Mi Store is tagged "xiaomi"
+    ("pet express", "pet-express-gf"),   # not a typo of J&T Express
+    ("mi store", "mi-store-3f"),         # not a typo of SM Store
+    ("xiaomi", "mi-store-3f"),           # Mi Store is tagged "xiaomi"
     ("sm store", "the-sm-store-gf"),
 ])
 def test_a_store_that_is_here_is_a_name_hit(real, text, pid):
