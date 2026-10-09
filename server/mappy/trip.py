@@ -5,8 +5,8 @@ from collections.abc import Callable
 
 from rapidfuzz import fuzz
 
-from .models import Edit, Errand, OrderRule, Trip, min_to_hhmm
-from .search import CATEGORY_LABELS
+from .models import Edit, Errand, OrderRule, Trip, hhmm_to_min, min_to_hhmm
+from .search import CATEGORY_LABELS, categories_in
 
 MakeErrand = Callable[[str, str | None, str], Errand | None]
 NameOf = Callable[[str], str | None]
@@ -14,7 +14,10 @@ NameOf = Callable[[str], str | None]
 NO_PLAN_QUESTION = "You don't have a trip yet. What do you need to do at the mall?"
 ERRAND_OPS = {"set_duration", "set_ready_at", "remove", "order", "status", "choose"}
 ASYNC_OPS = {"set_duration", "set_ready_at", "status"}
+MAX_ERRANDS = 5
 MATCH_MIN = 70
+SHORT_REF_LEN = 3  # "isa" ("the one") fuzzy-matches anything; a ref this short must be a whole word
+HALF_DAY = 12 * 60
 TIE_MARGIN = 3
 FLOOR_TOKEN = re.compile(r"\b(LG|UG|GF|[1-5]F|AX)\b", re.I)
 
@@ -30,6 +33,19 @@ def new_errand_id(trip: Trip) -> str:
 
 def _labels(errands: list[Errand]) -> str:
     return ", ".join(e.label for e in errands)
+
+
+def duplicate_of(made: Errand, trip: Trip) -> Errand | None:
+    """An active errand that already covers this one: same kind, same places ("atm" twice). Two named
+    stores of one kind ("zara and h&m") are two stops."""
+    return next((e for e in trip.errands if e.status != "done" and e.category == made.category
+                 and set(e.candidates) & set(made.candidates)), None)
+
+
+def _upcoming(hhmm: str, now_min: int) -> str:
+    """A morning time already past is the evening one: "aalis ako ng 8" at 20:30 means 20:00, not 08:00."""
+    t = hhmm_to_min(hhmm)
+    return min_to_hhmm(t + HALF_DAY) if t < now_min and t < HALF_DAY else hhmm
 
 
 def _texts(e: Errand, place_name: NameOf) -> list[str]:
@@ -51,11 +67,22 @@ def resolve_errand(trip: Trip, ref: str | None, op: str, place_name: NameOf) -> 
         return ref, None
     if ref:
         rl = ref.lower().strip()
+        if cats := categories_in(rl):  # a kind of stop is that stop, never a look-alike ("shoe" vs "phone repair")
+            hits = [e for e in trip.errands if e.category in cats]
+            if len(hits) == 1:
+                return hits[0].id, None
+            if not hits:
+                return None, f"“{ref}” isn't in your plan. You have: {_labels(trip.errands)}."
+        if len(rl) <= SHORT_REF_LEN:
+            hits = [e for e in trip.errands if any(rl in re.findall(r"[\w&]+", t) for t in _texts(e, place_name))]
+            if len(hits) == 1:
+                return hits[0].id, None
+            return None, f"Which one: {_labels(hits or active or trip.errands)}?"
         scored = sorted(((max(fuzz.WRatio(rl, t) for t in _texts(e, place_name)), e) for e in trip.errands),
                         key=lambda t: -t[0])
         best = scored[0][0]
         if best < MATCH_MIN:
-            return None, f"Which one do you mean: {_labels(trip.errands)}?"
+            return None, f"“{ref}” isn't in your plan. You have: {_labels(trip.errands)}."
         tied = [e for s, e in scored if best - s <= TIE_MARGIN]
         if len(tied) > 1:
             return None, f"Which one: {_labels(tied)}?"
@@ -107,12 +134,17 @@ def apply_edits(trip: Trip, edits: list[Edit], now_min: int, make_errand: MakeEr
                 e.duration_min, e.duration_source = ed.minutes, "user"
             elif ed.op == "set_ready_at" and ed.time:
                 e = _resolve(t, ed.errand, ed.op, place_name)
-                e.ready_at = ed.time
-                changes.append(f"{e.label}: ready by {ed.time}")
+                e.ready_at = _upcoming(ed.time, now_min)
+                changes.append(f"{e.label}: ready by {e.ready_at}")
             elif ed.op == "add" and ed.query:
                 made = make_errand(ed.query, ed.category, new_errand_id(t))
+                active = [x for x in t.errands if x.status != "done"]
                 if made is None:
                     changes.append(f"Couldn't find “{ed.query}”")
+                elif duplicate_of(made, t):
+                    changes.append(f"{made.label} is already in your plan")
+                elif len(active) >= MAX_ERRANDS:
+                    changes.append(f"Your plan has {MAX_ERRANDS} errands; finish one before adding {made.label}")
                 else:
                     t.errands.append(made)
                     changes.append(f"Added {made.label}")
@@ -131,8 +163,8 @@ def apply_edits(trip: Trip, edits: list[Edit], now_min: int, make_errand: MakeEr
                 word = {"first": "first", "last": "last"}.get(ed.rule, ed.rule)
                 changes.append(f"{e.label}: {word}")
             elif ed.op == "deadline" and ed.time:
-                t.constraints.deadline = ed.time
-                changes.append(f"Leaving by {ed.time}")
+                t.constraints.deadline = _upcoming(ed.time, now_min)
+                changes.append(f"Leaving by {t.constraints.deadline}")
             elif ed.op == "status" and ed.status in ("dropped", "done"):
                 e = _resolve(t, ed.errand, ed.op, place_name)
                 e.status = ed.status

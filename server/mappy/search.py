@@ -57,7 +57,8 @@ CATEGORY_WORDS = {
     "shoes": ["sapatos", "shoes", "sneakers", "tsinelas"],
     "books_stationery": ["bookstore", "books", "libro", "school supplies", "stationery", "notebook", "ballpen"],
     "beauty": ["makeup", "cosmetics", "skincare"],
-    "pet": ["pet", "pets", "aso", "pusa"],
+    "pet": ["pet", "pets", "aso", "pusa", "pet shop", "pet store", "petshop", "dog", "cat", "dog food",
+            "cat food", "pet food"],
     "gaming": ["gaming", "games", "console"],
     "electronics": ["electronics", "gadget", "gadgets"],
     "appliances": ["appliance", "appliances"],
@@ -96,7 +97,8 @@ def _norm(text: str) -> str:
 
 
 _PHRASE_CATEGORY = {phrase: cat for cat, phrases in CATEGORY_WORDS.items() for phrase in phrases}
-_PHRASE_RE = {phrase: re.compile(rf"(?<![\w&]){re.escape(phrase)}(?![\w&])") for phrase in _PHRASE_CATEGORY}
+_PHRASE_RE = {phrase: re.compile(rf"(?<![\w&]){re.escape(phrase)}(?![\w&])")
+              for phrase in sorted(_PHRASE_CATEGORY, key=len, reverse=True)}
 
 
 def categories_in(text: str) -> set[str]:
@@ -108,9 +110,11 @@ def categories_in(text: str) -> set[str]:
         if (v := words & verbs) and (o := words & objects):
             found.add(cat)
             used |= v | o
-    for phrase, pattern in _PHRASE_RE.items():
-        if not set(re.findall(r"[\w&]+", phrase)) <= used and pattern.search(t):
+    for phrase, pattern in _PHRASE_RE.items():  # longest first, so "dog food" is pet and not also food
+        words_of = set(re.findall(r"[\w&]+", phrase))
+        if not words_of <= used and pattern.search(t):
             found.add(_PHRASE_CATEGORY[phrase])
+            used |= words_of
     return found
 
 
@@ -166,6 +170,18 @@ class Search:
             return 0.0
         vocab = set(re.findall(r"[\w&]+", " ".join(tags + [p.name.lower()])))
         return len(q_words & vocab) / len(q_words)
+
+    @staticmethod
+    def specific_words(query: str, category: str) -> set[str]:
+        """The words of a request beyond its category's own: "korean" in "korean food"."""
+        generic = {w for phrase in CATEGORY_WORDS.get(category, ()) for w in re.findall(r"[\w&]+", phrase)}
+        generic |= set(re.findall(r"[\w&]+", CATEGORY_LABELS.get(category, "").lower()))
+        return {w for w in re.findall(r"[\w&]+", query.lower()) if len(w) >= 3 and w not in generic}
+
+    def word_score(self, pid: str, words: set[str]) -> int:
+        """How many of these words a place's name or tags contain."""
+        p = self.mall.places[pid]
+        return len(words & set(re.findall(r"[\w&]+", " ".join([p.name, *p.tags]).lower())))
 
     def by_category(self, category: str) -> list[str]:
         order = {f: i for i, f in enumerate(self.mall.floor_order())}
@@ -224,6 +240,8 @@ class Search:
     def _mentions(alias: str, text: str) -> bool:
         if len(alias) <= SHORT_ALIAS_LEN:
             return re.search(rf"(?<![\w&]){re.escape(alias)}(?![\w&])", text) is not None
+        if len(text) < len(alias):  # a slice of a longer name isn't a mention: "pet shop" in "the body shop"
+            return fuzz.ratio(alias, text) >= 90
         return fuzz.partial_ratio(alias, text) >= 90
 
     def place_ids_named(self, name: str) -> list[str]:

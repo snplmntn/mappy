@@ -262,6 +262,8 @@ _ALIASES: list[tuple[str, Brand]] = sorted(
     key=lambda t: len(t[0]), reverse=True,
 )
 _BY_NAME: dict[str, Brand] = {alias: b for alias, b in reversed(_ALIASES)}
+# Plain words shoppers ask for ("watch", "watches"); never read as a misspelt brand ("Swatch").
+_PLAIN_WORDS: set[str] = {t for b in BRANDS for t in b.traits} | set(TRAIT_PHRASE) | set(TRAIT_PHRASE.values())
 
 
 def _whole_phrase(alias: str, text: str) -> bool:
@@ -284,7 +286,7 @@ def _typo_of(alias: str, brand: Brand, text: str) -> bool:
     if brand.everyday or len(alias) <= SHORT_ALIAS_LEN:
         return False
     n = len(alias.split())
-    return any(fuzz.ratio(alias, w) >= FUZZY_MIN
+    return any(fuzz.ratio(alias, w) >= FUZZY_MIN and w not in _PLAIN_WORDS
                for size in (n, n - 1, n + 1) if size > 0 for w in _windows(text, size))
 
 

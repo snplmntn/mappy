@@ -88,7 +88,7 @@ function planCard(result, latest, actions) {
 }
 
 function locateCard(result, latest, actions, text) {
-  const friend = state.mode === "friend";
+  const friend = state.mode === "friend" || result.friend; // the server marks a spot someone else described
   const spots = result.candidates.map((c, i) => ({ ...nodePoint(c.node), label: i + 1, cand: c }));
   const children = [miniMap(spots[0].floor, spots, result.candidates[0].matched)];
   if (latest) {

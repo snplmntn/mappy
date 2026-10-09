@@ -124,7 +124,7 @@ def test_chat_unknown_store_says_not_found(mall, search):
 def test_chat_caps_errands_at_five(mall, search):
     x = Extraction(intent="plan", source="llm", errands=[ErrandReq(query=q) for q in
                    ["kape", "kain", "damit", "regalo", "cellphone", "phone repair"]])
-    out = run(svc(mall, search, FixedLLM(x)).chat("lahat lahat na gusto ko gawin dito", None, "14:00", Trip()))
+    out = run(svc(mall, search, FixedLLM(x)).chat("lahat, lahat na gusto ko gawin dito", None, "14:00", Trip()))
     assert len(out["trip"]["errands"]) <= 5 and "5" in out["reply"]
 
 
@@ -147,7 +147,7 @@ def test_start_node_defaults_to_first_anchor(mall, search):
 
 def test_fallback_six_errands_says_capped(mall, search):
     out = run(svc(mall, search).chat("kape, kain, damit, regalo, cellphone, sapatos", AT, "14:00", Trip()))
-    assert len(out["trip"]["errands"]) <= 5 and "first 5" in out["reply"]
+    assert len(out["trip"]["errands"]) <= 5 and "5 errands" in out["reply"]
 
 
 def test_kain_muna_then_kape_muna_does_not_crash(mall, search):

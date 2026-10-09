@@ -212,7 +212,7 @@ class _Planner:
                 r = hhmm_to_min(e.dropped_at) + e.duration_min
             return f"Pick up — ready by {min_to_hhmm(r)}" if r is not None else "Pick up"
         if pending:
-            return "Eat while waiting" if e.category in EATS else f"{e.label} while waiting"
+            return {"food": "Eat while waiting", "cafe": "Coffee while waiting"}.get(e.category, f"{e.label} while waiting")
         if ate and e.category in SHOP:
             return "Shop after eating"
         return e.label
