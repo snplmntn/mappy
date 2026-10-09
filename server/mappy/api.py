@@ -214,7 +214,7 @@ def create_app(settings: Settings | None = None, embedder=None, llm=None) -> Fas
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#f7f4e9">
-<title>Mappy · QR codes</title><link rel="stylesheet" href="/css/print.css"></head>
+<title>Mappy &middot; QR codes</title><link rel="stylesheet" href="/css/print.css"></head>
 <body>
 <header class="topbar"><a class="brand" href="/" aria-label="Mappy home"><span class="brand-symbol" aria-hidden="true">m</span>mappy<span class="brand-period">.</span></a>
 <div class="header-actions"><a class="button back" href="/"><span data-icon="back"></span>Back to app</a>
@@ -232,7 +232,7 @@ def create_app(settings: Settings | None = None, embedder=None, llm=None) -> Fas
 <p>Network: <strong>{html.escape(settings.wifi_ssid)}</strong></p><p class="helper">Already on the same network?<br>Go straight to the app code.</p></div><div class="qr-code">{_qr_svg(wifi, 6)}</div></article>
 <article class="qr-card connect-card app-card"><div class="connect-copy"><span class="card-icon" data-icon="phone"></span><h3>Open Mappy</h3>
 <p>Your mall companion, in your browser.</p><a class="app-url" href="{html.escape(base, quote=True)}/">{html.escape(base)}</a></div><div class="qr-code">{_qr_svg(base + "/", 6)}</div></article>
-</div><p class="offline-note"><span data-icon="shield"></span>First visit only: if the browser says the connection is not private, tap <b>Advanced → Proceed</b>. That turns on the microphone. If it won't open, use <b>{html.escape(fallback)}</b> instead.</p>
+</div><p class="connection-note">First visit on this laptop's local network: if your browser shows a certificate warning, select <b>Advanced &rarr; Proceed</b> to use HTTPS for microphone access. If it will not open, <a href="{html.escape(fallback, quote=True)}/">open Mappy over HTTP</a> and use typing or your keyboard's microphone.</p>
 <p class="offline-note"><span data-icon="shield"></span>Trying the offline demo? Turn airplane mode on, then reconnect to Wi-Fi.</p></section>
 <section aria-labelledby="locationsTitle"><div class="section-heading"><h2 id="locationsTitle">Start from your spot</h2><span>{len(mall.anchors)} LOCATION CODES</span></div>
 <p class="section-description">Choose your current location. Print these cards to place around the mall.</p>

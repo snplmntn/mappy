@@ -55,6 +55,7 @@ h3 { font-size: 21px; font-weight: 900; letter-spacing: -.5px; margin: 0 0 10px;
 .qr-code > svg { display: block; width: 172px; height: 172px; max-width: 100%; }
 .offline-note { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #51514b; margin-top: 18px; line-height: 1.6; }
 .offline-note .icon { width: 16px; height: 16px; }
+.connection-note { border-left: 3px solid var(--ink); padding: 10px 14px; background: #fffef8; font-size: 12px; line-height: 1.6; margin: 20px 0 0; }
 .section-description { color: #51514b; font-size: 13px; margin: -4px 0 22px; line-height: 1.6; }
 .location-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
 .location-card { text-align: center; padding: 0 16px 20px; }
@@ -110,6 +111,7 @@ footer { display: flex; justify-content: space-between; align-items: center; gap
   h2 { font-size: 17px; }
   .section-heading { margin-bottom: 3mm; break-after: avoid; }
   .section-description { margin: 0 0 3mm; font-size: 10px; }
+  .connection-note { font-size: 9px; padding: 2mm 3mm; margin: 3mm 0; }
   .connect-grid { grid-template-columns: 1fr 1fr; gap: 4mm; }
   .connect-card { flex-direction: row; padding: 3mm; gap: 3mm; align-items: center; text-align: left; }
   .connect-copy h3 { font-size: 15px; }
