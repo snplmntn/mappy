@@ -298,18 +298,18 @@ def walk_times(monkeypatch, minutes):
 
 
 def test_far_name_hit_points_to_a_nearer_same_kind_store(mall, search, monkeypatch):
-    walk_times(monkeypatch, {"jollibee-gf": 9, "foodcourt-2f": 2})
+    walk_times(monkeypatch, {"jollibee-gf": 4, "foodcourt-2f": 2})
     out = run(svc(mall, search).chat("jollibee", {"anchor": "2f-esc-a"}, "14:00", Trip()))
     places = out["result"]["places"]
     assert [p["id"] for p in places] == ["jollibee-gf", "foodcourt-2f"]
     assert places[-1]["nudge"] is True and "nudge" not in places[0]
-    assert out["reply"] == ("Here's what I found for “jollibee”: Jollibee is 9 min away on Ground Floor. "
+    assert out["reply"] == ("Here's what I found for “jollibee”: Jollibee is 4 min away on Ground Floor. "
                             "Food Court on 2nd Floor does food too, 2 min.")
     assert "does" in out["reply"] and "too," in out["reply"]
 
 
 def test_no_nudge_when_the_other_store_is_not_much_nearer(mall, search, monkeypatch):
-    walk_times(monkeypatch, {"jollibee-gf": 5, "foodcourt-2f": 2})
+    walk_times(monkeypatch, {"jollibee-gf": 3, "foodcourt-2f": 2})
     out = run(svc(mall, search).chat("jollibee", {"anchor": "2f-esc-a"}, "14:00", Trip()))
     assert [p["id"] for p in out["result"]["places"]] == ["jollibee-gf"]
     assert out["reply"] == "Here's what I found for “jollibee”:"
@@ -327,3 +327,12 @@ def test_no_nudge_for_swaps_or_category_listings(mall, search, monkeypatch):
         out = run(svc(mall, search).chat(query, {"anchor": "2f-esc-a"}, "14:00", Trip()))
         assert not any(p.get("nudge") for p in out["result"]["places"]), query
         assert "too," not in out["reply"], query
+
+
+def test_nudge_names_a_matched_trait_and_skips_listed_stores(mall, search, monkeypatch):
+    walk_times(monkeypatch, {"jollibee-gf": 9, "foodcourt-2f": 2})
+    monkeypatch.setattr("mappy.chat.traits_of", lambda name: ("ramen",))
+    out = run(svc(mall, search).chat("jollibee", {"anchor": "2f-esc-a"}, "14:00", Trip()))
+    *listed, nudge = out["result"]["places"]
+    assert nudge["nudge"] is True and nudge["id"] not in {p["id"] for p in listed}
+    assert "Food Court on 2nd Floor does ramen too, 2 min." in out["reply"]

@@ -25,7 +25,7 @@ FIND_RESULTS = 5
 MAX_REPLY_TRAITS = 2  # traits named in the "also do ..." sentence
 MAX_REPLY_NAMES = 2   # stores named in it
 SCORE_BAND = 0.06
-NUDGE_MIN = 4  # minutes closer before we mention another store of the same kind
+NUDGE_MIN = 2  # minutes closer before we mention another store of the same kind
 LLM_TIMEOUT_S = 8.5
 # Minimum fused search score that counts as "found", per embedder (calibrated on the eval set).
 MIN_SCORE = {"hash-256": 0.35, "multilingual-e5-small": 0.60}
