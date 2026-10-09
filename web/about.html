@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#212121" media="(prefers-color-scheme: dark)">
+  <script src="/js/theme.js"></script>
+  <title>About this map · Mappy</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/css/minimal.css">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-size: 16px; line-height: 1.6; }
+    a { color: inherit; }
+    .page { max-width: 720px; margin: 0 auto; padding: max(16px, env(safe-area-inset-top)) 20px max(40px, env(safe-area-inset-bottom)); }
+    .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; }
+    .back { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px 0 6px; border-radius: 12px; text-decoration: none; font-size: 14px; }
+    .back:hover { background: var(--bubble); }
+    .back svg { width: 18px; height: 18px; }
+    .theme-toggle { font: inherit; cursor: pointer; }
+    .theme-toggle span { display: none; }
+
+    .hero { padding: 28px 0 8px; }
+    .badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: var(--button); color: var(--button-text); font-size: 12px; font-weight: 600; letter-spacing: .3px; }
+    .badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: .6; }
+    h1 { font-size: clamp(30px, 7vw, 42px); line-height: 1.15; letter-spacing: -1px; font-weight: 600; margin: 18px 0 12px; }
+    .lede { color: var(--text-2); font-size: 17px; margin: 0; }
+
+    .entry { margin: 28px 0 8px; padding: 20px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bubble); }
+    .entry h2 { margin: 0 0 6px; font-size: 18px; }
+    .entry p { margin: 0; color: var(--text-2); font-size: 15px; }
+    .entry b { color: var(--text); }
+
+    .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 28px 0 0; padding: 0; list-style: none; }
+    .stats li { padding: 14px 12px; border: 1px solid var(--line); border-radius: 14px; }
+    .stats b { display: block; font-size: 26px; font-weight: 600; letter-spacing: -.5px; line-height: 1.2; }
+    .stats span { font-size: 13px; color: var(--text-2); }
+
+    section { padding: 28px 0 0; }
+    section h2 { font-size: 21px; letter-spacing: -.3px; font-weight: 600; margin: 0 0 10px; }
+    section p, section li { color: var(--text-2); font-size: 15px; }
+    section p { margin: 0 0 10px; }
+    section b { color: var(--text); font-weight: 600; }
+    section ul { margin: 0; padding-left: 20px; }
+    section li { margin-bottom: 6px; }
+    .floors { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 0; padding: 0; list-style: none; }
+    .floors li { margin: 0; padding: 4px 10px; border-radius: 999px; background: var(--bubble); font-size: 13px; color: var(--text); }
+
+    footer { margin-top: 36px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 13px; color: var(--text-2); }
+    footer p { margin: 0 0 6px; }
+
+    @media (max-width: 520px) {
+      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .lede { font-size: 16px; }
+    }
+  </style>
+</head>
+<body class="minimal-app">
+  <main class="page">
+    <div class="bar">
+      <a class="back" href="/">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+        Back to Mappy
+      </a>
+      <button class="theme-toggle" data-theme-toggle type="button" aria-label="Switch color theme"></button>
+    </div>
+
+    <header class="hero">
+      <span class="badge">AppBuildersPH Hackathon 2026 · Local AI</span>
+      <h1>About this map</h1>
+      <p class="lede">The map of <span data-mall-name>SM Makati</span> that Mappy uses to find stores, plan your stops and walk you there, floor by floor.</p>
+    </header>
+
+    <aside class="entry" aria-label="Hackathon entry">
+      <h2>A hackathon submission</h2>
+      <p>Mappy is our entry to the <b>AppBuildersPH Hackathon 2026</b>, under the theme <b>Local AI</b>. It's a working prototype built during the event, not an official SM app, and the map is a demo map made for it.</p>
+    </aside>
+
+    <ul class="stats" aria-label="Map at a glance">
+      <li><b data-stat="floors">6</b><span>levels</span></li>
+      <li><b data-stat="places">61</b><span>places</span></li>
+      <li><b data-stat="connectors">6</b><span>escalators, lifts &amp; bridges</span></li>
+      <li><b data-stat="anchors">6</b><span>location codes</span></li>
+    </ul>
+
+    <section aria-labelledby="whatTitle">
+      <h2 id="whatTitle">What's on the map</h2>
+      <p>Every level of the mall, the stores and services on each one, and the escalators, elevator and bridge that connect them.</p>
+      <ul class="floors" data-floors>
+        <li>Lower Ground</li><li>Ground Floor</li><li>2nd Floor</li><li>3rd Floor</li><li>4th Floor (Cyberzone)</li><li>Annex</li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="realTitle">
+      <h2 id="realTitle">What's real, and what isn't</h2>
+      <ul>
+        <li><b>The building outline is real.</b> It comes from OpenStreetMap.</li>
+        <li><b>Store names are real,</b> taken from public store listings.</li>
+        <li><b>The inside layout is our reconstruction.</b> No public indoor map of the mall exists, so where each store sits is our best estimate. Use the mall's own directory for exact locations.</li>
+        <li><b>A few stalls are made up for the demo:</b> FixHub Mobile, QuickFix Gadget Clinic and ScreenDoc, the phone-repair stalls marked "demo".</li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="routeTitle">
+      <h2 id="routeTitle">How directions work</h2>
+      <p>Mappy finds the shortest walk along the mall's corridors and estimates the time from the distance. To change floors it uses the escalators, which only run one way, or the elevator.</p>
+      <p>Pushing a stroller or using a wheelchair? Turn on <b>Elevators only</b> in your plan and every route avoids escalators.</p>
+    </section>
+
+    <section aria-labelledby="localTitle">
+      <h2 id="localTitle">Works offline, stays private</h2>
+      <p>The map and the AI that reads your messages both run on a laptop here in the mall. Your phone talks only to that laptop over local Wi-Fi, so Mappy works <b>with no internet at all</b>, and what you type never leaves the building.</p>
+    </section>
+
+    <footer>
+      <p>Building outlines © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>, available under the Open Database License (ODbL).</p>
+      <p>Built by the Mappy team for AppBuildersPH Hackathon 2026.</p>
+    </footer>
+  </main>
+  <script>
+    // Read the counts from the loaded map, so this page stays true if the map data changes.
+    fetch("/api/mall").then((r) => r.ok ? r.json() : Promise.reject()).then((m) => {
+      const counts = { floors: m.floors.length, places: m.places.length, connectors: m.connectors.length,
+        anchors: Object.keys(m.anchors).length };
+      for (const [key, n] of Object.entries(counts)) document.querySelector(`[data-stat="${key}"]`).textContent = n;
+      document.querySelectorAll("[data-mall-name]").forEach((el) => { el.textContent = m.mall.name; });
+      const floors = document.querySelector("[data-floors]");
+      floors.replaceChildren(...m.floors.map((f) => Object.assign(document.createElement("li"), { textContent: f.name })));
+    }).catch(() => { /* keep the built-in numbers when the laptop can't be reached */ });
+  </script>
+</body>
+</html>

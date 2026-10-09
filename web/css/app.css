@@ -364,9 +364,8 @@ svg.icon { stroke-width: 1.65; }
 .send { width: 44px; height: 44px; border-radius: 12px; background: var(--blue); }
 .send:disabled { opacity: .4; }
 .composer-hint { font-size: 11px; color: var(--text-2); text-align: center; margin: 9px 0 0; }
-.map-disclosure { text-align: center; font-size: 10px; color: var(--text-2); margin-top: 4px; }
-.map-disclosure summary { cursor: pointer; display: inline-block; text-decoration: underline; text-underline-offset: 3px; padding: 4px 10px; }
-.map-disclosure .fineprint { margin: 6px auto; font-size: 11px; }
+.map-disclosure { text-align: center; font-size: 10px; color: var(--text-2); margin: 4px 0 0; }
+.map-disclosure a { display: inline-block; color: inherit; text-decoration: underline; text-underline-offset: 3px; padding: 4px 10px; }
 .thread-inner { max-width: 800px; gap: 24px; padding-top: 14px; }
 .msg-user { background: #e9eee4; border-radius: 18px 18px 4px 18px; padding: 12px 18px; }
 .msg-bot { font-size: 15px; line-height: 1.65; }

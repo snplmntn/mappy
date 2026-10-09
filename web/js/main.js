@@ -378,7 +378,6 @@ async function boot() {
   }
   if (state.at && !atNode()) update({ at: null });
   readAtParam();
-  document.getElementById("fineprint").textContent = state.mall.mall.note || "";
   nav = new Navigator({
     onClose: render,
     onDirections: (pid) => actions.navigateToPlace(pid),

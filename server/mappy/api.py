@@ -180,6 +180,10 @@ def create_app(settings: Settings | None = None, embedder=None, llm=None) -> Fas
     def edge_page():
         return FileResponse(settings.web_dir / "edge.html", headers={"Cache-Control": "no-cache"})
 
+    @app.get("/about")
+    def about_page():
+        return FileResponse(settings.web_dir / "about.html", headers={"Cache-Control": "no-cache"})
+
     @app.post("/api/plan")
     def plan(req: PlanReq):
         return svc.plan(req.at, req.now, req.trip, req.edits)
