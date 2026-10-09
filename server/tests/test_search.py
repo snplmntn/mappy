@@ -1,6 +1,7 @@
 import numpy as np
 
 from mappy.embed import HashEmbedder
+from mappy.search import CATEGORY_LABELS, PLACE_LABELS, places_label
 
 
 def test_hash_embedder_normalized():
@@ -100,3 +101,11 @@ def test_distinctive_tags_drop_category_words_and_shared_tags(search):
     assert search.distinctive_tags("jollibee-gf") == ("chickenjoy",)   # not "kain" or "meal"
     assert search.distinctive_tags("foodcourt-2f") == ("ramen",)
     assert search.distinctive_tags("starbucks-gf") == ()               # nothing the other Starbucks lacks
+
+
+def test_places_label_reads_as_a_plural_noun_phrase():
+    assert places_label("cafe") == "coffee shops"
+    assert places_label("atm") == "ATMs"
+    assert places_label("food") == "food places"
+    assert places_label("mystery") == "mystery places"
+    assert set(PLACE_LABELS) <= set(CATEGORY_LABELS)

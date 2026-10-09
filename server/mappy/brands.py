@@ -25,8 +25,8 @@ BRANDS: tuple[Brand, ...] = (
     Brand("Jollibee", "food", ("fried chicken", "chicken", "burger", "spaghetti", "fast food"), ("jabee", "jolibee")),
     Brand("McDonald's", "food", ("burger", "fries", "chicken", "fast food"), ("mcdo", "mcdonalds", "mcdonald")),
     Brand("KFC", "food", ("fried chicken", "chicken", "fast food"), ("kentucky",)),
-    Brand("Mang Inasal", "food", ("chicken", "filipino", "rice")),
-    Brand("Chowking", "food", ("chinese", "noodles", "halo-halo", "fast food")),
+    Brand("Mang Inasal", "food", ("chicken", "Filipino", "rice")),
+    Brand("Chowking", "food", ("Chinese", "noodles", "halo-halo", "fast food")),
     Brand("Greenwich", "food", ("pizza", "pasta")),
     Brand("Shakey's", "food", ("pizza", "chicken"), ("shakeys",)),
     Brand("Pizza Hut", "food", ("pizza", "pasta")),
@@ -34,13 +34,13 @@ BRANDS: tuple[Brand, ...] = (
     Brand("Burger King", "food", ("burger", "fries", "fast food")),
     Brand("Wendy's", "food", ("burger", "fries", "fast food"), ("wendys",)),
     Brand("Army Navy", "food", ("burger", "burrito")),
-    Brand("Max's Restaurant", "food", ("chicken", "filipino"), ("max's", "maxs")),
+    Brand("Max's Restaurant", "food", ("chicken", "Filipino"), ("max's", "maxs")),
     Brand("Kenny Rogers", "food", ("chicken", "roast chicken")),
-    Brand("BonChon", "food", ("chicken", "korean")),
-    Brand("Tokyo Tokyo", "food", ("japanese", "rice")),
-    Brand("Pepper Lunch", "food", ("japanese", "rice", "steak")),
-    Brand("Ramen Nagi", "food", ("ramen", "japanese")),
-    Brand("Pancake House", "food", ("pancake", "filipino")),
+    Brand("BonChon", "food", ("chicken", "Korean")),
+    Brand("Tokyo Tokyo", "food", ("Japanese", "rice")),
+    Brand("Pepper Lunch", "food", ("Japanese", "rice", "steak")),
+    Brand("Ramen Nagi", "food", ("ramen", "Japanese")),
+    Brand("Pancake House", "food", ("pancake", "Filipino")),
     Brand("Red Ribbon", "food", ("cake", "bakery", "dessert")),
     Brand("Goldilocks", "food", ("cake", "bakery", "dessert")),
     Brand("Chatime", "food", ("milk tea",)),
@@ -48,13 +48,13 @@ BRANDS: tuple[Brand, ...] = (
     Brand("Serenitea", "food", ("milk tea",)),
     Brand("Dairy Queen", "food", ("ice cream", "dessert")),
     Brand("Potato Corner", "food", ("fries", "snack")),
-    Brand("Andok's", "food", ("chicken", "filipino"), ("andoks",)),
-    Brand("Samgyupsalamat", "food", ("korean", "bbq")),
+    Brand("Andok's", "food", ("chicken", "Filipino"), ("andoks",)),
+    Brand("Samgyupsalamat", "food", ("Korean", "bbq")),
     Brand("Zark's", "food", ("burger",), ("zarks",)),
     Brand("Subway", "food", ("sandwich",)),
-    Brand("Taco Bell", "food", ("tacos", "burrito", "mexican")),
+    Brand("Taco Bell", "food", ("tacos", "burrito", "Mexican")),
     Brand("Sbarro", "food", ("pizza", "pasta")),
-    Brand("Classic Savory", "food", ("chicken", "chinese")),
+    Brand("Classic Savory", "food", ("chicken", "Chinese")),
     Brand("Conti's", "food", ("cake", "bakery", "dessert"), ("contis",)),
     Brand("Shawarma Shack", "food", ("shawarma",)),
     Brand("Mister Donut", "food", ("donut", "dessert"), ("mr donut",)),
@@ -63,14 +63,14 @@ BRANDS: tuple[Brand, ...] = (
     Brand("Coffee Bean & Tea Leaf", "cafe", ("coffee", "tea", "pastry"), ("coffee bean", "cbtl")),
     Brand("Seattle's Best", "cafe", ("coffee", "pastry"), ("seattles best",)),
     Brand("Bo's Coffee", "cafe", ("coffee",), ("bos coffee",)),
-    Brand("UCC", "cafe", ("coffee", "japanese")),
+    Brand("UCC", "cafe", ("coffee", "Japanese")),
     Brand("Tim Hortons", "cafe", ("coffee", "donut")),
     Brand("Dunkin", "cafe", ("donut", "coffee"), ("dunkin donuts",)),
     Brand("Krispy Kreme", "cafe", ("donut", "coffee")),
     Brand("Figaro", "cafe", ("coffee",)),
     Brand("Mary Grace", "cafe", ("coffee", "ensaymada", "pastry")),
     Brand("Delifrance", "cafe", ("coffee", "bread", "sandwich")),
-    Brand("Kumori", "cafe", ("bakery", "japanese", "pastry")),
+    Brand("Kumori", "cafe", ("bakery", "Japanese", "pastry")),
     Brand("Tiger Sugar", "cafe", ("milk tea",)),
     Brand("Gong Cha", "cafe", ("milk tea",)),
     # clothing
@@ -118,9 +118,9 @@ BRANDS: tuple[Brand, ...] = (
     Brand("Watsons", "beauty", ("skincare", "medicine", "vitamins")),
     Brand("Sephora", "beauty", ("makeup", "skincare")),
     Brand("The Body Shop", "beauty", ("skincare",), ("body shop",)),
-    Brand("Innisfree", "beauty", ("skincare", "korean")),
-    Brand("Nature Republic", "beauty", ("skincare", "korean")),
-    Brand("Etude House", "beauty", ("makeup", "korean"), ("etude",)),
+    Brand("Innisfree", "beauty", ("skincare", "Korean")),
+    Brand("Nature Republic", "beauty", ("skincare", "Korean")),
+    Brand("Etude House", "beauty", ("makeup", "Korean"), ("etude",)),
     Brand("Beauty Bar", "beauty", ("makeup", "skincare")),
     Brand("Kiehl's", "beauty", ("skincare",), ("kiehls",)),
     Brand("MAC", "beauty", ("makeup",), ("mac cosmetics",), everyday=True),
@@ -165,7 +165,7 @@ BRANDS: tuple[Brand, ...] = (
     Brand("Toy Kingdom", "gift", ("toys", "gift")),
     Brand("Toys R Us", "gift", ("toys", "gift"), ("toysrus",)),
     Brand("Papemelroti", "gift", ("gift", "souvenir")),
-    Brand("Kultura", "gift", ("souvenir", "gift", "filipino")),
+    Brand("Kultura", "gift", ("souvenir", "gift", "Filipino")),
     Brand("Hallmark", "gift", ("gift", "cards")),
     Brand("Typo", "gift", ("gift", "school supplies"), everyday=True),
     # books_stationery
@@ -191,7 +191,7 @@ BRANDS: tuple[Brand, ...] = (
     # home
     Brand("Miniso", "home", ("home", "gift")),
     Brand("Daiso", "home", ("home", "kitchen")),
-    Brand("Muji", "home", ("home", "japanese")),
+    Brand("Muji", "home", ("home", "Japanese")),
     Brand("IKEA", "home", ("home", "furniture")),
     Brand("Ace Hardware", "home", ("hardware", "home")),
     Brand("Wilcon", "home", ("hardware", "home"), ("wilcon depot",)),
@@ -230,6 +230,20 @@ BRANDS: tuple[Brand, ...] = (
     Brand("Bow & Wow", "pet", ("pet",), ("bow and wow",)),
     Brand("Dogs and the City", "pet", ("pet",)),
 )
+
+
+# How a trait reads in a sentence ("also does burgers"); anything not listed reads as itself.
+TRAIT_PHRASE = {
+    "burger": "burgers", "watch": "watches", "phone": "phones", "gadget": "gadgets", "laptop": "laptops",
+    "package": "packages", "pet": "pet supplies", "withdraw": "withdrawals", "gift": "gifts",
+    "grocery": "groceries", "home": "home goods", "kitchen": "kitchenware", "appliance": "appliances",
+    "console": "consoles", "cake": "cakes", "donut": "donuts", "sandwich": "sandwiches", "bag": "bags",
+    "game": "games", "games": "games",
+}
+
+
+def trait_phrase(trait: str) -> str:
+    return TRAIT_PHRASE.get(trait, trait)
 
 
 def _norm(text: str) -> str:

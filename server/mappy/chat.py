@@ -8,7 +8,7 @@ from typing import Protocol
 
 import httpx
 
-from .brands import brand_in, is_store_of, traits_of
+from .brands import brand_in, is_store_of, trait_phrase, traits_of
 from .learn import Picks
 from .llm import LLMBusy, LLMError, fallback_extract, trip_summary
 from .locator import locate
@@ -17,7 +17,7 @@ from .models import Edit, Errand, ErrandReq, Extraction, Trip, hhmm_to_min
 from .planner import plan_trip
 from .router import Router
 from .rules import parse
-from .search import CATEGORY_LABELS, Search
+from .search import CATEGORY_LABELS, Search, places_label
 from .trip import apply_edits, new_errand_id
 
 MAX_ERRANDS = 5
@@ -240,14 +240,14 @@ class ChatService:
         brand = brand_in(swapped) if isinstance(swapped, str) else None
         ids, scores = self._ranked(category, brand.traits if brand else (), shown)
         if not ids:
-            return _text(f"That's every {_label(category)} place in this mall.", trip)
+            return _text(f"Those are all the {places_label(category)} in this mall.", trip)
         result = self._places_result(str(prev.get("query") or ""), ids, start, router, scores, category, shown)
         if isinstance(swapped, str) and swapped:
             result["alternatives_for"] = swapped  # so later "more" keeps the trait ranking
-        return {"reply": f"More {_label(category)} places:", "result": result, "trip": trip.model_dump(by_alias=True)}
+        return {"reply": f"More {places_label(category)}:", "result": result, "trip": trip.model_dump(by_alias=True)}
 
     def _alternatives_reply(self, alt: StandIn, rows: list[dict]) -> str:
-        reply = f"No {alt.name} in this mall, but here are other {_label(alt.category)} places."
+        reply = f"No {alt.name} in this mall, but here are other {places_label(alt.category)}."
         if (top := self.picks.top(alt.name)) and (row := next((r for r in rows if r["id"] == top), None)):
             reply = f"Shoppers here usually pick {row['name']} instead of {alt.name}. {reply}"
         matched = [(r, m) for r in rows if (m := self.search.matched_traits(r["id"], alt.traits))]
@@ -257,7 +257,7 @@ class ChatService:
             traits = traits[:MAX_REPLY_TRAITS]
             names = [lead["name"], *(r["name"] for r, m in rest if set(traits) <= set(m))][:MAX_REPLY_NAMES]
             verb = "does" if len(names) == 1 else "do"
-            reply += f" {' and '.join(names)} also {verb} {' and '.join(traits)}."
+            reply += f" {' and '.join(names)} also {verb} {' and '.join(trait_phrase(t) for t in traits)}."
         if rows and rows[0]["walk_min"] is not None:
             reply += f" {rows[0]['name']} is {rows[0]['walk_min']} min away."
         return reply
@@ -276,7 +276,7 @@ class ChatService:
         if pid is None:
             return None
         near = self._places_result("", [pid], start, router)["places"][0]
-        kind = next(iter(self.search.matched_traits(pid, traits)), _label(near["category"]))
+        kind = next((trait_phrase(t) for t in self.search.matched_traits(pid, traits)), _label(near["category"]))
         return near, (f"{top['name']} is {top['walk_min']} min away on {top['floor_name']}. "
                       f"{near['name']} on {near['floor_name']} does {kind} too, {near['walk_min']} min.")
 
@@ -344,7 +344,7 @@ class ChatService:
             payload = self._plan_payload(t, start, now_min, [])
             reply = f"Here's your plan: {len(payload['plan']['stops'])} stops, done by {payload['plan']['finish_at']}."
             for name, cat in swapped.items():
-                reply += f" No {name} here, so I added other {_label(cat)} places instead."
+                reply += f" No {name} here, so I added other {places_label(cat)} instead."
             if missing:
                 reply += f" I couldn't find: {', '.join(missing)}."
             if capped:

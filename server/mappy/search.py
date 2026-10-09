@@ -18,6 +18,23 @@ CATEGORY_LABELS = {
     "atm": "ATM", "remittance": "Money transfer", "courier": "Courier", "pet": "Pet", "restroom": "Restroom",
 }
 
+# A category's places as a plural noun phrase ("other shoe stores"), where the label alone would not read.
+PLACE_LABELS = {
+    "food": "food places", "cafe": "coffee shops", "clothing": "clothing stores", "shoes": "shoe stores",
+    "accessories": "accessories stores", "gift": "gift shops", "home": "home stores",
+    "books_stationery": "bookstores", "beauty": "beauty stores", "department_store": "department stores",
+    "electronics": "electronics stores", "gaming": "gaming stores", "appliances": "appliance stores",
+    "grocery": "groceries", "pharmacy": "pharmacies", "bank": "banks", "atm": "ATMs",
+    "remittance": "money-transfer counters", "courier": "couriers", "pet": "pet stores", "restroom": "restrooms",
+    "phone_repair": "phone repair shops", "shoe_repair": "shoe repair shops",
+}
+
+
+def places_label(category: str) -> str:
+    """A category's places mid-sentence: "coffee shops", "ATMs", "food places"."""
+    return PLACE_LABELS.get(category) or f"{CATEGORY_LABELS.get(category, category).lower()} places"
+
+
 # Words that point at a category anywhere in a short question ("san next kainan?"). Whole-word
 # matches only, so Tagalog verb forms are listed rather than stemmed.
 CATEGORY_WORDS = {

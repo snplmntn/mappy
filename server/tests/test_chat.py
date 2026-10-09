@@ -212,7 +212,7 @@ def test_learned_pick_no_longer_in_mall_is_skipped(mall, search):
 def test_missing_clothing_brand_lists_clothes(mall, search):
     out = run(svc(mall, search).chat("zara", AT, "14:00", Trip()))
     assert out["result"]["type"] == "places" and [p["id"] for p in out["result"]["places"]] == ["hm-gf"]
-    assert "other clothes places" in out["reply"]
+    assert "other clothing stores" in out["reply"]
 
 
 def test_missing_brand_without_its_category_says_not_found(mall, search):
@@ -308,14 +308,14 @@ def test_brand_with_a_category_word_swaps(mall, search):
     out = run(svc(mall, search).chat("coffee bean", AT, "14:00", Trip()))
     assert out["result"]["alternatives_for"] == "Coffee Bean & Tea Leaf"
     assert {p["id"] for p in out["result"]["places"]} == {"starbucks-gf", "starbucks-2f"}
-    assert out["reply"].startswith("No Coffee Bean & Tea Leaf in this mall, but here are other coffee places.")
+    assert out["reply"].startswith("No Coffee Bean & Tea Leaf in this mall, but here are other coffee shops.")
 
 
 def test_brand_with_a_category_word_swaps_in_a_plan(mall, search):
     x = Extraction(intent="plan", source="llm", errands=[
         ErrandReq(query="coffee bean", category="cafe"), ErrandReq(query="phone repair", category="phone_repair")])
     out = run(svc(mall, search, FixedLLM(x)).chat("coffee bean tapos phone repair", AT, "14:00", Trip()))
-    assert "No Coffee Bean & Tea Leaf here, so I added other coffee places instead." in out["reply"]
+    assert "No Coffee Bean & Tea Leaf here, so I added other coffee shops instead." in out["reply"]
 
 
 def test_plain_category_word_still_lists_the_category(mall, search):
@@ -386,7 +386,7 @@ def test_more_pages_through_the_category(mall, search):
     assert [p["id"] for p in out["result"]["places"]] == [first["places"][1]["id"]]
     assert out["result"]["category"] == "food"
     done = run(s.chat("iba pa", AT, "14:00", Trip(), prev=first))
-    assert done["result"]["type"] == "text" and "every food place" in done["reply"]
+    assert done["result"]["type"] == "text" and "all the food places" in done["reply"]
 
 
 def test_more_without_prev_asks_first(mall, search):
@@ -409,7 +409,7 @@ def test_more_pages_until_every_place_was_shown(mall, search, monkeypatch):
     assert second["places"][0]["id"] != first["places"][0]["id"]
     assert second["shown"] == first["shown"] + [second["places"][0]["id"]]
     done = run(s.chat("iba pa", AT, "14:00", Trip(), prev=second))
-    assert done["reply"] == "That's every food place in this mall."
+    assert done["reply"] == "Those are all the food places in this mall."
 
 
 def test_more_after_a_swap_keeps_the_brand(mall, search, monkeypatch):

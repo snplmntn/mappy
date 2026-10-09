@@ -1,6 +1,6 @@
 import pytest
 
-from mappy.brands import BRANDS, brand_in, is_store_of, traits_of
+from mappy.brands import BRANDS, brand_in, is_store_of, trait_phrase, traits_of
 from mappy.search import CATEGORY_LABELS, CATEGORY_WORDS
 
 _BRAND = {b.name: b for b in BRANDS}
@@ -128,3 +128,11 @@ def test_a_tag_names_the_brand_of_a_store():
     assert is_store_of(_BRAND["Xiaomi"], "Mi Store", ("gadget", "xiaomi")) is True
     assert is_store_of(_BRAND["SM Store"], "Mi Store", ("gadget", "xiaomi")) is False
     assert is_store_of(_BRAND["Apple"], "Fruit Stand", ("apple",)) is False  # everyday word: name only
+
+
+def test_trait_phrases_read_as_english():
+    assert trait_phrase("burger") == "burgers"
+    assert trait_phrase("pet") == "pet supplies"
+    assert trait_phrase("ramen") == "ramen"
+    assert "Japanese" in traits_of("Ramen Nagi")   # proper adjectives are capitalized for display
+    assert all(t.islower() or t[0].isupper() for b in BRANDS for t in b.traits)
