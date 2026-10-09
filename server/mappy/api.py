@@ -107,7 +107,8 @@ def _qr_svg(data: str, scale: int = 6) -> str:
 def _qr_svg_file(data: str, scale: int = 6) -> bytes:
     """Standalone SVG document (with xmlns) that an <img src> can render."""
     buf = io.BytesIO()
-    segno.make(data, error="m").save(buf, kind="svg", scale=scale, **QR_STYLE)
+    # Own white background and a full quiet zone, so a shared code still scans on a dark screen.
+    segno.make(data, error="m").save(buf, kind="svg", scale=scale, **{**QR_STYLE, "border": 4, "light": "#ffffff"})
     return buf.getvalue()
 
 
