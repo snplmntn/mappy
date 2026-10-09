@@ -144,9 +144,11 @@ def apply_edits(trip: Trip, edits: list[Edit], now_min: int, make_errand: MakeEr
             elif ed.op == "choose" and ed.place_hint:
                 e = _resolve(t, ed.errand, ed.op, place_name)
                 pid = _choose(e, ed.place_hint, place_name, place_floor)
-                if pid:
-                    e.chosen = pid
-                    changes.append(f"{e.label}: {place_name(pid)}")
+                if not pid:
+                    names = ", ".join(place_name(c) or c for c in e.candidates)
+                    raise _Question(f"I couldn't match “{ed.place_hint}”. Which one: {names}?")
+                e.chosen = pid
+                changes.append(f"{e.label}: {place_name(pid)}")
             elif ed.op == "elevator_only" and ed.value is not None:
                 t.constraints.elevator_only = ed.value
                 changes.append("Elevators only" if ed.value else "Escalators allowed")

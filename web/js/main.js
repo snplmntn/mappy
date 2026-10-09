@@ -1,12 +1,13 @@
 import { h, nowHHMM } from "./util.js";
 import { atLabel, atNode, dropIfStale, indexMall, pushMessage, resetTrip, state, subscribe, update } from "./state.js";
-import { getJSON, OfflineError, post } from "./api.js";
+import { ApiError, getJSON, OfflineError, post, SERVER_ERROR, TimeoutError } from "./api.js";
 import { renderThread } from "./chat.js";
 import { icon } from "./icons.js";
 import { Navigator, nodePoint, placePoint } from "./map.js";
 
 const OFFLINE = "Can't reach Mappy. Make sure you're on the “mappy” Wi-Fi with airplane mode on and Wi-Fi on.";
-const SERVER_ERROR = "Something went wrong on the Mappy server. Try again.";
+const TIMEOUT = "Mappy is taking too long to answer. Try again.";
+const ELEVATOR_BLOCKED = "There's no elevator route there. Turn off “Elevators only” in your plan to use escalators.";
 
 const input = document.getElementById("input");
 const sendBtn = document.getElementById("send");
@@ -14,8 +15,15 @@ const micBtn = document.getElementById("mic");
 const KEYBOARD_MIC_TIP = "Tap 🎤 on your keyboard to talk";
 let nav;
 
+function errorText(err) {
+  if (err instanceof OfflineError) return OFFLINE;
+  if (err instanceof TimeoutError) return TIMEOUT;
+  if (err instanceof ApiError) return err.message;
+  return SERVER_ERROR;
+}
+
 function botError(err) {
-  pushMessage({ role: "bot", text: err instanceof OfflineError ? OFFLINE : SERVER_ERROR });
+  pushMessage({ role: "bot", text: errorText(err) });
 }
 
 /** Run an async action while the control that started it shows a spinner (state.pending = its key). */
@@ -90,8 +98,9 @@ const actions = {
   navigate(to, stop, pending) {
     return withBusy(async () => {
       const res = await post("/api/route", { at: state.at, to, elevator_only: state.trip.constraints.elevator_only });
-      if (res.walk_min === null) pushMessage({ role: "bot", text: "I can't find a way there from where you are." });
-      else if (!res.legs.length) pushMessage({ role: "bot", text: "You're already there." });
+      if (res.walk_min === null) {
+        pushMessage({ role: "bot", text: res.reason === "elevator_only" ? ELEVATOR_BLOCKED : "I can't find a way there from where you are." });
+      } else if (!res.legs.length) pushMessage({ role: "bot", text: "You're already there." });
       else nav.route({ legs: res.legs, stops: [stop] });
     }, pending);
   },
@@ -217,8 +226,8 @@ async function boot() {
     const mall = await getJSON("/api/mall");
     dropIfStale(mall);
     update({ mall, index: indexMall(mall) });
-  } catch {
-    document.getElementById("thread").replaceChildren(h("div", { class: "empty" }, h("h1", {}, "Can't reach Mappy"), h("p", {}, OFFLINE)));
+  } catch (err) {
+    document.getElementById("thread").replaceChildren(h("div", { class: "empty" }, h("h1", {}, "Can't reach Mappy"), h("p", {}, errorText(err))));
     return;
   }
   if (state.at && !atNode()) update({ at: null });

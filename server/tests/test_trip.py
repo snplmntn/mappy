@@ -109,3 +109,8 @@ def test_does_not_mutate_input():
 def test_new_first_rule_replaces_other_first_rule():
     t, _, _ = run(trip3(), [Edit(op="order", errand="e2", rule="first"), Edit(op="order", errand="e3", rule="first")])
     assert [(o.errand, o.rule) for o in t.constraints.order] == [("e3", "first")]
+
+
+def test_choose_unmatched_asks_instead_of_silently_doing_nothing():
+    t, changes, q = run(trip3(), [Edit(op="choose", errand="e2", place_hint="Zzyzx")])
+    assert t.errands[1].chosen is None and not changes and "Zzyzx" in q

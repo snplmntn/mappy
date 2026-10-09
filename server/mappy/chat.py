@@ -25,6 +25,8 @@ LLM_TIMEOUT_S = 8.5
 # Minimum fused search score that counts as "found", per embedder (calibrated on the eval set).
 MIN_SCORE = {"hash-256": 0.35, "multilingual-e5-small": 0.60}
 HELP = "Tell me what you need to do. For example: “fix my phone, eat, then buy a gift”."
+TRY_INSTEAD = "Try a store name, or a type like “food”, “ATM” or “phone repair”."
+NOTHING_CHANGED = "I didn't catch what to change. Try “30 mins lang” or “skip food”."
 
 
 class Extractor(Protocol):
@@ -33,6 +35,19 @@ class Extractor(Protocol):
 
 def _text(reply: str, trip: Trip) -> dict:
     return {"reply": reply, "result": {"type": "text"}, "trip": trip.model_dump(by_alias=True)}
+
+
+def _not_found(queries: list[str]) -> str:
+    return f"I couldn't find “{', '.join(queries)}” in this mall. {TRY_INSTEAD}"
+
+
+def _help(trip: Trip) -> str:
+    """When a message isn't understood, suggest the next useful thing for where the user is."""
+    active = [e for e in trip.errands if e.status != "done"]
+    if not active:
+        return HELP
+    label = active[0].label.lower()
+    return f"I didn't catch that. To change your plan, try “30 mins lang”, “{label} muna” or “skip {label}”."
 
 
 @dataclass
@@ -128,7 +143,7 @@ class ChatService:
             cat = req.category or self.search.alias_category(req.query)
             ids = self.search.by_category(cat) if cat and self.search.by_category(cat) else self._matches(req.query, None)
             if not ids:
-                return _text(f"I couldn't find “{req.query}” in this mall.", trip)
+                return _text(_not_found([req.query]), trip)
             result = self._places_result(req.query, ids[:5], start, router)
             return {"reply": f"Here's what I found for “{req.query}”:", "result": result,
                     "trip": trip.model_dump(by_alias=True)}
@@ -145,7 +160,7 @@ class ChatService:
                     t.errands.append(made)
                     added += 1
             if not added:
-                return _text(f"I couldn't find “{', '.join(missing)}” in this mall.", trip)
+                return _text(_not_found(missing), trip)
             payload = self._plan_payload(t, start, now_min, [])
             reply = f"Here's your plan: {len(payload['plan']['stops'])} stops, done by {payload['plan']['finish_at']}."
             if missing:
@@ -158,6 +173,8 @@ class ChatService:
             t, changes, question = apply_edits(trip, x.edits, now_min, self.make_errand, self._name, self._floor)
             if question:
                 return _text(question, trip)
+            if not changes:
+                return _text(NOTHING_CHANGED, trip)
             payload = self._plan_payload(t, start, now_min, changes)
             return {"reply": "Updated your plan.", "result": payload, "trip": t.model_dump(by_alias=True)}
 
@@ -170,7 +187,7 @@ class ChatService:
             return {"reply": reply, "result": {"type": "locate", "candidates": [c.model_dump() for c in cands],
                                                "ask": ask}, "trip": trip.model_dump(by_alias=True)}
 
-        return _text(HELP, trip)
+        return _text(_help(trip), trip)
 
     def plan(self, at: dict | None, now: str, trip: Trip, edits: list[Edit]) -> dict:
         now_min = hhmm_to_min(now)
@@ -191,7 +208,9 @@ class ChatService:
             dest, label = to.get("node"), "meet-up point"
         path = router.path(start, dest) if dest in self.mall.nodes else None
         if path is None:
-            return {"legs": [], "walk_min": None}
+            # Say why, so the app can tell "elevators only blocks this" apart from "no way there at all".
+            blocked = elevator_only and dest in self.mall.nodes and self.router.path(start, dest) is not None
+            return {"legs": [], "walk_min": None, "reason": "elevator_only" if blocked else "no_route"}
         legs = router.legs(path, 0, label) if len(path) > 1 else []
         return {"legs": [leg.model_dump() for leg in legs],
                 "walk_min": max(1, math.ceil(router.seconds(start, dest) / 60))}

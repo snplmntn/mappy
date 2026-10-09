@@ -111,3 +111,25 @@ def test_kain_muna_then_kape_muna_does_not_crash(mall, search):
     trip = Trip.model_validate(run(s.chat("kain muna", AT, "14:01", trip))["trip"])
     out = run(s.chat("kape muna", AT, "14:02", trip))
     assert out["result"]["type"] == "plan"
+
+
+def test_not_found_suggests_what_to_try(mall, search):
+    x = Extraction(intent="find", source="llm", errands=[ErrandReq(query="Zzyzx Emporium")])
+    out = run(svc(mall, search, FixedLLM(x)).chat("saan ang Zzyzx Emporium", None, "14:00", Trip()))
+    assert "Try a store name" in out["reply"]
+
+
+def test_edit_that_changes_nothing_says_so(mall, search):
+    s = svc(mall, search)
+    trip = Trip.model_validate(run(s.chat("phone, kain", AT, "14:00", Trip()))["trip"])
+    x = Extraction(intent="edit", source="llm", edits=[Edit(op="set_duration", errand="e1")])
+    out = run(svc(mall, search, FixedLLM(x)).chat("pakiayos naman yung plano ko please", AT, "14:01", trip))
+    assert out["result"]["type"] == "text" and "didn't catch" in out["reply"]
+
+
+def test_help_with_a_trip_suggests_edits(mall, search):
+    s = svc(mall, search)
+    trip = Trip.model_validate(run(s.chat("phone, kain", AT, "14:00", Trip()))["trip"])
+    out = run(s.chat("salamat!", AT, "14:01", trip))
+    label = trip.errands[0].label.lower()
+    assert f"skip {label}" in out["reply"]

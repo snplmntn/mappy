@@ -1,14 +1,30 @@
+/** The phone can't reach the server at all (wrong Wi-Fi, server down). */
 export class OfflineError extends Error {}
+/** The server is reachable but didn't answer in time. */
+export class TimeoutError extends Error {}
+/** The server answered with an error; `message` is safe to show the user. */
+export class ApiError extends Error {}
+
+export const SERVER_ERROR = "Something went wrong on the Mappy server. Try again.";
+
+async function errorMessage(res) {
+  try {
+    return (await res.json()).error || SERVER_ERROR;
+  } catch {
+    return SERVER_ERROR;
+  }
+}
 
 async function request(path, options, timeoutMs) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
     const res = await fetch(path, { ...options, signal: ctrl.signal });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) throw new ApiError(await errorMessage(res));
     return await res.json();
   } catch (err) {
-    if (err.name === "AbortError" || err instanceof TypeError) throw new OfflineError(err.message);
+    if (err.name === "AbortError") throw new TimeoutError(err.message);
+    if (err instanceof TypeError) throw new OfflineError(err.message);
     throw err;
   } finally {
     clearTimeout(timer);

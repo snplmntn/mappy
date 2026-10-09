@@ -2,11 +2,15 @@
 
 import html
 import io
+import logging
+import traceback
 from datetime import datetime
+from pathlib import Path
 from typing import Annotated
 
 import segno
 from fastapi import FastAPI, Query, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -22,6 +26,10 @@ from .router import Router
 from .search import Search
 
 HHMM = r"^([01]\d|2[0-3]):[0-5]\d$"
+TEXT_FIELDS = ("message", "text")
+STALE_CLIENT = "Mappy couldn't read that request. Reload the page and try again."
+SERVER_FAULT = "Something went wrong on the Mappy server. Try again."
+log = logging.getLogger("mappy")
 
 
 class ChatReq(BaseModel):
@@ -67,6 +75,28 @@ class RevalidatingStaticFiles(StaticFiles):
 QR_STYLE = {"border": 2, "dark": "#10213f"}
 
 
+def _error(status: int, message: str) -> JSONResponse:
+    """Every API failure has this one shape, and `error` is always safe to show the user."""
+    return JSONResponse({"error": message}, status_code=status)
+
+
+def _validation_message(exc: RequestValidationError) -> str:
+    for e in exc.errors():
+        if e["loc"] and e["loc"][-1] in TEXT_FIELDS:
+            if e["type"] == "string_too_long":
+                return f"That's too long. Keep it under {e['ctx']['max_length']} characters."
+            if e["type"] == "string_too_short":
+                return "Type something first."
+    return STALE_CLIENT
+
+
+def _append_log(log_dir: Path, name: str, entry: str) -> None:
+    log_dir.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with (log_dir / name).open("a", encoding="utf-8") as f:
+        f.write(f"[{stamp}] {entry}\n\n")
+
+
 def _qr_svg(data: str, scale: int = 6) -> str:
     """Inline SVG for embedding in HTML. Has no xmlns, so it can't be served as a standalone image."""
     return segno.make(data, error="m").svg_inline(scale=scale, **QR_STYLE)
@@ -89,6 +119,18 @@ def create_app(settings: Settings | None = None, embedder=None, llm=None) -> Fas
                            model=settings.llm_model, threads=settings.llm_threads)
     svc = ChatService(mall=mall, search=search, router=Router(mall), router_elev=Router(mall, True), llm=llm)
     app = FastAPI(title="Mappy", docs_url=None, redoc_url=None)
+
+    @app.exception_handler(RequestValidationError)
+    async def bad_request(request: Request, exc: RequestValidationError):
+        return _error(422, _validation_message(exc))
+
+    @app.exception_handler(Exception)
+    async def server_fault(request: Request, exc: Exception):
+        """Crashes are written to the laptop's log so they can be diagnosed after the fact."""
+        log.exception("Unhandled error on %s %s", request.method, request.url.path)
+        trace = "".join(traceback.format_exception(exc))
+        _append_log(settings.log_dir, "server-errors.log", f"{request.method} {request.url.path}\n{trace}")
+        return _error(500, SERVER_FAULT)
 
     @app.get("/api/mall")
     def get_mall(request: Request):
@@ -118,10 +160,7 @@ def create_app(settings: Settings | None = None, embedder=None, llm=None) -> Fas
     @app.post("/api/client-error", status_code=204)
     def client_error(req: ClientErrorReq):
         """Phones report crashes here so they can be diagnosed from the laptop."""
-        settings.log_dir.mkdir(parents=True, exist_ok=True)
-        stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        with (settings.log_dir / "client-errors.log").open("a", encoding="utf-8") as f:
-            f.write(f"[{stamp}] {req.ua}\n{req.message}\n{req.stack}\n\n")
+        _append_log(settings.log_dir, "client-errors.log", f"{req.ua}\n{req.message}\n{req.stack}")
         return Response(status_code=204)
 
     @app.get("/api/health")
