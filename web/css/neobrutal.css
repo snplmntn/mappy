@@ -87,6 +87,8 @@ button:disabled { cursor: not-allowed; }
 .composer textarea::placeholder { color: var(--text-2); }
 .send { border: 2px solid var(--ink); border-radius: 3px; background: var(--yellow); color: var(--ink); box-shadow: 2px 2px 0 var(--ink); }
 .send:disabled { opacity: 1; background: var(--bubble); color: var(--text-2); box-shadow: none; }
+.mic { width: 44px; height: 44px; border: 2px solid var(--ink); border-radius: 3px; background: var(--surface); box-shadow: 2px 2px 0 var(--ink); }
+.mic.listening { background: var(--peach); color: var(--ink); }
 .composer-hint { margin-top: 12px; }
 .msg-user { background: var(--yellow); color: var(--ink); border: 2px solid var(--ink); border-radius: 4px; box-shadow: 3px 3px 0 var(--ink); }
 .card { border: 2px solid var(--ink); border-radius: 4px; box-shadow: 5px 5px 0 var(--ink); }
