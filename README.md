@@ -1,6 +1,6 @@
 # Mappy
 
-*Mappy = map + happy: a mall map that gets you there without the stress.*
+*Mappy = map + happy. Lost no more, smiles on every floor.*
 
 **An errand isn't a point, it's a task with a duration.** Mappy plans your mall trip around waiting time, offline.
 
