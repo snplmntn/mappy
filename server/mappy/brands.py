@@ -9,6 +9,9 @@ from rapidfuzz import fuzz
 
 SHORT_ALIAS_LEN = 5
 FUZZY_MIN = 90
+# A request shorter than an alias is a typo of it only if at most this many characters are missing
+# ("jolibee" for "jollibee"), not a phrase inside it ("department store" in "sm department store").
+MAX_TYPO_GAP = 2
 
 
 @dataclass(frozen=True)
@@ -17,6 +20,7 @@ class Brand:
     category: str      # one of CATEGORY_LABELS keys
     traits: tuple[str, ...]
     aliases: tuple[str, ...] = ()   # extra spellings/nicknames, lowercase: ("mcdo", "mcdonalds")
+    everyday: bool = False          # name is also a common word ("mango"): only the whole request counts
 
 
 BRANDS: tuple[Brand, ...] = (
@@ -76,31 +80,31 @@ BRANDS: tuple[Brand, ...] = (
     Brand("Uniqlo", "clothing", ("fashion", "basics")),
     Brand("H&M", "clothing", ("fashion",)),
     Brand("Zara", "clothing", ("fashion",)),
-    Brand("Bench", "clothing", ("fashion", "basics")),
+    Brand("Bench", "clothing", ("fashion", "basics"), everyday=True),
     Brand("Penshoppe", "clothing", ("fashion",)),
     Brand("Forever 21", "clothing", ("fashion",)),
     Brand("Cotton On", "clothing", ("fashion", "basics")),
-    Brand("Mango", "clothing", ("fashion",)),
+    Brand("Mango", "clothing", ("fashion",), everyday=True),
     Brand("Giordano", "clothing", ("fashion", "basics")),
-    Brand("Oxygen", "clothing", ("fashion",)),
+    Brand("Oxygen", "clothing", ("fashion",), everyday=True),
     Brand("Levi's", "clothing", ("jeans", "fashion"), ("levis",)),
     Brand("Lacoste", "clothing", ("fashion",)),
-    Brand("Guess", "clothing", ("fashion",)),
+    Brand("Guess", "clothing", ("fashion",), everyday=True),
     Brand("Old Navy", "clothing", ("fashion", "basics")),
-    Brand("Gap", "clothing", ("fashion", "basics")),
+    Brand("Gap", "clothing", ("fashion", "basics"), everyday=True),
     Brand("Terranova", "clothing", ("fashion",)),
     Brand("Regatta", "clothing", ("fashion",)),
     # shoes
     Brand("Nike", "shoes", ("sneakers", "sportswear")),
     Brand("Adidas", "shoes", ("sneakers", "sportswear")),
     Brand("Skechers", "shoes", ("sneakers", "shoes")),
-    Brand("Converse", "shoes", ("sneakers",)),
-    Brand("Vans", "shoes", ("sneakers",)),
+    Brand("Converse", "shoes", ("sneakers",), everyday=True),
+    Brand("Vans", "shoes", ("sneakers",), everyday=True),
     Brand("Crocs", "shoes", ("sandals",)),
     Brand("Havaianas", "shoes", ("sandals", "tsinelas")),
     Brand("World Balance", "shoes", ("sneakers", "shoes")),
     Brand("Payless", "shoes", ("shoes", "sandals")),
-    Brand("Toms", "shoes", ("shoes",)),
+    Brand("Toms", "shoes", ("shoes",), everyday=True),
     Brand("Birkenstock", "shoes", ("sandals",)),
     Brand("Puma", "shoes", ("sneakers", "sportswear")),
     Brand("New Balance", "shoes", ("sneakers", "sportswear")),
@@ -122,7 +126,7 @@ BRANDS: tuple[Brand, ...] = (
     Brand("Etude House", "beauty", ("makeup", "korean"), ("etude",)),
     Brand("Beauty Bar", "beauty", ("makeup", "skincare")),
     Brand("Kiehl's", "beauty", ("skincare",), ("kiehls",)),
-    Brand("MAC", "beauty", ("makeup",), ("mac cosmetics",)),
+    Brand("MAC", "beauty", ("makeup",), ("mac cosmetics",), everyday=True),
     Brand("Colourette", "beauty", ("makeup",)),
     Brand("Human Nature", "beauty", ("skincare",)),
     Brand("BYS", "beauty", ("makeup",)),
@@ -135,7 +139,7 @@ BRANDS: tuple[Brand, ...] = (
     # electronics
     Brand("Power Mac Center", "electronics", ("apple", "phone", "laptop"), ("power mac",)),
     Brand("Samsung", "electronics", ("phone", "gadget")),
-    Brand("Apple", "electronics", ("apple", "phone", "laptop")),
+    Brand("Apple", "electronics", ("apple", "phone", "laptop"), everyday=True),
     Brand("Huawei", "electronics", ("phone", "gadget")),
     Brand("Oppo", "electronics", ("phone",)),
     Brand("Vivo", "electronics", ("phone",)),
@@ -166,7 +170,7 @@ BRANDS: tuple[Brand, ...] = (
     Brand("Papemelroti", "gift", ("gift", "souvenir")),
     Brand("Kultura", "gift", ("souvenir", "gift", "filipino")),
     Brand("Hallmark", "gift", ("gift", "cards")),
-    Brand("Typo", "gift", ("gift", "school supplies")),
+    Brand("Typo", "gift", ("gift", "school supplies"), everyday=True),
     # books_stationery
     Brand("National Book Store", "books_stationery", ("books", "school supplies"),
           ("national bookstore", "nbs")),
@@ -182,11 +186,11 @@ BRANDS: tuple[Brand, ...] = (
     Brand("FamilyMart", "grocery", ("snack", "convenience"), ("family mart",)),
     Brand("Alfamart", "grocery", ("snack", "convenience")),
     # department_store
-    Brand("SM Store", "department_store", ("fashion", "home"), ("sm department store",)),
+    Brand("SM Store", "department_store", ("fashion", "home")),
     Brand("Rustan's", "department_store", ("fashion", "luxury"), ("rustans",)),
-    Brand("Landmark", "department_store", ("fashion", "grocery")),
+    Brand("Landmark", "department_store", ("fashion", "grocery"), everyday=True),
     Brand("Robinsons Department Store", "department_store", ("fashion", "home")),
-    Brand("Metro", "department_store", ("fashion", "home"), ("metro department store",)),
+    Brand("Metro", "department_store", ("fashion", "home"), everyday=True),
     # home
     Brand("Miniso", "home", ("home", "gift")),
     Brand("Daiso", "home", ("home", "kitchen")),
@@ -214,7 +218,7 @@ BRANDS: tuple[Brand, ...] = (
     Brand("Cebuana Lhuillier", "remittance", ("remittance",), ("cebuana",)),
     Brand("MLhuillier", "remittance", ("remittance",), ("m lhuillier",)),
     Brand("GCash", "remittance", ("remittance",)),
-    Brand("Maya", "remittance", ("remittance",), ("paymaya",)),
+    Brand("Maya", "remittance", ("remittance",), ("paymaya",), everyday=True),
     # courier
     Brand("LBC", "courier", ("package",)),
     Brand("JRS Express", "courier", ("package",), ("jrs",)),
@@ -244,12 +248,14 @@ _ALIASES: list[tuple[str, Brand]] = sorted(
 _BY_NAME: dict[str, Brand] = {alias: b for alias, b in reversed(_ALIASES)}
 
 
-def _mentions(alias: str, text: str) -> bool:
+def _mentions(alias: str, brand: Brand, text: str) -> bool:
+    if brand.everyday:
+        return alias == text
     if len(alias) <= SHORT_ALIAS_LEN:
         return re.search(rf"(?<![\w&]){re.escape(alias)}(?![\w&])", text) is not None
     if len(alias) > len(text):
         # partial_ratio would find a short text inside a long alias ("coffee" in "coffee bean").
-        return fuzz.ratio(alias, text) >= FUZZY_MIN
+        return len(alias) - len(text) <= MAX_TYPO_GAP and fuzz.ratio(alias, text) >= FUZZY_MIN
     return fuzz.partial_ratio(alias, text) >= FUZZY_MIN
 
 
@@ -257,11 +263,12 @@ def brand_in(text: str) -> Brand | None:
     """The brand a short request names, matched by full name or alias (typo-tolerant), else None.
     Longest alias wins so "coffee bean" does not lose to "bean"."""
     t = _norm(text)
-    return next((b for alias, b in _ALIASES if _mentions(alias, t)), None)
+    return next((b for alias, b in _ALIASES if _mentions(alias, b, t)), None)
 
 
 def traits_of(name: str) -> tuple[str, ...]:
-    """Traits for an exact brand/store name (case-insensitive), or () when unknown. Used to rank
-    alternatives for a store that exists but is far (Task 4)."""
+    """Traits for a brand/store named exactly by its name or an alias (case- and punctuation-
+    insensitive), or () when unknown. Used to rank alternatives for a store that exists but is far
+    (Task 4)."""
     b = _BY_NAME.get(_norm(name))
     return b.traits if b else ()

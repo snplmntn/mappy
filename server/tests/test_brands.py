@@ -31,6 +31,30 @@ def test_unknown_text_and_category_words_are_not_brands():
     assert brand_in("atm") is None
 
 
+def test_no_category_label_or_phrase_is_a_brand():
+    phrases = {label.lower() for label in CATEGORY_LABELS.values()}
+    phrases |= {cat.replace("_", " ") for cat in CATEGORY_LABELS}
+    phrases |= {w for ws in CATEGORY_WORDS.values() for w in ws}
+    assert {p: brand_in(p).name for p in phrases if brand_in(p)} == {}
+
+
+def test_everyday_word_brands_need_the_whole_request():
+    assert brand_in("mango").name == "Mango"
+    assert brand_in("bench").name == "Bench"
+    assert brand_in("mango shake") is None
+    assert brand_in("i guess so") is None
+    assert brand_in("where is a bench") is None
+    assert brand_in("mind the gap") is None
+    assert brand_in("apple pie") is None
+    assert brand_in("metro manila") is None
+
+
+def test_apostrophe_ampersand_and_hyphen_spellings():
+    assert brand_in("mcdonald's").name == "McDonald's"
+    assert brand_in("j&t express").name == "J&T Express"
+    assert brand_in("7-11").name == "7-Eleven"
+
+
 def test_short_alias_needs_whole_word():
     assert brand_in("backfcolor") is None  # "kfc" inside a word
 
