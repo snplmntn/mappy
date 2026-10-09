@@ -90,34 +90,33 @@ footer { display: flex; justify-content: space-between; align-items: center; gap
   footer > span:last-child { max-width: 220px; line-height: 1.6; text-align: right; }
 }
 @media (prefers-reduced-motion: reduce) { .button { transition: none; } }
-@page { size: A4; margin: 12mm; }
+/* No fixed paper size: the layout fits on one A4 or Letter sheet, whichever the printer uses. */
+@page { margin: 10mm; }
 @media print {
   :root, body { background: white; color: black; }
   body { background-image: none; }
   .topbar { padding: 0 0 4mm; border-bottom: 2px solid black; }
-  .header-actions, .eyebrow, .page-heading > p, .offline-note, footer, .card-icon, .helper { display: none; }
+  .header-actions, .eyebrow, .page-heading > p, .offline-note, .section-description, footer, .card-icon, .helper { display: none; }
   .brand { font-size: 24px; }
-  .brand-symbol { width: 25px; height: 27px; font-size: 21px; box-shadow: none; transform: none; }
   main { padding: 0; max-width: none; }
-  h1 { font-size: 23px; letter-spacing: -.8px; margin: 4mm 0; }
+  h1 { font-size: 23px; letter-spacing: -.8px; margin: 3mm 0; }
   h1 br { display: none; }
   h1 > span { background: none; border: 0; box-shadow: none; padding: 0; margin: 0; }
-  .steps { grid-template-columns: repeat(3, 1fr); gap: 4mm; margin: 4mm 0; }
+  .steps { grid-template-columns: repeat(3, 1fr); gap: 4mm; margin: 3mm 0; }
   .steps b { font-size: 10px; }
   .steps div > span { font-size: 9px; }
   .step-number { width: 22px; height: 22px; font-size: 11px; box-shadow: none; }
-  section { margin-top: 5mm; }
+  section { margin-top: 4mm; }
   h2 { font-size: 17px; }
   .section-heading { margin-bottom: 3mm; break-after: avoid; }
-  .section-description { margin: 0 0 3mm; font-size: 10px; }
-  .connection-note { font-size: 9px; padding: 2mm 3mm; margin: 3mm 0; }
+  .connection-note { font-size: 9px; padding: 1.5mm 3mm; margin: 2mm 0 0; }
   .connect-grid { grid-template-columns: 1fr 1fr; gap: 4mm; }
   .connect-card { flex-direction: row; padding: 3mm; gap: 3mm; align-items: center; text-align: left; }
   .connect-copy h3 { font-size: 15px; }
   .connect-copy p, .app-url { font-size: 9px; }
   .qr-card { box-shadow: none; border: 1.5px solid black; border-radius: 0; }
   .qr-code { padding: 0; }
-  .qr-code > svg { width: 36mm; height: 36mm; }
+  .qr-code > svg { width: 30mm; height: 30mm; }
   .location-grid { grid-template-columns: repeat(3, 1fr); gap: 4mm; }
   .location-card { padding: 0 3mm 3mm; }
   .card-kicker { margin: 0 -3mm 2mm; padding: 2mm; font-size: 9px; background: white !important; border-bottom: 1px solid black; }
