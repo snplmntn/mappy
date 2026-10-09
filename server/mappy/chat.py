@@ -131,16 +131,17 @@ class ChatService:
                       duration_source="store" if first.service else "default", **{"async": is_async})
 
     def _resolve(self, query: str, category: str | None) -> tuple[list[str], StandIn | None]:
-        """Places for a store request: a known brand that is here, then a search hit, then same-kind
-        stand-ins for a known brand that isn't, then the LLM's category guess."""
+        """Places for a store request: a known brand that is here, then same-kind stand-ins for a known
+        brand that isn't (before search, so "coffee bean" isn't quietly answered by a "coffee" tag),
+        then a search hit, then the LLM's category guess."""
         brand = brand_in(query)
         if brand and (named := self.search.place_ids_named(brand.name)):
             return named, None
-        if hits := self._matches(query, None):
-            return hits, None
         if brand and self.search.by_category(brand.category):
             return (self.search.alternatives(brand.category, brand.traits),
                     StandIn(brand.name, brand.category, brand.traits, swapped=True))
+        if hits := self._matches(query, None):
+            return hits, None
         if category and self.search.by_category(category):
             return self._matches(query, category), StandIn(query, category)
         return [], None

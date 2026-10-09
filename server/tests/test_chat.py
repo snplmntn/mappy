@@ -264,3 +264,10 @@ def test_alternatives_without_walk_time_skip_the_distance(mall, search, monkeypa
 def test_alternatives_without_matching_traits_skip_the_trait_sentence(mall, search):
     out = run(svc(mall, search).chat("mcdo", AT, "14:00", Trip()))
     assert " also do" not in out["reply"]
+
+
+def test_absent_brand_swaps_even_when_search_would_hit(mall, search, monkeypatch):
+    monkeypatch.setattr(ChatService, "_matches", lambda self, query, category: ["foodcourt-2f"])
+    out = run(svc(mall, search).chat("ramen nagi", AT, "14:00", Trip()))
+    assert out["result"]["alternatives_for"] == "Ramen Nagi"
+    assert out["reply"].startswith("No Ramen Nagi in this mall")
