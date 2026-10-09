@@ -23,6 +23,15 @@ plans the whole trip.
    - **Describe what you see:** landmark matching gives approximate position; the user confirms by tapping a pin.
    - **Tap on map:** manual override.
 5. **Meet a friend.** The friend describes what they see, the user types it in, Mappy locates them and routes the user there.
+6. **Steer the trip by talking.** New information typed into chat changes the plan:
+   - *"sabi ng technician 30 mins lang"* (the technician said only 30 minutes): the repair becomes 30 min.
+   - *"ready daw by 4pm"* (they said it'll be ready by 4pm): a fixed ready time.
+   - *"gutom na ko, kain muna"* (I'm hungry, let's eat first): food moves to first.
+   - *"kailangan ko umalis ng 6"* (I need to leave by 6): a deadline.
+   - *"naiwan ko na yung phone"* (I've left my phone with them): marked as dropped off; the clock starts now.
+   - *"wag na H&M"* (skip H&M): removed.
+
+   The local LLM turns the message into **edits** to the trip; deterministic code applies them and re-plans. The reply shows exactly what changed and why the order moved.
 
 ### Why local (the mandatory submission answer)
 - **Malls are connectivity dead zones.** Indoors, below ground, crowded cell towers, captive-portal Wi-Fi. Navigation must work with **zero internet**. The demo runs in airplane mode on a hotspot with no WAN.
@@ -75,7 +84,7 @@ The phone runs no AI. The edge box runs all of it. The phone downloads `mall.jso
 ### Repository layout
 ```
 server/      Python backend (owner: A)
-  mappy/     mall.py router.py search.py planner.py locator.py ai.py api.py
+  mappy/     mall.py router.py search.py planner.py trip.py locator.py ai.py api.py
   tests/     unit tests for pure logic only (router, planner, locator, mall validation)
 web/         phone app -> builds to web/dist, served by server (owner: B)
 editor/      map editor, static HTML (owner: B, used by C)
@@ -161,28 +170,43 @@ All JSON. Base path `/api`. Static `web/dist` is served at `/`.
 | Method | Path | Request | Response |
 |---|---|---|---|
 | GET | `/api/mall` | - | `mall.json` (with ETag; the phone caches it in memory) |
-| POST | `/api/chat` | `{ message, at?, trip? }` | `{ reply, result }` (see below) |
-| POST | `/api/plan` | `{ from, errands[], options? }` | `Plan` |
+| POST | `/api/chat` | `{ message, at?, now, trip? }` | `{ reply, result, trip }` (see below) |
+| POST | `/api/plan` | `{ from, now, trip }` | `Plan` |
 | POST | `/api/locate` | `{ text, floor? }` | `{ candidates[], ask? }` |
 | GET | `/api/health` | - | `{ ok, model, embed_model, llm_ok }` |
 | GET | `/print` | - | Printable page: Wi-Fi QR + app QR + all anchor QRs, built from the **current** server IP |
 
 **`/api/chat` result** is one of these:
 - `{ type: "places", query, places: [PlaceRef] }`: "where can I fix my phone?"
-- `{ type: "plan", plan: Plan }`: several errands
+- `{ type: "plan", plan: Plan, changes: string[] }`: several errands, or a steering message applied to the current trip. `changes` lists human-readable edits, e.g. "Phone repair: 45 -> 30 min (you said)".
 - `{ type: "locate", candidates: [Candidate], ask? }`: "I'm beside Jollibee, facing H&M" / a friend's description
 - `{ type: "text" }`: small talk or a clarification; `reply` holds the text
 
 `reply` is a short **templated** sentence (Taglish-friendly). The LLM never writes free prose, so nothing needs streaming.
 
+**The trip lives on the phone.** The server is stateless. The phone sends `trip` with every call and replaces it with the `trip` returned from `/chat`, so several phones never share state and no session store is needed. `now` is the phone's clock as `"HH:MM"`.
+
 ```ts
 type At = { anchor: string } | { node: string }
-type Errand = { query: string, candidates: string[] /* place ids */, duration_min: number, async: boolean }
+type Errand = {
+  id: string,                      // "e1", stable for the whole trip
+  label: string,                   // "Phone screen repair"
+  query: string, candidates: string[] /* place ids */, chosen?: string,
+  duration_min: number, duration_source: "default" | "store" | "user",
+  async: boolean, ready_at?: string /* "HH:MM" */,
+  status: "todo" | "dropped" | "done", dropped_at?: string
+}
+type OrderRule = { errand: string, rule: "first" | "last" | "before" | "after", other?: string }
+type Trip = {
+  errands: Errand[],
+  constraints: { deadline?: string, order: OrderRule[], elevator_only?: boolean }
+}
 type Plan = {
   stops: { kind: "visit"|"drop"|"pick", place: string, arrive_min: number, leave_min: number, reason: string }[],
   legs:  { floor: string, path: [number, number][], instruction: string,
            connector?: { id: string, kind: string, to_floor: string } }[],
-  total_min: number, walk_min: number, idle_min: number
+  total_min: number, walk_min: number, idle_min: number,
+  finish_at: string, warnings: string[]   // e.g. "Won't finish by 6:00. Skip Clothing?"
 }
 type Candidate = { node: string, floor: string, x: number, y: number, score: number, matched: string[] }
 ```
@@ -197,14 +221,33 @@ type Candidate = { node: string, floor: string, x: number, y: number, score: num
 - One OpenAI-compatible client (`LLM_BASE_URL`, `LLM_MODEL`, `EMBED_MODEL`), so LM Studio, llama.cpp-server and Ollama are interchangeable.
 - **Chat model:** qwen2.5-3b-instruct (Q4) by default. Try 7B on the RX 6600 XT. Pick in the smoke test using 10 Taglish prompts.
 - **Embedding model:** bge-m3 (multilingual, so the Taglish fallback still works). Place vectors are precomputed at startup and cached to disk, keyed by the hash of `mall.json`.
-- **One extraction call per message**, with a JSON-schema-constrained output:
+- **One extraction call per message**, with a JSON-schema-constrained output. When a trip exists, the prompt includes a compact list of its errands (`e1: Phone screen repair, FixIt Mobile 4F, 45 min, async, todo`) so the model can refer to them by id:
   ```json
-  { "intent": "find|plan|locate|other",
+  { "intent": "find|plan|edit|locate|other",
     "errands":   [{ "query_en": "phone screen repair", "category_hint": "phone_repair" }],
+    "edits": [
+      { "op": "set_duration", "errand": "e1", "minutes": 30 },
+      { "op": "set_ready_at", "errand": "e1", "time": "16:00" },
+      { "op": "add",          "query_en": "gift for mom" },
+      { "op": "remove",       "errand": "e3" },
+      { "op": "order",        "errand": "e2", "rule": "first" },
+      { "op": "deadline",     "time": "18:00" },
+      { "op": "status",       "errand": "e1", "status": "dropped" },
+      { "op": "choose",       "errand": "e2", "place_hint": "the one on 3F" },
+      { "op": "elevator_only","value": true }
+    ],
     "landmarks": [ "Jollibee", "H&M" ],
     "floor_hint": "4F" }
   ```
-- **Timeout 6 s, then fallback:** split the message on `, / and / at / tapos / then / saka`, embed each chunk, and set intent to `plan` if there are 2 or more chunks, else `find`. The demo never hangs.
+- **Timeout 6 s, then fallback:** split the message on `, / and / at / tapos / then / saka`, embed each chunk, and set intent to `plan` if there are 2 or more chunks, else `find`. For steering, the fallback catches durations with a regex (`30 min`, `1 oras`, `1 hr`) and applies them to the only async errand. If there are several, it asks which. The demo never hangs.
+
+### 6.1b `trip`: applying edits (pure, unit-tested)
+`apply_edits(trip, edits, now) -> (trip, changes[], question?)`. Deterministic, never calls a model.
+- It validates every errand id. An unknown or ambiguous reference returns a `question` ("Which one: phone repair or shoe repair?") instead of guessing.
+- `status: dropped` sets `dropped_at = now`. `status: done` removes the errand from planning but keeps it in the trip so the UI can show a checkmark.
+- `set_duration` sets `duration_source = "user"`, and the stop's reason then says so: "Drop off first: repair takes 30 min (sabi ng technician)."
+- `order` rules that contradict each other: the newest one wins, and a change line says so.
+- Every applied edit produces one human-readable `changes[]` line, shown on the plan card.
 
 ### 6.2 `search`
 Score = 0.7 x cosine(query, place text) + 0.3 x fuzzy name match, plus a bonus when `category_hint` matches. Place text is `name + category + tags`. Return the top-k above a threshold. Restrooms, ATMs and similar quick-chip queries map to a category directly and skip the LLM.
@@ -221,6 +264,14 @@ Score = 0.7 x cosine(query, place text) + 0.3 x fuzzy name match, plus a bonus w
 4. Cost = `total_min + 0.5*idle_min + soft_order_penalty`. The soft penalty is a small table, never dominant: e.g. clothing before food +3 ("shop after eating"), restroom last +2.
 5. Return the cheapest plan, with a human `reason` for each stop: "Drop off first: repair takes 45 min", "Eat while waiting", "Pick up: ready by 3:45".
 6. Cap: at most 5 errands. Above about 40k combinations, fall back to greedy nearest-feasible.
+7. **Steering constraints:**
+   - The clock starts at `now`.
+   - `ready_at` overrides `drop_leave + duration`.
+   - A `dropped` errand contributes only its `pick` stop, ready at `dropped_at + duration` (or `ready_at`).
+   - `done` errands are skipped.
+   - `order` rules are **hard filters** on permutations.
+   - `chosen` fixes the candidate place.
+   - A deadline is soft: it adds +100 per minute late, and a `warnings` entry suggests what to drop.
 
 **Acceptance example (unit test):** errands = phone repair (45, async), food (30), clothing (25), each with one candidate. Expected order: drop repair -> food -> clothing -> pick repair, with idle ~ 0 when walking is short. No hardcoded rule produces this. Second case, using the same test map with the repair stall placed on a different floor from food and clothing: at 5 min the plan must pick up before leaving the repair floor (drop -> pick -> food -> clothing), because walking back costs more than the short wait.
 
@@ -242,6 +293,9 @@ Chat first, map as result. Matches the kiosk look.
 - **Chat result cards:**
   - *Places:* a ranked list, each with floor badge + walking minutes; tapping a place routes there.
   - *Plan:* numbered timeline with times and `reason` lines; remove or swap a stop and it re-plans; "Start" opens the map.
+  - *Plan after steering:* a "What changed" list (`changes[]`) at the top, stops that moved highlighted, and `warnings` shown as an amber banner.
+  - Each stop's duration is tappable (15/30/45/60/90 chips). A tap sends the same `set_duration` edit through `/api/plan`, so typing and tapping behave identically.
+  - During the trip, each stop has a **Done** / **Dropped off** button that sends a `status` edit.
   - *Locate:* 1-3 pins on a mini map, "Is this you?" buttons, and the floor question if `ask = "floor"`.
 - **Map screen:**
   - SVG drawn from `mall.json`: floor outline, store rectangles + labels, icons for escalators, elevators and CRs.
@@ -269,7 +323,7 @@ Chat first, map as result. Matches the kiosk look.
 1. Problem (30 s): the kiosk queue; no signal in malls.
 2. Show the Wi-Fi panel: **no internet**. Judges scan the anchor card "4F - Cyberzone entrance".
 3. Type: *"papaayos ko screen ng phone ko, kakain, tapos bibili ng regalo kay mama"* (I'll get my phone screen fixed, eat, then buy a gift for Mom). The plan appears: drop -> eat -> shop -> pick. Line: **"we never told it that order."**
-4. Change repair to 5 min -> the order changes live.
+4. Steer it in chat: *"sabi ng technician 1 oras daw, tapos kailangan ko umalis ng 5"* (the technician said 1 hour, and I need to leave by 5). The repair becomes 60 min and the deadline is set; the plan re-orders and shows a "What changed" list. If it no longer fits, a warning suggests what to drop.
 5. Multi-floor step-through with the transfer card; toggle elevator-only.
 6. Meet a friend: *"nasa tabi ako ng Starbucks, katapat ng H&M"* (I'm next to Starbucks, across from H&M) -> pin -> route.
 7. Close: why local, and the data swap to SM's real plans.
@@ -282,7 +336,7 @@ Chat first, map as result. Matches the kiosk look.
 |---|---|---|---|
 | 5:00-6:00 | Smoke test (hotspot, firewall, model on GPU), scaffold, `data/sample/mall.json` | Read contracts, set up `web/`, mock API | Store list CSV from public listings: name, floor, category |
 | 6:00-9:00 | mall loader + validation, router, planner + unit tests | **Map editor** (outline, nodes, edges, connectors, place rects, anchors; exports `mall.json`) | Category/service table; floor plan of zones (section 10) |
-| 9:00-12:00 | ai extraction + fallback, search, `/chat` orchestration | Phone UI: chat, cards, map, floor strip | Lay out all floors in the editor |
+| 9:00-12:00 | ai extraction + fallback, trip edits, search, `/chat` orchestration | Phone UI: chat, cards, map, floor strip | Lay out all floors in the editor |
 | 12:00-2:00 | locator, `/print`, integrate the real map | Map steps + transfer cards; cheap-phone perf pass | Anchors; fix data issues found by validation |
 | 2:00-3:00 | End-to-end on the hotspot, the **unplug test**, bug fixes | Polish | Rehearse the demo script |
 | 3:00-7:00 | Sleep (staggered; someone keeps the build green) | | |
@@ -323,7 +377,12 @@ Beacons/Wi-Fi fingerprinting, live position tracking, voice, camera/photo input,
 | A judge asks "isn't this just a server?" | Edge-box framing + live no-internet demo |
 
 ## 13. Testing
-Unit tests (pytest) for pure logic only: mall validation, router (directional escalators, elevator-only), planner (acceptance example + duration flip), locator (disambiguating with two landmarks). No integration tests and no UI tests.
+Unit tests (pytest) for pure logic only:
+- mall validation
+- router: directional escalators, elevator-only
+- planner: acceptance example + duration flip; order rules; `dropped` / `ready_at`; deadline warning
+- trip: `apply_edits` for every op, including the ambiguous-reference question and the fallback duration regex
+- locator: disambiguating with two landmarks No integration tests and no UI tests.
 
 ## 14. Disclosures (for submission)
 - **Models:** chat and embedding models as finally chosen.
