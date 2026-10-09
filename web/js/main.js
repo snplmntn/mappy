@@ -202,7 +202,19 @@ function openLocation() {
   modal.onclick = (e) => { if (e.target === modal) closeModal(); };
 }
 
+/** Keep the spot in the address too, so a reload finds it even where the browser drops saved data. */
+function syncAtParam() {
+  const at = state.at ? (state.at.anchor || `node:${state.at.node}`) : null;
+  const params = new URLSearchParams(location.search);
+  if (params.get("at") === at) return;
+  if (at) params.set("at", at);
+  else params.delete("at");
+  const query = params.toString();
+  history.replaceState(null, "", `${location.pathname}${query ? `?${query}` : ""}${location.hash}`);
+}
+
 function render() {
+  syncAtParam();
   document.getElementById("placeText").textContent = atLabel();
   renderThread(actions);
   autosize();
@@ -213,7 +225,6 @@ function readAtParam() {
   if (!raw) return;
   const at = raw.startsWith("node:") ? { node: raw.slice(5) } : { anchor: raw };
   if ((at.anchor && state.index.anchors[at.anchor]) || (at.node && state.index.nodes[at.node])) update({ at });
-  history.replaceState(null, "", location.pathname);
 }
 
 async function boot() {

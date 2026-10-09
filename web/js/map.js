@@ -318,7 +318,7 @@ export class Navigator {
   show(floorId) {
     startCompass();
     clearTimeout(this.compassCheck);
-    this.compassCheck = setTimeout(() => { if (compassHeading() === null && !this.reported) { this.reported = true; this.report(); } }, NO_COMPASS_MS * 2);
+    this.compassCheck = setTimeout(() => { if (!this.reported) { this.reported = true; this.report(); } }, NO_COMPASS_MS * 2);
     this.floor = floorId;
     const opening = this.view.hidden;
     this.view.hidden = false;
@@ -594,10 +594,18 @@ export class Navigator {
     }
   }
 
-  /** Tell the laptop why this phone's compass isn't working. */
+  /** Tell the laptop what this phone's compass is doing, to diagnose phones we can't see. */
   report() {
     try {
-      const body = JSON.stringify({ message: `compass: ${JSON.stringify(compassReport())}`, stack: "", ua: navigator.userAgent });
+      let storage = false;
+      try {
+        localStorage.setItem("mappy.probe", "1");
+        storage = localStorage.getItem("mappy.probe") === "1";
+      } catch {
+        /* reported below */
+      }
+      const info = { ...compassReport(), follow: this.follow, you: Boolean(atNode()), storage, origin: location.origin };
+      const body = JSON.stringify({ message: `compass: ${JSON.stringify(info)}`, stack: "", ua: navigator.userAgent });
       navigator.sendBeacon?.("/api/client-error", new Blob([body], { type: "application/json" }));
     } catch {
       /* diagnostics must never break the map */

@@ -73,7 +73,7 @@ export function compassProblem() {
 
 /** What the browser gave us, for diagnosing phones from the laptop. */
 export function compassReport() {
-  return { problem: compassProblem(), started, events, absoluteEvent: "ondeviceorientationabsolute" in window, needsPermission: supported() && needsPermission() };
+  return { problem: compassProblem(), heading, started, events, absoluteEvent: "ondeviceorientationabsolute" in window, needsPermission: supported() && needsPermission() };
 }
 
 /**
