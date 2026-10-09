@@ -17,9 +17,10 @@ QUESTION_WORDS = re.compile(r"^(?:where can i (?:find|get|buy)|where can i|where
                             r"\s+(?:ang|ng|ba|po|yung|the)?\s*", re.I)
 OTHER_RE = re.compile(r"^\s*(?:hi|hello|hey|yo|salamat|thanks?|thank you|ty|ok(?:ay)?|sige|"
                       r"good (?:morning|afternoon|evening)|anong oras|what time)\b", re.I)
-# "Show me more" of the last list, only when the whole message is the cue ("more coffee" is a find).
+# "Show me more" of the last list, only when the whole message is the cue ("more coffee" is a find);
+# trailing particles ("iba pa po", "meron pa ba") are still just the cue.
 MORE_RE = re.compile(r"^\s*(?:iba pa|iba pang|yung iba|meron pa|may iba pa|ano pa|"
-                     r"show more|more|others?|something else|next)\b[\s?!.]*$", re.I)
+                     r"show more|more|others?|something else|next)\b(?:\s+(?:po|ba|naman|nga))*[\s?!.]*$", re.I)
 NUM_WORDS = {"isa": 1, "isang": 1, "dalawa": 2, "dalawang": 2, "tatlo": 3, "tatlong": 3}
 UNIT_AHEAD = r"(?!\s*(?:mins?\b|minutes?|minutos?|oras|hrs?\b|hours?))"
 

@@ -139,11 +139,13 @@ def test_question_is_find(search):
     assert x.intent == "find" and "phone" in x.errands[0].query
 
 
-@pytest.mark.parametrize("msg", ["iba pa", "show more", "Iba pa?", "more!", "next", "others"])
+@pytest.mark.parametrize("msg", ["iba pa", "show more", "Iba pa?", "more!", "next", "others", "iba pa po", "meron pa ba",
+                                 "iba pa nga po?", "more naman"])
 def test_more_cue(msg, search):
     assert parse(msg, Trip(), search).intent == "more"
 
 
-def test_more_with_a_query_is_a_find(search):
-    x = parse("more coffee", Trip(), search)
+@pytest.mark.parametrize("msg", ["more coffee", "iba pa po kape", "more po food"])
+def test_more_with_a_query_is_a_find(msg, search):
+    x = parse(msg, Trip(), search)
     assert x is None or x.intent != "more"
