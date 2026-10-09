@@ -36,6 +36,9 @@
     .wrap { display: grid; grid-template-rows: auto auto 1fr; gap: 24px; height: 100vh; padding: 26px 32px 32px; }
     header { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding-bottom: 22px; border-bottom: 3px solid var(--edge); }
     .brand { display: flex; align-items: center; gap: 16px; min-width: 0; }
+    .brand-symbol { display: grid; place-items: center; width: 44px; height: 48px; padding-bottom: 5px; flex: none; color: #191919;
+      background: var(--yellow); border: 2px solid var(--edge); border-radius: 3px; box-shadow: 3px 3px 0 var(--ink);
+      transform: rotate(-7deg); font-size: 34px; font-weight: 900; }
     h1 { margin: 0; font-size: 38px; font-weight: 900; letter-spacing: -2px; line-height: 1; }
     h1 .period { color: var(--blue); }
     h1 .tag { display: inline-block; margin-left: 12px; padding: 4px 10px 6px; font-size: 22px; letter-spacing: -.8px; color: #191919;
@@ -87,6 +90,7 @@
       .wrap { height: auto; min-height: 100vh; gap: 20px; padding: 16px; }
       h1 { font-size: 29px; }
       h1 .tag { margin-left: 6px; font-size: 17px; }
+      .brand-symbol { width: 36px; height: 40px; font-size: 27px; }
       .net { margin-left: 0; font-size: 16px; }
       header p { font-size: 14px; }
       .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
@@ -103,6 +107,7 @@
   <div class="wrap">
     <header>
       <div class="brand">
+        <span class="brand-symbol" aria-hidden="true">m</span>
         <div>
           <h1>mappy<span class="period">.</span><span class="tag">Edge Box</span></h1>
           <p id="sub">Every answer below is computed on this laptop.</p>

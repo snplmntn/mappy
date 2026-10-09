@@ -306,6 +306,7 @@ svg.icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-w
 }
 .topbar { min-height: 90px; padding: 20px max(28px, calc((100vw - 1180px)/2)); gap: 16px; border-bottom: 1px solid var(--line); background: var(--surface); }
 .brand { display: flex; align-items: center; gap: 9px; color: var(--text); text-decoration: none; font-size: 29px; font-weight: 750; letter-spacing: -1.6px; }
+.brand-symbol { display: grid; place-items: center; width: 34px; height: 38px; border-radius: 12px 12px 12px 3px; background: var(--button); color: white; font-size: 27px; font-weight: 600; line-height: 1; padding-bottom: 5px; }
 .brand-period { color: var(--blue); }
 .header-divider { height: 28px; width: 1px; background: var(--line); margin: 0 8px; }
 .place-pill { padding: 0; height: 44px; border-radius: 8px; gap: 10px; }
@@ -394,6 +395,7 @@ svg.icon { stroke-width: 1.65; }
 @media (max-width: 700px) {
   .topbar { min-height: 72px; padding: max(12px, env(safe-area-inset-top)) 18px 12px; flex-wrap: wrap; gap: 8px; }
   .brand { font-size: 25px; margin-right: auto; }
+  .brand-symbol { width: 29px; height: 32px; font-size: 24px; border-radius: 10px 10px 10px 3px; }
   .header-divider { display: none; }
   .topbar .place-pill { order: 4; flex-basis: 100%; height: 44px; min-height: 44px; font-size: 12px; border-top: 1px solid var(--line); padding-top: 8px; }
   .place-text { font-size: 12px; }
@@ -433,6 +435,7 @@ svg.icon { stroke-width: 1.65; }
 @media (prefers-color-scheme: dark) {
   :root { --bg: #1b211e; --surface: #232b26; --text: #f2f2e9; --text-2: #a9b2a5; --line: #3b463c; --bubble: #2e3930; --button: #d9e5cf; --button-text: #202b22; --blue: #ed9a78; --glass: rgba(35,43,38,.96); --glass-line: #3b463c; --m-outside: #222c24; --m-building: #354032; --m-wall: #60705b; --m-walk: #283329; --m-rail: #6c7765; --m-unit: #394532; --m-food: #564536; --m-shop: #3a4a32; --m-service: #324b3c; --m-tech: #474352; --m-rest: #364a4c; --m-other: #414638; --m-label: #d8dfce; }
   .empty h1 > span { color: #a9b6a2; }
+  .brand-symbol { background: #d9e5cf; color: #202b22; }
   .suggestion .task-icon, .row-icon, .modal-emblem, .msg-user { background: #303e32; }
   .suggestion:first-child .task-icon { background: #49372d; }
   .map-preview, .composer { border-color: var(--line); }
