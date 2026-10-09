@@ -1,0 +1,9 @@
+models/
+.env
+__pycache__/
+*.pyc
+.venv/
+node_modules/
+web/dist/
+.pytest_cache/
+server/.cache/
