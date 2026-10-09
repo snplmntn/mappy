@@ -8,7 +8,7 @@ from typing import Protocol
 
 import httpx
 
-from .brands import brand_in, is_store_of
+from .brands import brand_in, is_store_of, traits_of
 from .llm import LLMBusy, LLMError, fallback_extract, trip_summary
 from .locator import locate
 from .mall import Mall
@@ -25,6 +25,7 @@ FIND_RESULTS = 5
 MAX_REPLY_TRAITS = 2  # traits named in the "also do ..." sentence
 MAX_REPLY_NAMES = 2   # stores named in it
 SCORE_BAND = 0.06
+NUDGE_MIN = 4  # minutes closer before we mention another store of the same kind
 LLM_TIMEOUT_S = 8.5
 # Minimum fused search score that counts as "found", per embedder (calibrated on the eval set).
 MIN_SCORE = {"hash-256": 0.35, "multilingual-e5-small": 0.60}
@@ -217,6 +218,24 @@ class ChatService:
             reply += f" {rows[0]['name']} is {rows[0]['walk_min']} min away."
         return reply
 
+    def _nudge(self, rows: list[dict], start: str, router: Router,
+               exclude: tuple[str, ...]) -> tuple[dict, str] | None:
+        """A same-kind store at least NUDGE_MIN minutes nearer than the store the shopper named (best
+        trait match first), and the sentence pointing to it."""
+        top = rows[0]
+        if top["walk_min"] is None:
+            return None
+        traits = traits_of(top["name"]) or tuple(self.mall.places[top["id"]].tags)
+        pid = next((pid for pid in self.search.alternatives(top["category"], traits, exclude)
+                    if (w := self._walk_min(start, pid, router)) is not None and w <= top["walk_min"] - NUDGE_MIN),
+                   None)
+        if pid is None:
+            return None
+        near = self._places_result("", [pid], start, router)["places"][0]
+        kind = next(iter(self.search.matched_traits(pid, traits)), _label(near["category"]))
+        return near, (f"{top['name']} is {top['walk_min']} min away on {top['floor_name']}. "
+                      f"{near['name']} on {near['floor_name']} does {kind} too, {near['walk_min']} min.")
+
     def _plan_payload(self, trip: Trip, start: str, now_min: int, changes: list[str]) -> dict:
         plan = plan_trip(trip, start, now_min, self._router(trip), self.mall)
         return {"type": "plan", "plan": plan.model_dump(), "changes": changes}
@@ -252,7 +271,11 @@ class ChatService:
             if not ids:
                 return _text(_not_found([req.query]), trip)
             result = self._places_result(req.query, ids, start, router)
-            return {"reply": f"Here's what I found for “{req.query}”:", "result": result,
+            reply = f"Here's what I found for “{req.query}”:"
+            if cat is None and (nudge := self._nudge(result["places"], start, router, tuple(ids))):
+                result["places"].append({**nudge[0], "nudge": True})
+                reply += f" {nudge[1]}"
+            return {"reply": reply, "result": result,
                     "trip": trip.model_dump(by_alias=True)}
 
         if x.intent == "plan" and x.errands:

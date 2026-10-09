@@ -290,3 +290,40 @@ def test_brand_with_a_category_word_swaps_in_a_plan(mall, search):
 def test_plain_category_word_still_lists_the_category(mall, search):
     out = run(svc(mall, search).chat("coffee", AT, "14:00", Trip()))
     assert "alternatives_for" not in out["result"] and out["reply"].startswith("Here's what I found")
+
+
+def walk_times(monkeypatch, minutes):
+    """Fixed walk minutes per place id, so nudge tests don't depend on the sample's geometry."""
+    monkeypatch.setattr(ChatService, "_walk_min", lambda self, start, pid, router: minutes.get(pid))
+
+
+def test_far_name_hit_points_to_a_nearer_same_kind_store(mall, search, monkeypatch):
+    walk_times(monkeypatch, {"jollibee-gf": 9, "foodcourt-2f": 2})
+    out = run(svc(mall, search).chat("jollibee", {"anchor": "2f-esc-a"}, "14:00", Trip()))
+    places = out["result"]["places"]
+    assert [p["id"] for p in places] == ["jollibee-gf", "foodcourt-2f"]
+    assert places[-1]["nudge"] is True and "nudge" not in places[0]
+    assert out["reply"] == ("Here's what I found for “jollibee”: Jollibee is 9 min away on Ground Floor. "
+                            "Food Court on 2nd Floor does food too, 2 min.")
+    assert "does" in out["reply"] and "too," in out["reply"]
+
+
+def test_no_nudge_when_the_other_store_is_not_much_nearer(mall, search, monkeypatch):
+    walk_times(monkeypatch, {"jollibee-gf": 5, "foodcourt-2f": 2})
+    out = run(svc(mall, search).chat("jollibee", {"anchor": "2f-esc-a"}, "14:00", Trip()))
+    assert [p["id"] for p in out["result"]["places"]] == ["jollibee-gf"]
+    assert out["reply"] == "Here's what I found for “jollibee”:"
+
+
+def test_no_nudge_without_a_walk_time(mall, search, monkeypatch):
+    walk_times(monkeypatch, {"foodcourt-2f": 2})
+    out = run(svc(mall, search).chat("jollibee", {"anchor": "2f-esc-a"}, "14:00", Trip()))
+    assert [p["id"] for p in out["result"]["places"]] == ["jollibee-gf"]
+
+
+def test_no_nudge_for_swaps_or_category_listings(mall, search, monkeypatch):
+    walk_times(monkeypatch, {"jollibee-gf": 9, "foodcourt-2f": 2, "starbucks-gf": 9, "starbucks-2f": 2})
+    for query in ("mcdo", "food", "coffee"):
+        out = run(svc(mall, search).chat(query, {"anchor": "2f-esc-a"}, "14:00", Trip()))
+        assert not any(p.get("nudge") for p in out["result"]["places"]), query
+        assert "too," not in out["reply"], query
