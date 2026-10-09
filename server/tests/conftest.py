@@ -23,3 +23,11 @@ def write_mall(tmp_path, raw):
     p = tmp_path / "mall.json"
     p.write_text(json.dumps(raw), encoding="utf-8")
     return p
+
+
+@pytest.fixture(scope="session")
+def search(mall):
+    from mappy.embed import HashEmbedder
+    from mappy.search import Search
+
+    return Search(mall, HashEmbedder())
