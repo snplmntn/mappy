@@ -1,6 +1,7 @@
 """HTTP API and static web app. Thin wiring over ChatService; logic lives elsewhere."""
 
 import html
+import io
 from datetime import datetime
 from typing import Annotated
 
@@ -119,7 +120,12 @@ def create_app(settings: Settings | None = None, embedder=None, llm=None) -> Fas
 
     @app.get("/api/qr")
     def qr(data: Annotated[str, Query(max_length=400)]):
-        return Response(_qr_svg(data), media_type="image/svg+xml")
+        # An <img> needs a standalone SVG document, including its XML namespace.
+        image = io.BytesIO()
+        segno.make(data, error="m").save(
+            image, kind="svg", scale=6, border=4, dark="#10213f", light="#ffffff"
+        )
+        return Response(image.getvalue(), media_type="image/svg+xml")
 
     @app.get("/print", response_class=HTMLResponse)
     def print_page():
