@@ -126,18 +126,38 @@ def create_app(settings: Settings | None = None, embedder=None, llm=None) -> Fas
         base = f"http://{lan_ip()}:{settings.port}"
         wifi = f"WIFI:S:{settings.wifi_ssid};T:WPA;P:{settings.wifi_pass};;"
         cards = "".join(
-            f'<div class="card">{_qr_svg(f"{base}/?at={a.id}", 5)}<b>{html.escape(a.label)}</b>'
-            f'<small>{html.escape(mall.floors[a.floor].name)}</small></div>'
+            f'<article class="qr-card location-card"><div class="card-kicker"><span data-icon="pin"></span>'
+            f'{html.escape(mall.floors[a.floor].name)}</div><div class="qr-code">{_qr_svg(f"{base}/?at={a.id}", 5)}</div>'
+            f'<h3>{html.escape(a.label)}</h3><p>Scan to set your starting point</p></article>'
             for a in mall.anchors.values())
-        return f"""<!doctype html><html><head><meta charset="utf-8"><title>Mappy · Print</title>
-<style>body{{font-family:system-ui,sans-serif;margin:24px;color:#10213f}}h1{{margin:0 0 4px}}
-.steps{{font-size:18px;margin:8px 0 20px}}.grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}}
-.card{{border:2px solid #10213f;border-radius:12px;padding:12px;text-align:center;break-inside:avoid}}
-.card b{{display:block;font-size:16px}}.card small{{color:#555}}.hero{{display:flex;gap:24px;flex-wrap:wrap}}</style></head>
-<body><h1>Mappy</h1><p class="steps">1) Scan Wi-Fi &nbsp; 2) Airplane mode ON, then Wi-Fi ON &nbsp; 3) Scan a location</p>
-<div class="hero"><div class="card">{_qr_svg(wifi, 6)}<b>Wi-Fi: {html.escape(settings.wifi_ssid)}</b></div>
-<div class="card">{_qr_svg(base + "/", 6)}<b>Open Mappy</b><small>{html.escape(base)}</small></div></div>
-<h2>Location codes</h2><div class="grid">{cards}</div></body></html>"""
+        return f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f7f4e9">
+<title>Mappy ? QR codes</title><link rel="stylesheet" href="/css/print.css"></head>
+<body>
+<header class="topbar"><a class="brand" href="/" aria-label="Mappy home"><span class="brand-symbol" aria-hidden="true">m</span>mappy<span class="brand-period">.</span></a>
+<div class="header-actions"><a class="button back" href="/"><span data-icon="back"></span>Back to app</a>
+<button class="button print-button" id="printButton" type="button"><span data-icon="print"></span>Print codes</button></div></header>
+<main>
+<div class="page-heading"><span class="eyebrow">{html.escape(mall.name)} / QUICK START</span>
+<h1>Scan. Connect.<br><span>You're on your way.</span></h1>
+<p>Get Mappy on your phone. No app download needed.</p></div>
+<ol class="steps"><li><span class="step-number">1</span><div><b>Join the Wi-Fi</b><span>Connect your phone to the laptop's network.</span></div></li>
+<li><span class="step-number">2</span><div><b>Open Mappy</b><span>Scan the app code with your phone camera.</span></div></li>
+<li><span class="step-number">3</span><div><b>Set your location</b><span>Scan the code for where you're standing.</span></div></li></ol>
+<section aria-labelledby="connectTitle"><div class="section-heading"><h2 id="connectTitle">Get connected</h2><span>START HERE</span></div>
+<div class="connect-grid">
+<article class="qr-card connect-card"><div class="connect-copy"><span class="card-icon wifi-icon" data-icon="wifi"></span><h3>Join the Wi-Fi</h3>
+<p>Network: <strong>{html.escape(settings.wifi_ssid)}</strong></p><p class="helper">Already on the same network?<br>Go straight to the app code.</p></div><div class="qr-code">{_qr_svg(wifi, 6)}</div></article>
+<article class="qr-card connect-card app-card"><div class="connect-copy"><span class="card-icon" data-icon="phone"></span><h3>Open Mappy</h3>
+<p>Your mall companion, in your browser.</p><a class="app-url" href="{html.escape(base, quote=True)}/">{html.escape(base)}</a></div><div class="qr-code">{_qr_svg(base + "/", 6)}</div></article>
+</div><p class="offline-note"><span data-icon="shield"></span>Trying the offline demo? Turn airplane mode on, then reconnect to Wi-Fi.</p></section>
+<section aria-labelledby="locationsTitle"><div class="section-heading"><h2 id="locationsTitle">Start from your spot</h2><span>{len(mall.anchors)} LOCATION CODES</span></div>
+<p class="section-description">Choose your current location. Print these cards to place around the mall.</p>
+<div class="location-grid">{cards}</div></section>
+<footer><span class="footer-brand">mappy.</span><span>Keep the laptop running and both devices on the same network.</span></footer>
+</main><script type="module" src="/js/print.js"></script></body></html>"""
 
     if settings.web_dir.exists():
         app.mount("/", RevalidatingStaticFiles(directory=settings.web_dir, html=True), name="web")

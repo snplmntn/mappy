@@ -3,29 +3,34 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
-  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#1f1f21" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f7f4e9" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#242424" media="(prefers-color-scheme: dark)">
   <title>Mappy</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/neobrutal.css">
 </head>
 <body>
   <section id="chatView" class="view">
     <header class="topbar">
+      <a class="brand" href="/" aria-label="Mappy home"><span class="brand-symbol" aria-hidden="true">m</span><span>mappy<span class="brand-period">.</span></span></a>
+      <span class="header-divider" aria-hidden="true"></span>
       <button id="placePill" class="place-pill" type="button" aria-haspopup="dialog">
-        <span class="place-dot" aria-hidden="true"></span>
+        <span id="locationIcon" class="location-icon" aria-hidden="true"></span>
         <span id="placeText" class="place-text">Set your location</span>
       </button>
       <button id="mapBtn" class="icon-btn" type="button" aria-label="Open map"></button>
       <button id="newBtn" class="icon-btn" type="button" aria-label="New trip"></button>
     </header>
-    <main id="thread" class="thread"></main>
+    <main id="thread" class="thread" aria-label="Trip assistant"></main>
     <footer class="composer-wrap">
       <form id="composer" class="composer" autocomplete="off" onsubmit="event.preventDefault()">
-        <textarea id="input" rows="1" maxlength="500" placeholder="Ask Mappy" aria-label="Message"></textarea>
+        <span id="composerIcon" class="composer-icon" aria-hidden="true"></span>
+        <textarea id="input" rows="1" maxlength="500" placeholder="What’s on your list today?" aria-label="Message Mappy"></textarea>
         <button id="send" class="send" type="submit" aria-label="Send" disabled></button>
       </form>
-      <p id="fineprint" class="fineprint"></p>
+      <p class="composer-hint">Ask in English or Taglish. We'll plan the way.</p>
+      <details class="map-disclosure"><summary>About this map</summary><p id="fineprint" class="fineprint"></p></details>
     </footer>
   </section>
 
