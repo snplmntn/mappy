@@ -342,7 +342,7 @@ def test_more_pages_through_the_category(mall, search):
     s = svc(mall, search)
     first = run(s.chat("food", AT, "14:00", Trip()))["result"]
     assert first["type"] == "places" and first["category"] == "food" and len(first["places"]) == 2
-    shown = {**first, "places": first["places"][:1]}
+    shown = {k: v for k, v in first.items() if k != "shown"} | {"places": first["places"][:1]}  # no chain: own page
     out = run(s.chat("iba pa", AT, "14:00", Trip(), prev=shown))
     assert out["meta"]["intent"] == "more" and out["reply"] == "More food places:"
     assert [p["id"] for p in out["result"]["places"]] == [first["places"][1]["id"]]
@@ -360,3 +360,24 @@ def test_more_without_prev_asks_first(mall, search):
 def test_find_result_carries_the_top_category(mall, search):
     out = run(svc(mall, search).chat("CR", AT, "14:00", Trip()))
     assert out["result"]["category"] == "restroom"
+
+
+def test_more_pages_until_every_place_was_shown(mall, search, monkeypatch):
+    monkeypatch.setattr("mappy.chat.FIND_RESULTS", 1)
+    s = svc(mall, search)
+    first = run(s.chat("food", AT, "14:00", Trip()))["result"]
+    assert len(first["places"]) == 1 and first["shown"] == [first["places"][0]["id"]]
+    second = run(s.chat("iba pa", AT, "14:00", Trip(), prev=first))["result"]
+    assert second["places"][0]["id"] != first["places"][0]["id"]
+    assert second["shown"] == first["shown"] + [second["places"][0]["id"]]
+    done = run(s.chat("iba pa", AT, "14:00", Trip(), prev=second))
+    assert done["reply"] == "That's every food place in this mall."
+
+
+def test_more_after_a_swap_keeps_the_brand(mall, search, monkeypatch):
+    monkeypatch.setattr("mappy.chat.FIND_RESULTS", 1)
+    s = svc(mall, search)
+    first = run(s.chat("mcdo", AT, "14:00", Trip()))["result"]
+    out = run(s.chat("iba pa", AT, "14:00", Trip(), prev=first))["result"]
+    assert out["alternatives_for"] == "McDonald's" and out["category"] == "food"
+    assert out["places"][0]["id"] not in first["shown"]

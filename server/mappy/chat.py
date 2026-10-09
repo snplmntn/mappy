@@ -188,9 +188,11 @@ class ChatService:
         return None if s is None else max(1, math.ceil(s / 60))
 
     def _places_result(self, query: str, ids: list[str], start: str, router: Router,
-                       scores: dict[str, int] | None = None, category: str | None = None) -> dict:
+                       scores: dict[str, int] | None = None, category: str | None = None,
+                       shown: tuple[str, ...] = ()) -> dict:
         """Tappable rows, nearest first, or best `scores` first then nearest. `category` is what the list
-        is of (the top place's when not given), so "iba pa" can page through the rest of it."""
+        is of (the top place's when not given) and `shown` every id listed so far in this paging chain
+        (earlier pages, then this one), so "iba pa" can page through the rest of it."""
         scores = scores or {}
         rows = []
         for pid in ids:
@@ -199,12 +201,19 @@ class ChatService:
                          "category": p.category, "fictional": p.fictional,
                          "walk_min": self._walk_min(start, pid, router)})
         rows.sort(key=lambda r: (-scores.get(r["id"], 0), r["walk_min"] is None, r["walk_min"] or 0))
+        rows = rows[:FIND_RESULTS]
         category = category or (rows[0]["category"] if rows else None)
-        return {"type": "places", "query": query, "category": category, "places": rows[:FIND_RESULTS]}
+        return {"type": "places", "query": query, "category": category, "places": rows,
+                "shown": [*shown, *(r["id"] for r in rows)]}
+
+    def _ranked(self, category: str, traits: tuple[str, ...],
+                exclude: tuple[str, ...] = ()) -> tuple[list[str], dict[str, int]]:
+        """A category's places ranked by these traits, and each one's trait score."""
+        ids = self.search.alternatives(category, traits, exclude)
+        return ids, {pid: self.search.trait_score(pid, traits) for pid in ids}
 
     def _alternatives_result(self, alt: StandIn, start: str, router: Router, exclude: tuple[str, ...] = ()) -> dict:
-        ids = self.search.alternatives(alt.category, alt.traits, exclude)
-        scores = {pid: self.search.trait_score(pid, alt.traits) for pid in ids}
+        ids, scores = self._ranked(alt.category, alt.traits, exclude)
         result = self._places_result(alt.name, ids, start, router, scores, alt.category)
         return {**result, "alternatives_for": alt.name}
 
@@ -215,15 +224,16 @@ class ChatService:
         places, category = prev.get("places"), prev.get("category")
         if not isinstance(places, list) or not isinstance(category, str) or not self.search.by_category(category):
             return _text("Ask for a store or a type first, then say “more”.", trip)
-        shown = tuple(p["id"] for p in places if isinstance(p, dict) and "id" in p)
+        shown = prev.get("shown")
+        if not isinstance(shown, list):  # an older result without the chain: just its own page
+            shown = [p.get("id") for p in places if isinstance(p, dict)]
+        shown = tuple(pid for pid in shown if isinstance(pid, str))
         swapped = prev.get("alternatives_for")
         brand = brand_in(swapped) if isinstance(swapped, str) else None
-        traits = brand.traits if brand else ()
-        ids = self.search.alternatives(category, traits, shown)
+        ids, scores = self._ranked(category, brand.traits if brand else (), shown)
         if not ids:
             return _text(f"That's every {_label(category)} place in this mall.", trip)
-        scores = {pid: self.search.trait_score(pid, traits) for pid in ids}
-        result = self._places_result(str(prev.get("query") or ""), ids, start, router, scores, category)
+        result = self._places_result(str(prev.get("query") or ""), ids, start, router, scores, category, shown)
         if isinstance(swapped, str) and swapped:
             result["alternatives_for"] = swapped  # so later "more" keeps the trait ranking
         return {"reply": f"More {_label(category)} places:", "result": result, "trip": trip.model_dump(by_alias=True)}
@@ -299,6 +309,7 @@ class ChatService:
             reply = f"Here's what I found for “{req.query}”:"
             if cat is None and (nudge := self._nudge(result["places"], start, router, tuple(ids))):
                 result["places"].append({**nudge[0], "nudge": True})
+                result["shown"].append(nudge[0]["id"])
                 reply += f" {nudge[1]}"
             return {"reply": reply, "result": result,
                     "trip": trip.model_dump(by_alias=True)}
