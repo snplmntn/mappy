@@ -46,7 +46,7 @@ This installs Python 3.12 and Ollama, pulls `qwen3:1.7b`, downloads and checksum
 
 Then allow phones to reach the laptop (admin PowerShell, once):
 ```powershell
-New-NetFirewallRule -DisplayName "Mappy" -Direction Inbound -Protocol TCP -LocalPort 8000 -Action Allow -Profile Any
+New-NetFirewallRule -DisplayName "Mappy" -Direction Inbound -Protocol TCP -LocalPort 8000,8443 -Action Allow -Profile Any
 ```
 
 **Start:**

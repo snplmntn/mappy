@@ -37,6 +37,7 @@ class Settings:
     llm_threads: int = field(default_factory=lambda: int(_get("MAPPY_LLM_THREADS", "4")))
     e5_dir: Path = field(default_factory=lambda: Path(_get("MAPPY_E5_DIR", str(ROOT / "models" / "e5"))))
     port: int = field(default_factory=lambda: int(_get("MAPPY_PORT", "8000")))
+    https_port: int = field(default_factory=lambda: int(_get("MAPPY_HTTPS_PORT", "8443")))
     wifi_ssid: str = field(default_factory=lambda: _get("MAPPY_WIFI_SSID", "mappy"))
     wifi_pass: str = field(default_factory=lambda: _get("MAPPY_WIFI_PASS", ""))
     cache_dir: Path = field(default_factory=lambda: ROOT / "server" / ".cache")

@@ -123,7 +123,9 @@ def create_app(settings: Settings | None = None, embedder=None, llm=None) -> Fas
 
     @app.get("/print", response_class=HTMLResponse)
     def print_page():
-        base = f"http://{lan_ip()}:{settings.port}"
+        ip = lan_ip()
+        base = f"https://{ip}:{settings.https_port}"
+        fallback = f"http://{ip}:{settings.port}"
         wifi = f"WIFI:S:{settings.wifi_ssid};T:WPA;P:{settings.wifi_pass};;"
         cards = "".join(
             f'<div class="card">{_qr_svg(f"{base}/?at={a.id}", 5)}<b>{html.escape(a.label)}</b>'
@@ -135,6 +137,8 @@ def create_app(settings: Settings | None = None, embedder=None, llm=None) -> Fas
 .card{{border:2px solid #10213f;border-radius:12px;padding:12px;text-align:center;break-inside:avoid}}
 .card b{{display:block;font-size:16px}}.card small{{color:#555}}.hero{{display:flex;gap:24px;flex-wrap:wrap}}</style></head>
 <body><h1>Mappy</h1><p class="steps">1) Scan Wi-Fi &nbsp; 2) Airplane mode ON, then Wi-Fi ON &nbsp; 3) Scan a location</p>
+<p>First visit only: if the browser says the connection is not private, tap <b>Advanced → Proceed</b>.
+That turns on the microphone. If it won't open, use <b>{html.escape(fallback)}</b> instead.</p>
 <div class="hero"><div class="card">{_qr_svg(wifi, 6)}<b>Wi-Fi: {html.escape(settings.wifi_ssid)}</b></div>
 <div class="card">{_qr_svg(base + "/", 6)}<b>Open Mappy</b><small>{html.escape(base)}</small></div></div>
 <h2>Location codes</h2><div class="grid">{cards}</div></body></html>"""
