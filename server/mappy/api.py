@@ -107,8 +107,9 @@ def _append_log(log_dir: Path, name: str, entry: str) -> None:
 
 
 def _qr_svg(data: str, scale: int = 6) -> str:
-    """Inline SVG for embedding in HTML. Has no xmlns, so it can't be served as a standalone image."""
-    return segno.make(data, error="m").svg_inline(scale=scale, **QR_STYLE)
+    """Inline SVG for embedding in HTML. Has no xmlns, so it can't be served as a standalone image.
+    Sized by CSS: it carries a viewBox instead of a fixed width and height, so it scales instead of cropping."""
+    return segno.make(data, error="m").svg_inline(scale=scale, omitsize=True, **QR_STYLE)
 
 
 def _qr_svg_file(data: str, scale: int = 6) -> bytes:
@@ -244,7 +245,7 @@ def create_app(settings: Settings | None = None, embedder=None, llm=None) -> Fas
 <ol class="steps"><li><span class="step-number">1</span><div><b>Join the Wi-Fi</b><span>Connect your phone to the laptop's network.</span></div></li>
 <li><span class="step-number">2</span><div><b>Open Mappy</b><span>Scan the app code with your phone camera.</span></div></li>
 <li><span class="step-number">3</span><div><b>Set your location</b><span>Scan the code for where you're standing.</span></div></li></ol>
-<section aria-labelledby="connectTitle"><div class="section-heading"><h2 id="connectTitle">Get connected</h2><span>START HERE</span></div>
+<section class="connect-section" aria-labelledby="connectTitle"><div class="section-heading"><h2 id="connectTitle">Get connected</h2><span>START HERE</span></div>
 <div class="connect-grid">
 <article class="qr-card connect-card"><div class="connect-copy"><span class="card-icon wifi-icon" data-icon="wifi"></span><h3>Join the Wi-Fi</h3>
 <p>Network: <strong>{html.escape(settings.wifi_ssid)}</strong></p><p class="helper">Already on the same network?<br>Go straight to the app code.</p></div><div class="qr-code">{_qr_svg(wifi, 6)}</div></article>
@@ -252,7 +253,7 @@ def create_app(settings: Settings | None = None, embedder=None, llm=None) -> Fas
 <p>Your mall companion, in your browser.</p><a class="app-url" href="{html.escape(base, quote=True)}/">{html.escape(base)}</a></div><div class="qr-code">{_qr_svg(base + "/", 6)}</div></article>
 </div><p class="connection-note">First visit on this laptop's local network: if your browser shows a certificate warning, select <b>Advanced &rarr; Proceed</b> to use HTTPS for microphone access. If it will not open, <a href="{html.escape(fallback, quote=True)}/">open Mappy over HTTP</a> and use typing or your keyboard's microphone.</p>
 <p class="offline-note"><span data-icon="shield"></span>Trying the offline demo? Turn airplane mode on, then reconnect to Wi-Fi.</p></section>
-<section aria-labelledby="locationsTitle"><div class="section-heading"><h2 id="locationsTitle">Start from your spot</h2><span>{len(mall.anchors)} LOCATION CODES</span></div>
+<section class="spots-section" aria-labelledby="locationsTitle"><div class="section-heading"><h2 id="locationsTitle">Start from your spot</h2><span>{len(mall.anchors)} LOCATION CODES</span></div>
 <p class="section-description">Choose your current location. Print these cards to place around the mall.</p>
 <div class="location-grid">{cards}</div></section>
 <footer><span class="footer-brand">mappy.</span><span>Keep the laptop running and both devices on the same network.</span></footer>
