@@ -240,19 +240,28 @@ def _norm(text: str) -> str:
     return " ".join(re.sub(r"[^\w&' ]+", " ", text.lower()).split())
 
 
+def _spellings(brand: Brand) -> tuple[str, ...]:
+    """The brand's name and aliases, normalized."""
+    return tuple(_norm(alias) for alias in (brand.name, *brand.aliases))
+
+
 # Every spelling of every brand, longest first, so "coffee bean & tea leaf" beats "coffee bean".
 _ALIASES: list[tuple[str, Brand]] = sorted(
-    ((_norm(alias), b) for b in BRANDS for alias in (b.name, *b.aliases)),
+    ((alias, b) for b in BRANDS for alias in _spellings(b)),
     key=lambda t: len(t[0]), reverse=True,
 )
 _BY_NAME: dict[str, Brand] = {alias: b for alias, b in reversed(_ALIASES)}
+
+
+def _whole_phrase(alias: str, text: str) -> bool:
+    return re.search(rf"(?<![\w&]){re.escape(alias)}(?![\w&])", text) is not None
 
 
 def _mentions(alias: str, brand: Brand, text: str) -> bool:
     if brand.everyday:
         return alias == text
     if len(alias) <= SHORT_ALIAS_LEN:
-        return re.search(rf"(?<![\w&]){re.escape(alias)}(?![\w&])", text) is not None
+        return _whole_phrase(alias, text)
     if len(alias) > len(text):
         # partial_ratio would find a short text inside a long alias ("coffee" in "coffee bean").
         return len(alias) - len(text) <= MAX_TYPO_GAP and fuzz.ratio(alias, text) >= FUZZY_MIN
@@ -264,6 +273,14 @@ def brand_in(text: str) -> Brand | None:
     Longest alias wins so "coffee bean" does not lose to "bean"."""
     t = _norm(text)
     return next((b for alias, b in _ALIASES if _mentions(alias, b, t)), None)
+
+
+def is_store_of(brand: Brand, place_name: str) -> bool:
+    """Whether a place is one of the brand's stores: a spelling of the brand is a whole phrase of the
+    place name ("The SM Store", "BDO ATM"), or the two names nearly coincide. Not a loose score, so
+    "Mi Store" is not SM Store and "Pet Express" is not J&T Express."""
+    pn = _norm(place_name)
+    return any(_whole_phrase(alias, pn) or fuzz.ratio(alias, pn) >= FUZZY_MIN for alias in _spellings(brand))
 
 
 def traits_of(name: str) -> tuple[str, ...]:

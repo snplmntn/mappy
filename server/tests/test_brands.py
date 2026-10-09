@@ -1,5 +1,9 @@
-from mappy.brands import BRANDS, brand_in, traits_of
+import pytest
+
+from mappy.brands import BRANDS, brand_in, is_store_of, traits_of
 from mappy.search import CATEGORY_LABELS, CATEGORY_WORDS
+
+_BRAND = {b.name: b for b in BRANDS}
 
 
 def test_names_a_brand_inside_a_request():
@@ -78,3 +82,31 @@ def test_traits_of():
     assert "chicken" in traits_of("Jollibee")
     assert "chicken" in traits_of("jollibee")
     assert traits_of("Unknown") == ()
+
+
+@pytest.mark.parametrize("brand, place, expected", [
+    ("Jollibee", "Jollibee", True),
+    ("McDonald's", "Jollibee", False),
+    ("SM Store", "The SM Store", True),
+    ("SM Store", "Mi Store", False),
+    ("SM Store", "SM Makati Foodcourt", False),
+    ("SM Store", "ASUS Concept Store", False),
+    ("Seattle's Best", "Seattle's Best Coffee", True),
+    ("J&T Express", "Pet Express", False),
+    ("Kultura", "Kultura Filipino", True),
+    ("BDO", "BDO", True),
+    ("BDO", "BDO ATM", True),
+    ("Mary Grace", "Mary Grace Cafe", True),
+    ("Nintendo", "Nintendo Authorized Store", True),
+    ("DHL", "DHL Express", True),
+    ("Coffee Bean & Tea Leaf", "Buttons & Wrap", False),
+    ("National Book Store", "Mi Store", False),
+    ("National Book Store", "The SM Store", False),
+    ("Ramen Nagi", "Kyu Kyu Ramen 99", False),
+])
+def test_is_store_of(brand, place, expected):
+    assert is_store_of(_BRAND[brand], place) is expected
+
+
+def test_a_store_no_brand_owns():
+    assert not [b.name for b in BRANDS if is_store_of(b, "Buttons & Wrap")]

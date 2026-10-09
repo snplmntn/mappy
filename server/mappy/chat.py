@@ -8,7 +8,7 @@ from typing import Protocol
 
 import httpx
 
-from .brands import brand_in
+from .brands import brand_in, is_store_of
 from .llm import LLMBusy, LLMError, fallback_extract, trip_summary
 from .locator import locate
 from .mall import Mall
@@ -142,8 +142,8 @@ class ChatService:
         brand that isn't (before search, so "coffee bean" isn't quietly answered by a "coffee" tag),
         then a search hit, then the LLM's category guess."""
         brand = brand_in(query)
-        if brand and (named := self.search.place_ids_named(brand.name)):
-            return named, None
+        if brand and (stores := [pid for pid in self.search.ids if is_store_of(brand, self.mall.places[pid].name)]):
+            return stores, None
         if brand and self.search.by_category(brand.category):
             return (self.search.alternatives(brand.category, brand.traits),
                     StandIn(brand.name, brand.category, brand.traits, swapped=True))
