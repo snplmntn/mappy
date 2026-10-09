@@ -170,6 +170,10 @@ svg.icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-w
 .composer textarea { flex: 1; border: 0; outline: 0; resize: none; background: transparent; font-size: 16px; line-height: 24px; padding: 8px 0; max-height: 120px; }
 .send { width: 40px; height: 40px; border-radius: 50%; background: var(--button); color: var(--button-text); display: grid; place-items: center; flex: none; }
 .send:disabled { opacity: 0.25; cursor: default; }
+.mic { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: var(--text); flex: none; }
+.mic.listening { background: var(--red); color: #fff; animation: listen 1.2s ease-in-out infinite; }
+@keyframes listen { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.45); } 50% { box-shadow: 0 0 0 8px rgba(255, 59, 48, 0); } }
+@media (prefers-reduced-motion: reduce) { .mic.listening { animation: none; } }
 .fineprint { max-width: 720px; margin: 6px auto 0; text-align: center; font-size: 12px; color: var(--text-2); }
 
 /* Modal sheet */

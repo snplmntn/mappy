@@ -24,7 +24,7 @@ $vpy = Join-Path $root ".venv\Scripts\python.exe"
 & $vpy -m pip install -q -e ".[dev]"
 
 Step "Checking native libraries load (Windows Smart App Control can block some)"
-& $vpy -c "import pydantic_core, numpy, onnxruntime, tokenizers, rapidfuzz, ml_dtypes; print('all native libraries load')"
+& $vpy -c "import pydantic_core, numpy, onnxruntime, tokenizers, rapidfuzz, ml_dtypes, cryptography.hazmat.primitives.asymmetric.ec; print('all native libraries load')"
 if ($LASTEXITCODE -ne 0) { throw "A library is blocked. Note which one and try an older version, e.g. pip install 'pydantic==2.10.6'." }
 
 Step "Ollama + Qwen3-1.7B"
@@ -56,5 +56,5 @@ Step "Tests"
 
 Step "Done"
 Write-Host "Allow phones to reach this laptop (run once in an ADMIN PowerShell):"
-Write-Host '  New-NetFirewallRule -DisplayName "Mappy" -Direction Inbound -Protocol TCP -LocalPort 8000 -Action Allow -Profile Any'
+Write-Host '  New-NetFirewallRule -DisplayName "Mappy" -Direction Inbound -Protocol TCP -LocalPort 8000,8443 -Action Allow -Profile Any'
 Write-Host "Then start Mappy with:  powershell -ExecutionPolicy Bypass -File tools\run.ps1"
