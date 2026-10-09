@@ -28,6 +28,12 @@ def test_alias(search):
     assert search.alias_category("CR") == "restroom"
     assert search.alias_category("gutom") == "food"
     assert search.alias_category("papaayos ko phone tapos kain") is None
+    assert search.alias_category("malapit na kainan") == "food"
+    assert search.alias_category("magpadala ng pera") == "remittance"
+
+
+def test_alias_yields_to_a_named_store(search):
+    assert search.alias_category("kape sa Starbucks") is None
 
 
 def test_names_in_text(search):

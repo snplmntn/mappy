@@ -18,14 +18,45 @@ CATEGORY_LABELS = {
     "atm": "ATM", "remittance": "Money transfer", "courier": "Courier", "pet": "Pet", "restroom": "Restroom",
 }
 
-CATEGORY_ALIASES = {
-    "cr": "restroom", "c.r.": "restroom", "banyo": "restroom", "restroom": "restroom", "toilet": "restroom",
-    "comfort room": "restroom", "atm": "atm", "kain": "food", "gutom": "food", "food": "food",
-    "pagkain": "food", "eat": "food", "pharmacy": "pharmacy", "botika": "pharmacy", "gamot": "pharmacy",
-    "drugstore": "pharmacy", "phone repair": "phone_repair", "cellphone repair": "phone_repair",
-    "kape": "cafe", "coffee": "cafe", "grocery": "grocery", "supermarket": "grocery",
-    "padala": "remittance", "regalo": "gift", "damit": "clothing", "shoe repair": "shoe_repair",
+# Words that point at a category anywhere in a short question ("san next kainan?"). Whole-word
+# matches only, so Tagalog verb forms are listed rather than stemmed.
+CATEGORY_WORDS = {
+    "phone_repair": ["phone repair", "cellphone repair"],
+    "shoe_repair": ["shoe repair"],
+    "food": ["kain", "kainan", "makakainan", "kakain", "kumain", "kainin", "gutom", "nagugutom", "nagutom",
+             "pagkain", "food", "foods", "eat", "eating", "hungry", "restaurant", "restaurants", "resto",
+             "restos", "eatery", "food court", "foodcourt", "lunch", "dinner", "breakfast", "merienda",
+             "tanghalian", "hapunan", "almusal"],
+    "cafe": ["kape", "coffee", "cafe", "coffee shop", "uhaw", "nauuhaw", "thirsty"],
+    "restroom": ["cr", "c.r.", "banyo", "restroom", "restrooms", "toilet", "comfort room", "bathroom",
+                 "washroom", "ihi", "iihi", "naiihi", "jingle"],
+    "atm": ["atm", "withdraw", "magwithdraw", "mag withdraw", "cash"],
+    "bank": ["bank", "bangko"],
+    "pharmacy": ["pharmacy", "botika", "gamot", "drugstore", "medicine", "vitamins"],
+    "grocery": ["grocery", "supermarket", "groceries", "palengke"],
+    "remittance": ["padala", "remittance", "remit", "money transfer"],
+    "gift": ["regalo", "gift", "gifts", "present", "pasalubong"],
+    "clothing": ["damit", "clothes", "clothing", "shirt", "pants"],
+    "shoes": ["sapatos", "shoes", "sneakers", "tsinelas"],
+    "books_stationery": ["bookstore", "books", "libro", "school supplies", "stationery", "notebook", "ballpen"],
+    "beauty": ["makeup", "cosmetics", "skincare"],
+    "pet": ["pet", "pets", "aso", "pusa"],
+    "gaming": ["gaming", "games", "console"],
+    "electronics": ["electronics", "gadget", "gadgets"],
+    "appliances": ["appliance", "appliances"],
 }
+# Verb + object pairs that name a service, e.g. "ipapaayos sapatos" is shoe repair, not shoes.
+# A matched pair consumes its words, so the object's own category doesn't also count.
+REPAIR_WORDS = {"ayos", "paayos", "ipaayos", "ipapaayos", "papaayos", "magpaayos", "ayusin", "repair",
+                "fix", "sira", "nasira", "basag", "broken", "cracked", "ipagawa", "pagawa", "magpagawa"}
+SEND_WORDS = {"padala", "magpadala", "ipadala", "magpapadala", "send", "remit", "ship"}
+CATEGORY_COMBOS = [
+    (REPAIR_WORDS, {"phone", "cellphone", "cellfone", "cp", "tablet", "screen", "iphone", "android"},
+     "phone_repair"),
+    (REPAIR_WORDS, {"sapatos", "shoes", "shoe", "tsinelas", "takong", "heels"}, "shoe_repair"),
+    (SEND_WORDS, {"pera", "money", "cash"}, "remittance"),
+    (SEND_WORDS, {"package", "parcel", "box", "documents", "dokumento"}, "courier"),
+]
 
 NAME_SIM_MIN = 0.8
 LEXICAL_WEIGHT = 0.2
@@ -45,6 +76,25 @@ def _aliases(name: str) -> list[str]:
 
 def _norm(text: str) -> str:
     return re.sub(r"[^\w&. ]+", " ", text.lower()).strip()
+
+
+_PHRASE_CATEGORY = {phrase: cat for cat, phrases in CATEGORY_WORDS.items() for phrase in phrases}
+_PHRASE_RE = {phrase: re.compile(rf"(?<![\w&]){re.escape(phrase)}(?![\w&])") for phrase in _PHRASE_CATEGORY}
+
+
+def categories_in(text: str) -> set[str]:
+    """Every category the text mentions, by service combo ("paayos sapatos") or category word."""
+    t = _norm(text)
+    words = set(re.findall(r"[\w&]+", t))
+    found, used = set(), set()
+    for verbs, objects, cat in CATEGORY_COMBOS:
+        if (v := words & verbs) and (o := words & objects):
+            found.add(cat)
+            used |= v | o
+    for phrase, pattern in _PHRASE_RE.items():
+        if not set(re.findall(r"[\w&]+", phrase)) <= used and pattern.search(t):
+            found.add(_PHRASE_CATEGORY[phrase])
+    return found
 
 
 class Search:
@@ -106,13 +156,17 @@ class Search:
         return sorted(ids, key=lambda pid: (order[self.mall.places[pid].floor], pid))
 
     def alias_category(self, text: str) -> str | None:
+        """The one category a short request points at, or None if it names a store or several things."""
         t = _norm(text)
-        if t in CATEGORY_ALIASES:
-            return CATEGORY_ALIASES[t]
         for cat, label in CATEGORY_LABELS.items():
             if t in (label.lower(), cat.replace("_", " ")):
                 return cat
-        return None
+        if t in _PHRASE_CATEGORY:
+            return _PHRASE_CATEGORY[t]
+        if self.names_in(text):
+            return None
+        cats = categories_in(t)
+        return cats.pop() if len(cats) == 1 else None
 
     def names_in(self, text: str) -> list[str]:
         """Store names mentioned in free text, matched by full name or by its distinctive part."""

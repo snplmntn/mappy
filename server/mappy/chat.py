@@ -20,6 +20,7 @@ from .trip import apply_edits, new_errand_id
 
 MAX_ERRANDS = 5
 CANDIDATES = 3
+FIND_RESULTS = 5
 SCORE_BAND = 0.06
 LLM_TIMEOUT_S = 8.5
 # Minimum fused search score that counts as "found", per embedder (calibrated on the eval set).
@@ -92,8 +93,12 @@ class ChatService:
         return [pid for pid, s in hits
                 if s >= hits[0][1] - SCORE_BAND and self.mall.places[pid].category == top_cat][:CANDIDATES]
 
+    def _category(self, query: str, category: str | None) -> str | None:
+        """A category word in the user's own text beats the small LLM's guess."""
+        return self.search.alias_category(query) or category
+
     def make_errand(self, query: str, category: str | None, new_id: str) -> Errand | None:
-        ids = self._matches(query, category)
+        ids = self._matches(query, self._category(query, category))
         if not ids:
             return None
         first = self.mall.places[ids[0]]
@@ -126,7 +131,7 @@ class ChatService:
                          "category": p.category, "fictional": p.fictional,
                          "walk_min": self._walk_min(start, pid, router)})
         rows.sort(key=lambda r: (r["walk_min"] is None, r["walk_min"] or 0))
-        return {"type": "places", "query": query, "places": rows}
+        return {"type": "places", "query": query, "places": rows[:FIND_RESULTS]}
 
     def _plan_payload(self, trip: Trip, start: str, now_min: int, changes: list[str]) -> dict:
         plan = plan_trip(trip, start, now_min, self._router(trip), self.mall)
@@ -145,11 +150,11 @@ class ChatService:
 
         if x.intent == "find" and x.errands:
             req = x.errands[0]
-            cat = req.category or self.search.alias_category(req.query)
+            cat = self._category(req.query, req.category)
             ids = self.search.by_category(cat) if cat and self.search.by_category(cat) else self._matches(req.query, None)
             if not ids:
                 return _text(_not_found([req.query]), trip)
-            result = self._places_result(req.query, ids[:5], start, router)
+            result = self._places_result(req.query, ids, start, router)
             return {"reply": f"Here's what I found for “{req.query}”:", "result": result,
                     "trip": trip.model_dump(by_alias=True)}
 

@@ -91,7 +91,25 @@ def test_locate_with_floor(search):
 
 
 def test_multi_errand_goes_to_llm(search):
-    assert parse("papaayos ko screen ng phone ko, kakain, tapos bibili ng regalo", Trip(), search) is None
+    assert parse("papaayos ko screen ng phone ko, tapos hanapin natin si mama", Trip(), search) is None
+
+
+def test_multi_errand_with_clear_categories_is_planned_by_rules(search):
+    x = parse("papaayos ko screen ng phone ko, kakain, tapos bibili ng regalo", Trip(), search)
+    assert x.intent == "plan" and [e.category for e in x.errands] == ["phone_repair", "food", "gift"]
+
+
+def test_tagalog_at_splits_a_plan_and_merges_same_category(search):
+    x = parse("bili ng notebook at ballpen tapos kape", Trip(), search)
+    assert [e.category for e in x.errands] == ["books_stationery", "cafe"]
+
+
+def test_category_word_inside_question(search):
+    for msg, cat in [("san next kainan?", "food"), ("where is the nearest food place?", "food"),
+                     ("nagugutom na ko", "food"), ("where is the bathroom", "restroom"),
+                     ("ipapaayos sapatos", "shoe_repair"), ("gusto ko ng kape", "cafe")]:
+        x = parse(msg, Trip(), search)
+        assert x.intent == "find" and x.errands[0].category == cat, msg
 
 
 def test_steering_without_trip_is_edit_so_chat_can_ask(search):

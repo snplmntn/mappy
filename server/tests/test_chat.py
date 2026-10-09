@@ -51,6 +51,19 @@ def test_plan_via_llm_then_steer(mall, search):
     assert out2["trip"]["errands"][0]["duration_source"] == "user"
 
 
+def test_find_shows_the_nearest_places(mall, search, monkeypatch):
+    monkeypatch.setattr("mappy.chat.FIND_RESULTS", 1)
+    out = run(svc(mall, search).chat("san next kainan?", {"node": "2F-c3"}, "14:00", Trip()))
+    assert [p["id"] for p in out["result"]["places"]] == ["foodcourt-2f"]
+
+
+def test_category_word_beats_the_llm_guess(mall, search):
+    x = Extraction(intent="plan", source="llm", errands=[
+        ErrandReq(query="gutom", category="restroom"), ErrandReq(query="kape", category="food")])
+    out = run(svc(mall, search, FixedLLM(x)).chat("gutom na ko, ano ba yan, kape", AT, "14:00", Trip()))
+    assert [e["category"] for e in out["trip"]["errands"]] == ["food", "cafe"]
+
+
 def test_busy_llm_falls_back(mall, search):
     out = run(svc(mall, search).chat("phone, kain, damit", AT, "14:00", Trip()))
     assert out["result"]["type"] == "plan" and len(out["trip"]["errands"]) >= 2

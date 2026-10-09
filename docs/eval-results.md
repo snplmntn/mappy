@@ -1,36 +1,36 @@
-# Eval results (2026-10-09 17:41)
+# Eval results (2026-10-09 20:07)
 
 - Model: `qwen3:1.7b` via Ollama, `num_thread=4`, CPU only. Mall: `mall.json`. Mode: rules first, then LLM.
-- Messages: 50. Handled by rules: 28. LLM fallbacks: 0.
-- Intent accuracy: 92% (46/50)
-- Category F1 (find/plan): 0.79
+- Messages: 50. Handled by rules: 43. LLM fallbacks: 0.
+- Intent accuracy: 98% (49/50)
+- Category F1 (find/plan): 0.94
 - Edit ops exact: 100% (12/12)
 - Landmarks found: 100% (8/8)
-- Latency all messages: median 0.3 ms, p95 326 ms
-- Latency LLM calls: median 269.6 ms, p95 329 ms
+- Latency all messages: median 0.3 ms, p95 260 ms
+- Latency LLM calls: median 259.9 ms, p95 318 ms
 
 | ok | source | message | intent | detail |
 |---|---|---|---|---|
-| ✓ | llm | papaayos ko screen ng phone ko, kakain, tapos bibili ng regalo kay mama | plan | cats ['food', 'gift', 'phone_repair'] f1=1.00 |
-| ✓ | llm | sira cellfone ko tapos gutom na ko | plan | cats ['phone_repair', 'restroom'] f1=0.50 |
-| ✓ | llm | need ko magpa-repair ng sapatos and bumili ng damit | plan | cats ['clothing', 'shoe_repair'] f1=1.00 |
-| ✓ | llm | withdraw muna ako sa atm then kape | plan | cats ['atm', 'food'] f1=0.50 |
-| ✓ | llm | bibili ako ng gamot tapos grocery | plan | cats ['grocery', 'pharmacy'] f1=1.00 |
-| ✓ | llm | I need to fix my phone battery, grab lunch, and buy new shoes | plan | cats ['food', 'phone_repair', 'shoes'] f1=1.00 |
-| ✓ | llm | magpapadala ng pera, tapos kakain ng ramen | plan | cats ['food', 'remittance'] f1=1.00 |
+| ✓ | rules | papaayos ko screen ng phone ko, kakain, tapos bibili ng regalo kay mama | plan | cats ['food', 'gift', 'phone_repair'] f1=1.00 |
+| ✓ | rules | sira cellfone ko tapos gutom na ko | plan | cats ['food', 'phone_repair'] f1=1.00 |
+| ✓ | rules | need ko magpa-repair ng sapatos and bumili ng damit | plan | cats ['clothing', 'shoe_repair'] f1=1.00 |
+| ✓ | rules | withdraw muna ako sa atm then kape | plan | cats ['atm', 'cafe'] f1=1.00 |
+| ✓ | rules | bibili ako ng gamot tapos grocery | plan | cats ['grocery', 'pharmacy'] f1=1.00 |
+| ✓ | rules | I need to fix my phone battery, grab lunch, and buy new shoes | plan | cats ['food', 'phone_repair', 'shoes'] f1=1.00 |
+| ✓ | rules | magpapadala ng pera, tapos kakain ng ramen | plan | cats ['food', 'remittance'] f1=1.00 |
 | ✓ | llm | cr muna tapos milk tea | plan | cats ['cafe', 'food'] f1=0.50 |
 | ✓ | llm | ipaayos yung basag na screen, bili ng charger, tapos merienda | plan | cats ['electronics', 'food', 'phone_repair'] f1=1.00 |
-| ✗ | llm | hanap ako ng pasalubong at kape | find | cats ['food'] f1=0.00 |
+| ✓ | rules | hanap ako ng pasalubong at kape | plan | cats ['cafe', 'gift'] f1=1.00 |
 | ✓ | llm | gusto ko kumain ng sizzling tapos bumili ng relo | plan | cats ['food', 'gift'] f1=0.50 |
 | ✓ | llm | papalitan ko battery ng phone, tapos titingin ng laptop | plan | cats ['electronics', 'phone_repair'] f1=1.00 |
 | ✓ | llm | deposit sa bdo then grocery shopping | plan | cats ['grocery', 'remittance'] f1=0.50 |
-| ✓ | llm | kain tayo then laro sa arcade or games | plan | cats ['food', 'gaming'] f1=1.00 |
-| ✓ | llm | bili ng notebook at ballpen tapos kape | plan | cats ['books_stationery', 'food'] f1=0.50 |
-| ✓ | llm | skincare tapos damit pang-office | plan | cats ['beauty', 'grocery'] f1=0.50 |
-| ✓ | llm | phone repair, food, gift | plan | cats ['food', 'gift', 'phone_repair'] f1=1.00 |
-| ✓ | llm | ayusin ang sira kong takong ng sapatos tapos kain | plan | cats ['food', 'shoe_repair'] f1=1.00 |
+| ✓ | rules | kain tayo then laro sa arcade or games | plan | cats ['food', 'gaming'] f1=1.00 |
+| ✓ | rules | bili ng notebook at ballpen tapos kape | plan | cats ['books_stationery', 'cafe'] f1=1.00 |
+| ✓ | rules | skincare tapos damit pang-office | plan | cats ['beauty', 'clothing'] f1=1.00 |
+| ✓ | rules | phone repair, food, gift | plan | cats ['food', 'gift', 'phone_repair'] f1=1.00 |
+| ✓ | rules | ayusin ang sira kong takong ng sapatos tapos kain | plan | cats ['food', 'shoe_repair'] f1=1.00 |
 | ✓ | llm | lunch muna bago mag-shopping ng damit | plan | cats ['clothing', 'food'] f1=1.00 |
-| ✗ | llm | kailangan ko ng gamot sa ubo at pagkain | edit | cats [] f1=0.00 |
+| ✓ | rules | kailangan ko ng gamot sa ubo at pagkain | plan | cats ['food', 'pharmacy'] f1=1.00 |
 | ✓ | rules | sabi ng technician 30 mins lang | edit | ops ['set_duration'] ok |
 | ✓ | rules | sabi ng technician 1 oras daw, tapos kailangan ko umalis ng 5 | edit | ops ['deadline', 'set_duration'] ok |
 | ✓ | rules | ready daw by 4pm | edit | ops ['set_ready_at'] ok |
@@ -56,7 +56,7 @@
 | ✓ | rules | where can I fix my cracked phone screen | find | cats ['phone_repair'] f1=1.00 |
 | ✓ | rules | saan pwede magpaayos ng sapatos | find | cats ['shoe_repair'] f1=1.00 |
 | ✓ | rules | botika | find | cats ['pharmacy'] f1=1.00 |
-| ✗ | llm | gusto ko ng milk tea | plan | cats ['food'] f1=1.00 |
+| ✓ | rules | gusto ko ng milk tea | find | cats ['food'] f1=1.00 |
 | ✓ | rules | salamat po! | other |  |
 | ✓ | rules | hello | other |  |
 | ✓ | rules | anong oras kayo nagsasara | other |  |

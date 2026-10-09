@@ -7,10 +7,14 @@ from .models import Edit, ErrandReq, Extraction, Trip
 from .search import CATEGORY_LABELS, Search
 
 SEPARATORS = re.compile(r",|;|\btapos\b(?!\s+na\b)|\band\b|\bthen\b|\bsaka\b|\bpati\b|\bpagkatapos\b", re.I)
+# Tagalog "at" (and) is too ambiguous to split on in general, but fine when every part names a category.
+PLAN_SEPARATORS = re.compile(rf"{SEPARATORS.pattern}|\bat\b|\btsaka\b", re.I)
 LOCATE_CUES = ("nasa ", "andito", "nandito", "i'm at", "im at", "i am at", "katapat", "tabi ng",
                "beside", "near ", "kita ko", "i see", "harap ng", "tapat ng", "nandyan", "andyan")
-QUESTION_WORDS = re.compile(r"^(?:where can i|where do i|where is|where's|where|saan (?:ako )?pwede|saan|nasaan|"
-                            r"asan|san|may)\s+(?:ang|ng|ba|po|yung|the)?\s*", re.I)
+QUESTION_WORDS = re.compile(r"^(?:where can i (?:find|get|buy)|where can i|where do i|where is|where's|where|"
+                            r"saan (?:ako )?pwede|saan|nasaan|asan|san|may|gusto ko(?:ng)?|kailangan ko(?:ng)?|"
+                            r"need ko|hanap(?: ako)?|naghahanap ako|i want(?: to)?|i need(?: to)?|looking for)"
+                            r"\s+(?:ang|ng|ba|po|yung|the)?\s*", re.I)
 OTHER_RE = re.compile(r"^\s*(?:hi|hello|hey|yo|salamat|thanks?|thank you|ty|ok(?:ay)?|sige|"
                       r"good (?:morning|afternoon|evening)|anong oras|what time)\b", re.I)
 NUM_WORDS = {"isa": 1, "isang": 1, "dalawa": 2, "dalawang": 2, "tatlo": 3, "tatlong": 3}
@@ -134,6 +138,23 @@ def _steering(message: str, trip: Trip) -> Extraction | None:
     return Extraction(intent="edit", edits=edits) if edits else None
 
 
+def _category_plan(message: str, search: Search) -> Extraction | None:
+    """A multi-errand message where every part names one clear category ("cr muna tapos kape") needs no LLM."""
+    chunks = [c.strip(" .!?") for c in PLAN_SEPARATORS.split(message)]
+    chunks = [c for c in chunks if c]
+    if len(chunks) < 2:
+        return None
+    errands: dict[str, ErrandReq] = {}
+    for chunk in chunks:
+        cat = search.alias_category(chunk)
+        if cat is None:
+            return None
+        errands.setdefault(cat, ErrandReq(query=chunk, category=cat))  # "notebook at ballpen" is one stop
+    if len(errands) < 2:
+        return None
+    return Extraction(intent="plan", errands=list(errands.values()))
+
+
 def parse(message: str, trip: Trip, search: Search) -> Extraction | None:
     msg = message.strip()
     lower = msg.lower()
@@ -145,8 +166,11 @@ def parse(message: str, trip: Trip, search: Search) -> Extraction | None:
         return Extraction(intent="other")
     if steer := _steering(msg, trip):
         return steer
-    if SEPARATORS.search(msg):
-        return None
+    if PLAN_SEPARATORS.search(msg):
+        if plan := _category_plan(msg, search):
+            return plan
+        if SEPARATORS.search(msg):
+            return None
     query = QUESTION_WORDS.sub("", msg).strip(" ?!.") or msg
     asked = query != msg.strip(" ?!.")
     if cat := search.alias_category(query):
