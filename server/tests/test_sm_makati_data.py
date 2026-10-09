@@ -8,11 +8,11 @@ P = Path(__file__).resolve().parents[2] / "data" / "sm-makati" / "mall.json"
 
 def test_valid_and_connected():
     m = load_mall(P)
-    assert set(m.floors) == {"LG", "GF", "2F", "3F", "4F", "AX"} and len(m.places) >= 55
+    assert set(m.floors) == {"LG", "GF", "2F", "3F", "4F", "5F", "AX"} and len(m.places) >= 55
     r = Router(m)
     anchor = m.anchors["gf-mrt-entrance"].node
     assert [p.id for p in m.places.values() if r.seconds(anchor, p.node) is None] == []
-    assert any(p.category == "phone_repair" and p.floor == "4F" for p in m.places.values())
+    assert any(p.category == "phone_repair" and p.floor == "2F" for p in m.places.values())
     assert sum(1 for c in m.connectors if c.kind == "escalator") == 4
 
 

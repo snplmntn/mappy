@@ -59,8 +59,8 @@ def test_multi_floor_ride_is_one_leg():
     m = load_mall(Path(__file__).resolve().parents[2] / "data" / "sm-makati" / "mall.json")
     r = Router(m)
     start = m.anchors["gf-mrt-entrance"].node
-    dest = m.anchors["4f-cyberzone-entrance"].node
-    legs = r.legs(r.path(start, dest), stop_index=0, dest_label="Cyberzone")
+    dest = m.anchors["4f-escalators"].node
+    legs = r.legs(r.path(start, dest), stop_index=0, dest_label="4th Floor escalators")
     assert [l.floor for l in legs][0] == "GF" and legs[-1].floor == "4F"
     assert len(legs) == 2
     assert "4th Floor" in legs[0].instruction and legs[0].connector["to_floor"] == "4F"

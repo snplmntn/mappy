@@ -83,7 +83,7 @@ Phone (Chrome, 13 KB gzipped)  ──HTTP──>  FastAPI on the laptop
 
 ## Data honesty
 
-**Store names come from public listings; the interior layout is our reconstruction** inside SM Makati's real building footprint. The app says so on screen. Phone-repair stalls marked "demo" (FixHub Mobile, QuickFix Gadget Clinic, ScreenDoc) are fictional. Loading SM's real floor plans would be a data swap: edit the store table in `tools/build_sm_makati.py` or replace `data/sm-makati/mall.json`.
+**Store names come from public listings, with floors checked against a June 2026 walk-through video** ([Where In PH, "SM MAKATI Walking Tour 2026"](https://www.youtube.com/watch?v=3IVE7saCJUk)) and the SM Store directory pylons it shows. **The interior layout is our reconstruction** inside SM Makati's real building footprint. The video does not visit the Annex, the Lower Ground mall corridors or Cyberzone, so stores there are unconfirmed. The app says so on screen. Phone-repair stalls marked "demo" (FixHub Mobile, QuickFix Gadget Clinic, ScreenDoc) are fictional. Loading SM's real floor plans would be a data swap: edit the store table in `tools/build_sm_makati.py` or replace `data/sm-makati/mall.json`.
 
 ## Disclosures
 
@@ -91,7 +91,7 @@ Phone (Chrome, 13 KB gzipped)  ──HTTP──>  FastAPI on the laptop
 |---|---|
 | **Models** | Qwen3-1.7B via Ollama `qwen3:1.7b` (Q4_K_M, Apache 2.0). intfloat/multilingual-e5-small (MIT), int8-quantized by us with onnxruntime. |
 | **Runtime and frameworks** | Ollama 0.40.1, onnxruntime, FastAPI, uvicorn, pydantic, numpy, tokenizers, rapidfuzz, httpx, segno. Vanilla JS + SVG (no frontend framework). |
-| **Map data** | Building outlines © OpenStreetMap contributors (ODbL), ways 27831200 and 263667838. Store names from public listings. Layout reconstructed. |
+| **Map data** | Building outlines © OpenStreetMap contributors (ODbL), ways 27831200 and 263667838. Store names from public listings; floors checked against a public walk-through video. Layout reconstructed. |
 | **Cloud/APIs at runtime** | None. Internet is used only during setup to download software and models. |
 | **Existing code/assets** | None. Built during the hackathon. |
 | **AI development tools** | Claude Code. |

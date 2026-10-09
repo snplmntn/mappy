@@ -63,61 +63,111 @@ CATEGORY_TAGS = {
 }
 
 # (name, floor, category, extra tags, service minutes or None, fictional)
+# Floors checked against the "SM MAKATI Walking Tour 2026" video (Where In PH, uploaded 2026-06-04) and the
+# SM Store directory pylons it shows. "Not seen" rows are unconfirmed, not known closed: the video never visits the
+# Annex, the LG mall corridors or Cyberzone.
 STORES = [
+    # LG: supermarket and Market Food Hall, reached from GF by travelators.
     ("SM Supermarket", "LG", "grocery", [], None, False),
+    ("Market Food Hall", "LG", "food", ["food court", "foodcourt", "food hall"], None, False),
+    ("Goldilocks", "LG", "food", ["cake", "bakery"], None, False),
+    ("Kumori", "LG", "cafe", ["bakery", "japanese"], None, False),
+    ("Sizzling Plate", "LG", "food", ["sizzling", "steak"], None, False),
+    ("Cucina Norte", "LG", "food", ["pasta"], None, False),
+    ("Goto Pilipinas", "LG", "food", ["goto", "lugaw", "arroz caldo"], None, False),
+    ("Dipping Dumpling", "LG", "food", ["dumplings", "chinese"], None, False),
+    ("Ssamjang Express", "LG", "food", ["korean"], None, False),
+    ("The Chinese Kitchen", "LG", "food", ["chinese"], None, False),
+    ("Chooks-to-Go", "LG", "food", ["chicken", "manok", "lechon manok"], None, False),
+    # Listed food tenants not seen in the video. No food court was seen on 3F, so they go with the LG food hall.
+    ("Kyu Kyu Ramen 99", "LG", "food", ["ramen", "japanese"], None, False),
+    ("Delifrance", "LG", "cafe", ["bread", "sandwich"], None, False),
+    ("Brownies Unlimited", "LG", "food", ["brownies", "dessert"], None, False),
+    ("Fuel Burgers", "LG", "food", ["burger"], None, False),
+    ("Gong Cha", "LG", "food", ["milk tea", "tea"], None, False),
+    ("Yakiudon", "LG", "food", ["udon", "japanese"], None, False),
+    ("Turks", "LG", "food", ["shawarma"], None, False),
+    ("DECS", "LG", "food", [], None, False),
+    # Not seen: the video never enters the LG mall corridors.
     ("Western Union", "LG", "remittance", [], None, False),
     ("DHL Express", "LG", "courier", [], None, False),
     ("Mr. Quickie", "LG", "shoe_repair", ["susi", "key", "takong"], 20, False),
     ("BDO ATM", "LG", "atm", [], None, False),
+    # GF
+    ("The SM Store", "GF", "department_store", [], None, False),
+    ("H&M", "GF", "clothing", [], None, False),
+    ("Uniqlo", "GF", "clothing", [], None, False),
+    ("Crate & Barrel", "GF", "home", ["kitchen", "furniture"], None, False),
+    ("Pet Express", "GF", "pet", [], None, False),
+    ("The Body Shop", "GF", "beauty", ["body wash", "lotion"], None, False),
+    ("Sunnies Face", "GF", "beauty", [], None, False),
+    ("Shiseido", "GF", "beauty", [], None, False),
+    ("NARS", "GF", "beauty", [], None, False),
+    ("MAC", "GF", "beauty", ["lipstick"], None, False),
+    ("Clinique", "GF", "beauty", [], None, False),
+    ("Innisfree", "GF", "beauty", ["korean skincare"], None, False),
+    ("BreadTalk", "GF", "food", ["bread", "bakery"], None, False),
     ("Starbucks", "GF", "cafe", ["frappuccino"], None, False),
     ("BDO", "GF", "bank", [], None, False),
     ("BDO ATM", "GF", "atm", [], None, False),
-    ("H&M", "GF", "clothing", [], None, False),
-    ("Kultura Filipino", "GF", "gift", ["filipino", "barong"], None, False),
-    ("Auntie Anne's", "GF", "food", ["pretzel"], None, False),
     ("La Botica", "GF", "pharmacy", [], None, False),
-    ("The SM Store", "GF", "department_store", [], None, False),
-    ("Seattle's Best Coffee", "GF", "cafe", [], None, False),
     ("SipYO Coco Fluff", "GF", "food", ["ice cream", "buko", "dessert"], None, False),
-    ("Mary Grace Cafe", "GF", "cafe", ["ensaymada"], None, False),
+    # 2F: loop around the central void; Cyberzone is on this level per the directory pylons.
+    ("Sports Central", "2F", "clothing", ["sports", "adidas", "nike", "rubber shoes"], None, False),
+    ("KLAD", "2F", "accessories", ["jewelry", "alahas"], None, False),
+    ("@Tokyo", "2F", "accessories", ["bag", "japanese"], None, False),
+    ("JINS", "2F", "accessories", ["eyeglasses", "salamin"], None, False),
+    ("TW Steel", "2F", "accessories", ["watch", "relo"], None, False),
+    ("Citizen", "2F", "accessories", ["watch", "relo"], None, False),
+    ("Tissot", "2F", "accessories", [], None, False),
+    ("ECCO", "2F", "shoes", [], None, False),
+    ("Levi's", "2F", "clothing", ["jeans", "maong"], None, False),
+    ("Kultura Filipino", "2F", "gift", ["filipino", "barong"], None, False),
+    ("Seattle's Best Coffee", "2F", "cafe", [], None, False),
+    ("Miniso", "2F", "home", ["cute", "gift"], None, False),
     ("Sfera", "2F", "clothing", [], None, False),
     ("Dear Flora", "2F", "clothing", [], None, False),
-    ("Uniqlo", "2F", "clothing", [], None, False),
     ("Crocs", "2F", "shoes", [], None, False),
-    ("Tissot", "2F", "accessories", [], None, False),
     ("Wenger", "2F", "accessories", [], None, False),
     ("Broadway Gems", "2F", "accessories", [], None, False),
-    ("Miniso", "2F", "home", ["cute", "gift"], None, False),
     ("PaperDollzCo", "2F", "books_stationery", [], None, False),
     ("Buttons & Wrap", "2F", "gift", ["gift wrap"], None, False),
     ("VMV Hypoallergenics", "2F", "beauty", [], None, False),
-    ("SM Makati Foodcourt", "3F", "food", ["food court", "foodcourt"], None, False),
-    ("Kyu Kyu Ramen 99", "3F", "food", ["ramen", "japanese"], None, False),
-    ("Goldilocks", "3F", "food", ["cake", "bakery"], None, False),
-    ("Delifrance", "3F", "cafe", ["bread", "sandwich"], None, False),
-    ("Brownies Unlimited", "3F", "food", ["brownies", "dessert"], None, False),
-    ("Sizzling Plate", "3F", "food", ["sizzling", "steak"], None, False),
-    ("Cucina Norte", "3F", "food", ["pasta"], None, False),
-    ("Fuel Burgers", "3F", "food", ["burger"], None, False),
-    ("Gong Cha", "3F", "food", ["milk tea", "tea"], None, False),
-    ("Yakiudon", "3F", "food", ["udon", "japanese"], None, False),
-    ("Ssamjang Express", "3F", "food", ["korean"], None, False),
-    ("Turks", "3F", "food", ["shawarma"], None, False),
+    ("ASUS Concept Store", "2F", "electronics", ["laptop", "cyberzone"], None, False),
+    ("Lenovo Legion Store", "2F", "electronics", ["laptop", "gaming laptop", "cyberzone"], None, False),
+    ("Techno", "2F", "electronics", ["cellphone", "phone", "cyberzone"], None, False),
+    ("GameXtreme", "2F", "gaming", ["cyberzone"], None, False),
+    ("Nintendo Authorized Store", "2F", "gaming", ["switch", "cyberzone"], None, False),
+    ("FixHub Mobile", "2F", "phone_repair", ["cyberzone"], 45, True),
+    ("QuickFix Gadget Clinic", "2F", "phone_repair", ["tablet", "laptop repair", "cyberzone"], 60, True),
+    ("ScreenDoc", "2F", "phone_repair", ["screen replacement", "cyberzone"], 30, True),
+    # 3F
+    ("ACE Hardware", "3F", "home", ["hardware", "tools", "pako"], None, False),
+    ("Watsons", "3F", "pharmacy", ["skincare", "shampoo"], None, False),
+    ("Alfamart", "3F", "grocery", ["convenience store", "snacks"], None, False),
+    ("Mi Store", "3F", "electronics", ["xiaomi", "phone"], None, False),
+    ("Decathlon", "3F", "clothing", ["sports", "gym", "bike"], None, False),
+    ("Ideal Vision Center", "3F", "accessories", ["eyeglasses", "salamin", "optical"], None, False),
+    ("Mary Grace Cafe", "3F", "cafe", ["ensaymada"], None, False),
+    ("Auntie Anne's", "3F", "food", ["pretzel"], None, False),
+    ("Zus Coffee", "3F", "cafe", [], None, False),
+    ("Gotcha", "3F", "cafe", ["milk tea", "tea"], None, False),
+    ("Carmen's Best", "3F", "food", ["ice cream", "dessert"], None, False),
     ("YoCoCo", "3F", "food", ["dessert"], None, False),
-    ("DECS", "3F", "food", [], None, False),
-    ("Kumori", "3F", "cafe", ["bakery", "japanese"], None, False),
-    ("ASUS Concept Store", "4F", "electronics", ["laptop"], None, False),
-    ("Lenovo Legion Store", "4F", "electronics", ["laptop", "gaming laptop"], None, False),
-    ("Techno", "4F", "electronics", ["cellphone", "phone"], None, False),
-    ("Mi Store", "4F", "electronics", ["xiaomi", "phone"], None, False),
-    ("GameXtreme", "4F", "gaming", [], None, False),
-    ("Nintendo Authorized Store", "4F", "gaming", ["switch"], None, False),
-    ("FixHub Mobile", "4F", "phone_repair", [], 45, True),
-    ("QuickFix Gadget Clinic", "4F", "phone_repair", ["tablet", "laptop repair"], 60, True),
-    ("ScreenDoc", "4F", "phone_repair", ["screen replacement"], 30, True),
-    ("SM Appliance Center", "AX", "appliances", [], None, False),
+    ("Kiehl's", "3F", "beauty", [], None, False),
+    ("Jo Malone London", "3F", "beauty", ["perfume", "pabango"], None, False),
+    ("Lancome", "3F", "beauty", [], None, False),
+    # 4F
+    ("SM Appliance Center", "4F", "appliances", [], None, False),
+    ("TCL", "4F", "appliances", ["tv", "television"], None, False),
+    ("David's Salon", "4F", "beauty", ["haircut", "gupit", "salon"], None, False),
+    ("Honey Graze Bakery + Kitchen", "4F", "food", ["bakery"], None, False),
+    ("Lojel", "4F", "accessories", ["luggage", "maleta"], None, False),
+    # 5F: SM Store home floor.
+    ("SM Home", "5F", "home", ["bedding", "kitchen"], None, False),
+    ("ACE Express", "5F", "home", ["hardware", "tools"], None, False),
+    # Annex: not visited in the video.
     ("Dyson", "AX", "appliances", ["vacuum"], None, False),
-    ("Pet Express", "AX", "pet", [], None, False),
     ("BOS Shoes & Bags Repair", "AX", "shoe_repair", ["bag repair"], 30, False),
 ]
 
@@ -130,15 +180,16 @@ from shapely.ops import nearest_points, polylabel, unary_union, voronoi_diagram
 M_PER_PX = 0.15          # every floor uses the same scale, so distances are real
 MARGIN = 40
 MAIN_FLOORS = [("LG", "Lower Ground", -1), ("GF", "Ground Floor", 0), ("2F", "2nd Floor", 1),
-               ("3F", "3rd Floor", 2), ("4F", "4th Floor (Cyberzone)", 3)]
+               ("3F", "3rd Floor", 2), ("4F", "4th Floor", 3), ("5F", "5th Floor", 4)]
 MAIN = dict(depth=110, corridor=56, unit_len=96)       # ~16 m deep stores, ~8 m walkways, ~10 m frontages
 ANNEX = dict(depth=62, corridor=40, unit_len=80)
 CROSSES = [(0.26, 58, "atrium"), (0.5, 26, "lift"), (0.74, 58, "atrium")]
 MITRE = dict(join_style="mitre", mitre_limit=3.0)
 NODE_STEP = 30
 # Stores that span several storefronts, and where they go.
-PERIMETER_ANCHORS = {"SM Supermarket": 9, "The SM Store": 7, "SM Appliance Center": 5, "H&M": 2, "Uniqlo": 2}
-ISLAND_ANCHORS = {"SM Makati Foodcourt"}
+PERIMETER_ANCHORS = {"SM Supermarket": 9, "The SM Store": 7, "SM Appliance Center": 5, "H&M": 2, "Uniqlo": 2,
+                     "SM Home": 4, "ACE Hardware": 2}
+ISLAND_ANCHORS = {"Market Food Hall"}
 
 
 def project(latlon, angle=None):
@@ -508,13 +559,14 @@ def build() -> dict:
          "node": specials["GF"]["entrances"]["main"], "heading_deg": 0},
         {"id": "lg-supermarket", "label": "Lower Ground, SM Supermarket", "floor": "LG", "node": node_of("sm-supermarket-lg"), "heading_deg": 0},
         {"id": "2f-escalator-a", "label": "2nd Floor, Escalator A", "floor": "2F", "node": connectors[0]["stops"][2], "heading_deg": 0},
-        {"id": "3f-foodcourt", "label": "3rd Floor, Foodcourt", "floor": "3F", "node": node_of("sm-makati-foodcourt-3f"), "heading_deg": 0},
-        {"id": "4f-cyberzone-entrance", "label": "Cyberzone, 4th Floor escalators", "floor": "4F", "node": connectors[0]["stops"][4], "heading_deg": 0},
+        {"id": "lg-food-hall", "label": "Lower Ground, Market Food Hall", "floor": "LG", "node": node_of("market-food-hall-lg"), "heading_deg": 0},
+        {"id": "3f-ace-hardware", "label": "3rd Floor, ACE Hardware", "floor": "3F", "node": node_of("ace-hardware-3f"), "heading_deg": 0},
+        {"id": "4f-escalators", "label": "4th Floor, escalators", "floor": "4F", "node": connectors[0]["stops"][4], "heading_deg": 0},
         {"id": "ax-entrance", "label": "Annex entrance", "floor": "AX", "node": specials["AX"]["entrances"]["main"], "heading_deg": 0},
     ]
     return {
         "mall": {"id": "sm-makati", "name": "SM Makati",
-                 "note": "Store names from public listings. Layout reconstructed for this demo."},
+                 "note": "Store names and floors from public listings and a 2026 walk-through video. Layout reconstructed for this demo."},
         "floors": floors, "nodes": nodes, "edges": edges, "connectors": connectors, "places": places,
         "category_defaults": {k: {"duration_min": d, "async": a} for k, (d, a) in CATEGORY_DEFAULTS.items()},
         "anchors": anchors,
