@@ -166,6 +166,14 @@ class Search:
         """How many of the traits a place matches, by whole word/phrase in its tags or name."""
         return len(self.matched_traits(pid, traits))
 
+    def distinctive_tags(self, pid: str) -> tuple[str, ...]:
+        """What sets a place apart within its category: its tags minus the category's own words and
+        minus the tags every place of that category carries ("chickenjoy", not "kain")."""
+        p = self.mall.places[pid]
+        shared = set(CATEGORY_WORDS.get(p.category, ()))
+        shared |= set.intersection(*(set(self.mall.places[o].tags) for o in self.by_category(p.category)))
+        return tuple(t for t in dict.fromkeys(p.tags) if t not in shared)
+
     def alternatives(self, category: str, traits: tuple[str, ...], exclude: tuple[str, ...] = ()) -> list[str]:
         """Places of a category ranked by trait overlap (desc), then floor order; `exclude` ids are dropped."""
         ids = [pid for pid in self.by_category(category) if pid not in exclude]

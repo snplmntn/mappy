@@ -1,6 +1,6 @@
 import asyncio
 
-from mappy.chat import ChatService
+from mappy.chat import ChatService, StandIn
 from mappy.learn import Picks
 from mappy.llm import LLMBusy
 from mappy.models import Edit, ErrandReq, Extraction, Trip
@@ -233,6 +233,18 @@ def test_alternatives_lead_with_matching_traits(mall, search):
     assert "Food Court also does ramen." in out["reply"]
 
 
+def test_trait_sentence_names_a_second_store_only_when_it_has_every_shown_trait(mall, search):
+    s = svc(mall, search)
+    start, router = s.start_node(AT), s.router
+
+    def reply(traits):
+        alt = StandIn("Zzyzx", "food", traits, swapped=True)
+        return s._alternatives_reply(alt, s._alternatives_result(alt, start, router)["places"])
+
+    assert "Jollibee and Food Court also do kain." in reply(("kain",))
+    assert "Jollibee also does chickenjoy." in reply(("chickenjoy", "ramen"))  # Food Court has ramen, not chickenjoy
+
+
 def test_plan_swaps_a_missing_brand(mall, search):
     out = run(svc(mall, search).chat("mcdo, phone repair", AT, "14:00", Trip()))
     errands = out["trip"]["errands"]
@@ -346,6 +358,13 @@ def test_no_nudge_for_swaps_or_category_listings(mall, search, monkeypatch):
         out = run(svc(mall, search).chat(query, {"anchor": "2f-esc-a"}, "14:00", Trip()))
         assert not any(p.get("nudge") for p in out["result"]["places"]), query
         assert "too," not in out["reply"], query
+
+
+def test_nudge_without_brand_traits_never_names_a_category_word(mall, search, monkeypatch):
+    walk_times(monkeypatch, {"jollibee-gf": 9, "foodcourt-2f": 2})
+    monkeypatch.setattr("mappy.chat.traits_of", lambda name: ())
+    out = run(svc(mall, search).chat("jollibee", {"anchor": "2f-esc-a"}, "14:00", Trip()))
+    assert "Food Court on 2nd Floor does food too, 2 min." in out["reply"]  # not "does kain too"
 
 
 def test_nudge_names_a_matched_trait_and_skips_listed_stores(mall, search, monkeypatch):

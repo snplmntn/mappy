@@ -252,10 +252,12 @@ class ChatService:
             reply = f"Shoppers here usually pick {row['name']} instead of {alt.name}. {reply}"
         matched = [(r, m) for r in rows if (m := self.search.matched_traits(r["id"], alt.traits))]
         if matched:
-            shown = matched[:MAX_REPLY_NAMES]
-            verb = "does" if len(shown) == 1 else "do"
-            names = " and ".join(r["name"] for r, _ in shown)
-            reply += f" {names} also {verb} {' and '.join(matched[0][1][:MAX_REPLY_TRAITS])}."
+            # The first match sets which traits are named; another store is named only if it has them all.
+            (lead, traits), *rest = matched
+            traits = traits[:MAX_REPLY_TRAITS]
+            names = [lead["name"], *(r["name"] for r, m in rest if set(traits) <= set(m))][:MAX_REPLY_NAMES]
+            verb = "does" if len(names) == 1 else "do"
+            reply += f" {' and '.join(names)} also {verb} {' and '.join(traits)}."
         if rows and rows[0]["walk_min"] is not None:
             reply += f" {rows[0]['name']} is {rows[0]['walk_min']} min away."
         return reply
@@ -267,7 +269,7 @@ class ChatService:
         top = rows[0]
         if top["walk_min"] is None:
             return None
-        traits = traits_of(top["name"]) or tuple(self.mall.places[top["id"]].tags)
+        traits = traits_of(top["name"]) or self.search.distinctive_tags(top["id"])
         pid = next((pid for pid in self.search.alternatives(top["category"], traits, exclude)
                     if (w := self._walk_min(start, pid, router)) is not None and w <= top["walk_min"] - NUDGE_MIN),
                    None)

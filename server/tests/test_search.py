@@ -94,3 +94,9 @@ def test_alternatives_exclude(search):
 def test_trait_score_matches_whole_words(search):
     assert search.trait_score("foodcourt-2f", ("ramen", "japanese")) == 1
     assert search.trait_score("foodcourt-2f", ("ram",)) == 0
+
+
+def test_distinctive_tags_drop_category_words_and_shared_tags(search):
+    assert search.distinctive_tags("jollibee-gf") == ("chickenjoy",)   # not "kain" or "meal"
+    assert search.distinctive_tags("foodcourt-2f") == ("ramen",)
+    assert search.distinctive_tags("starbucks-gf") == ()               # nothing the other Starbucks lacks
