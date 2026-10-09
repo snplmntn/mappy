@@ -12,7 +12,6 @@ Built for AppBuildersPH Hackathon 2026 (theme: Local AI).
 - **Plans around waiting.** *"papaayos ko phone ko, kakain, tapos bibili ng regalo"* becomes: drop off the phone → eat while it's being fixed → shop → pick up. Nothing hardcodes that order. Idle time is the cost the planner minimizes.
 - **Steer by talking.** *"sabi ng technician 1 oras daw"*, *"kailangan ko umalis ng 5"*, *"wag na H&M"*, *"may stroller ako"*: each re-plans and shows what changed.
 - **Multi-floor routes.** One-way escalators, an elevator-only mode, and step-by-step floor transfers ("Take Escalator B ↑ to 4th Floor").
-- **Compass.** A blue arrow on the map turns with your phone to show which way you're facing (needs the https link).
 - **Locate without GPS.** Scan a location QR (exact spot, like a kiosk), or describe what you see (*"nasa tabi ako ng Starbucks, katapat ng H&M"*) and confirm a pin.
 - **Meet a friend.** Type what your friend sees; Mappy pins them and routes you there.
 

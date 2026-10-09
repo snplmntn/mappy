@@ -1,7 +1,6 @@
 import { h, s } from "./util.js";
 import { atNode, state } from "./state.js";
 import { icon } from "./icons.js";
-import { compassHeading, compassProblem, compassReport, norm, onHeading, startCompass } from "./compass.js";
 
 const CAT_CLASS = {
   food: "m-food", cafe: "m-food",
@@ -24,8 +23,6 @@ const MIN_PPU = 0.25;
 const MAX_PPU = 4;
 const TWEEN_MS = 420;
 const WALK_MPS = 1.2;
-const NO_COMPASS_MS = 3000;
-const HTTPS_PORT = 8443; // the server's default MAPPY_HTTPS_PORT
 
 const pts = (path) => path.map((p) => p.join(",")).join(" ");
 
@@ -239,7 +236,7 @@ function buildSteps(legs, stops) {
 
 /** Full-screen navigation: route steps, floor switcher, pan/zoom, browse and pick modes. */
 export class Navigator {
-  constructor({ onClose, onDirections, onSetLocation, notify }) {
+  constructor({ onClose, onDirections, onSetLocation }) {
     this.view = document.getElementById("navView");
     this.chat = document.getElementById("chatView");
     this.svg = document.getElementById("mapSvg");
@@ -249,13 +246,10 @@ export class Navigator {
     this.onClose = onClose;
     this.onDirections = onDirections;
     this.onSetLocation = onSetLocation;
-    this.notify = notify;
-    this.compassBtn = document.getElementById("compassBtn");
     this.camera = { x: 0, y: 0, w: 1000, h: 800 };
     this.pointers = new Map();
     this.reset("browse");
     this.bindGestures();
-    this.bindCompass();
   }
 
   reset(mode) {
@@ -294,9 +288,6 @@ export class Navigator {
   }
 
   show(floorId) {
-    startCompass();
-    clearTimeout(this.compassCheck);
-    this.compassCheck = setTimeout(() => { if (!this.reported) { this.reported = true; this.report(); } }, NO_COMPASS_MS * 2);
     this.floor = floorId;
     const opening = this.view.hidden;
     this.view.hidden = false;
@@ -336,7 +327,6 @@ export class Navigator {
     this.drawTop(step);
     this.drawFloors(step);
     this.drawSheet(step);
-    this.applyHeading();
   }
 
   drawTop(step) {
@@ -500,65 +490,6 @@ export class Navigator {
   toMap(clientX, clientY) {
     const r = this.svg.getBoundingClientRect();
     return [this.camera.x + ((clientX - r.left) / r.width) * this.camera.w, this.camera.y + ((clientY - r.top) / r.height) * this.camera.h];
-  }
-
-  bindCompass() {
-    this.compassBtn.append(s("svg", { viewBox: "0 0 24 24", width: 28, height: 28, "aria-hidden": "true" },
-      s("path", { d: "M12 2.5l7 18-7-4.2-7 4.2z" })));
-    this.compassBtn.addEventListener("click", () => this.explainCompass());
-    // iOS and newer Chrome only show the motion permission prompt during a tap.
-    this.view.addEventListener("click", () => { if (compassHeading() === null) startCompass(); });
-    let frame = 0;
-    onHeading(() => {
-      if (this.view.hidden || frame) return;
-      frame = requestAnimationFrame(() => {
-        frame = 0;
-        this.applyHeading();
-      });
-    });
-  }
-
-  /** Compass button: say what the arrow means, or why there isn't one. */
-  async explainCompass() {
-    await startCompass();
-    const problem = compassProblem();
-    if (problem === "insecure") this.notify?.(`The compass needs the secure link: https://${location.hostname}:${HTTPS_PORT}`);
-    else if (problem === "denied") this.notify?.("Allow Motion & Orientation access to use the compass");
-    else if (problem === "unsupported") this.notify?.("This browser has no compass");
-    else if (problem === "waiting") {
-      this.notify?.("Starting the compass…");
-      setTimeout(() => {
-        if (compassHeading() !== null) return;
-        this.notify?.("No compass readings from this phone");
-        this.report();
-      }, NO_COMPASS_MS);
-    } else this.notify?.("The arrow points where you're facing on the map");
-  }
-
-  /** Tell the laptop what this phone's compass is doing, to diagnose phones we can't see. */
-  report() {
-    try {
-      let storage = false;
-      try {
-        localStorage.setItem("mappy.probe", "1");
-        storage = localStorage.getItem("mappy.probe") === "1";
-      } catch {
-        /* reported below */
-      }
-      const info = { ...compassReport(), storage, origin: location.origin };
-      const body = JSON.stringify({ message: `compass: ${JSON.stringify(info)}`, stack: "", ua: navigator.userAgent });
-      navigator.sendBeacon?.("/api/client-error", new Blob([body], { type: "application/json" }));
-    } catch {
-      /* diagnostics must never break the map */
-    }
-  }
-
-  /** Turn the compass arrow to where the phone faces, in map terms (the map isn't drawn north-up). */
-  applyHeading() {
-    const compass = compassHeading();
-    const off = compass === null;
-    this.compassBtn.classList.toggle("off", off);
-    if (!off) this.compassBtn.firstElementChild.style.transform = `rotate(${norm(compass - (state.index.floors[this.shownFloor()].north_deg || 0))}deg)`;
   }
 
   zoomAt(factor, clientX, clientY) {

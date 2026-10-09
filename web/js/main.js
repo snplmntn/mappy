@@ -248,7 +248,6 @@ async function boot() {
     onClose: render,
     onDirections: (pid) => actions.navigateToPlace(pid),
     onSetLocation: (nodeId) => actions.setAt({ node: nodeId }, { quiet: true }),
-    notify: toast,
   });
   document.getElementById("placePill").addEventListener("click", openLocation);
   document.getElementById("mapBtn").addEventListener("click", () => nav.browse());
