@@ -15,7 +15,7 @@ svg.icon {stroke-width:1.7}
 .minimal-app {--workspace-width:800px;--workspace-gutter:20px}
 .minimal-app .topbar {width:calc(100% - 2 * var(--workspace-gutter));max-width:var(--workspace-width);min-height:64px;margin:8px auto 0;padding:4px 0;gap:10px;border:0;background:transparent;border-radius:0;flex-shrink:0}
 .brand {font-family:Arial,Helvetica,sans-serif;font-size:24px;font-weight:600;letter-spacing:-1px;gap:0}
-.brand-symbol {display:none}
+.brand-symbol {display:grid;place-items:center;width:30px;height:32px;margin-right:2px;padding:0 0 4px;border:0;border-radius:9px 9px 9px 3px;background:var(--button);color:var(--button-text);box-shadow:none;transform:none;font-size:25px;font-weight:600;line-height:1}
 .brand-period {color:var(--text)}
 .header-divider {margin:0 6px;height:20px}
 .place-text {font-size:13px;font-weight:500}
