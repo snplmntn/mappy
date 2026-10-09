@@ -94,10 +94,21 @@ class Router:
                 best = (w, c)
         return best[1] if best else None
 
+    def _transfer_instruction(self, conn: Connector | None, from_node: str, to_node: str) -> str:
+        floor_name = self.mall.floors[self.mall.nodes[to_node].floor].name
+        if conn is not None and conn.kind == "bridge":
+            return f"Cross {conn.name} to {floor_name}"
+        up = self._level(to_node) > self._level(from_node)
+        down = self._level(to_node) < self._level(from_node)
+        arrow = "↑" if up else "↓" if down else "→"
+        return f"Take {conn.name if conn else 'the connector'} {arrow} to {floor_name}"
+
     def legs(self, path: list[str], stop_index: int, dest_label: str) -> list[Leg]:
+        """Split a path into one leg per floor. Riding one connector past several floors is a single leg."""
         m = self.mall
         legs: list[Leg] = []
         points: list[tuple[float, float]] = []
+        ride_start: str | None = None
         for i, node_id in enumerate(path):
             n = m.nodes[node_id]
             points.append((n.x, n.y))
@@ -106,17 +117,17 @@ class Router:
                 continue
             conn = self._connector_between(node_id, nxt)
             to_floor = m.nodes[nxt].floor
-            floor_name = m.floors[to_floor].name
-            if conn is not None and conn.kind == "bridge":
-                instruction = f"Cross {conn.name} to {floor_name}"
-            else:
-                up = self._level(nxt) > self._level(node_id)
-                down = self._level(nxt) < self._level(node_id)
-                arrow = "↑" if up else "↓" if down else "→"
-                name = conn.name if conn else "the connector"
-                instruction = f"Take {name} {arrow} to {floor_name}"
+            prev = legs[-1] if legs else None
+            if (prev and len(points) == 1 and conn is not None and prev.connector
+                    and prev.connector["id"] == conn.id):
+                prev.connector["to_floor"] = to_floor
+                prev.instruction = self._transfer_instruction(conn, ride_start, nxt)
+                points = []
+                continue
+            ride_start = node_id
             legs.append(Leg(
-                floor=n.floor, path=points, instruction=instruction, stop_index=stop_index,
+                floor=n.floor, path=points, instruction=self._transfer_instruction(conn, node_id, nxt),
+                stop_index=stop_index,
                 connector={"id": conn.id if conn else None, "kind": conn.kind if conn else None,
                            "name": conn.name if conn else None, "to_floor": to_floor},
             ))

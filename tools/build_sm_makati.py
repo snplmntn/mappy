@@ -226,8 +226,13 @@ class FloorLayout:
             self.slots.append((cx, cy, node))
 
     def add_point(self, suffix: str, x: float, y: float, link: str) -> str:
+        """Add a point linked to `link` and to the nearest other corridor node within one step."""
+        others = [n for n in self.nodes if n["id"] != link and n["id"].split("-", 1)[1][0] in "cx"]
         nid = self._node(suffix, x, y)
         self.edges.append([link, nid])
+        near = min(others, key=lambda n: math.dist((n["x"], n["y"]), (x, y)), default=None)
+        if near and math.dist((near["x"], near["y"]), (x, y)) <= STEP:
+            self.edges.append([near["id"], nid])
         return nid
 
 

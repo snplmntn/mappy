@@ -1604,7 +1604,15 @@
    "LG-esc-a-up"
   ],
   [
+   "LG-x0s1",
+   "LG-esc-a-up"
+  ],
+  [
    "LG-c3",
+   "LG-esc-a-dn"
+  ],
+  [
+   "LG-x0s1",
    "LG-esc-a-dn"
   ],
   [
@@ -1612,7 +1620,15 @@
    "LG-esc-b-up"
   ],
   [
+   "LG-x1s1",
+   "LG-esc-b-up"
+  ],
+  [
    "LG-c7",
+   "LG-esc-b-dn"
+  ],
+  [
+   "LG-x1s1",
    "LG-esc-b-dn"
   ],
   [
@@ -1724,7 +1740,15 @@
    "GF-esc-a-up"
   ],
   [
+   "GF-x0s1",
+   "GF-esc-a-up"
+  ],
+  [
    "GF-c3",
+   "GF-esc-a-dn"
+  ],
+  [
+   "GF-x0s1",
    "GF-esc-a-dn"
   ],
   [
@@ -1732,7 +1756,15 @@
    "GF-esc-b-up"
   ],
   [
+   "GF-x1s1",
+   "GF-esc-b-up"
+  ],
+  [
    "GF-c7",
+   "GF-esc-b-dn"
+  ],
+  [
+   "GF-x1s1",
    "GF-esc-b-dn"
   ],
   [
@@ -1848,7 +1880,15 @@
    "2F-esc-a-up"
   ],
   [
+   "2F-x0s1",
+   "2F-esc-a-up"
+  ],
+  [
    "2F-c3",
+   "2F-esc-a-dn"
+  ],
+  [
+   "2F-x0s1",
    "2F-esc-a-dn"
   ],
   [
@@ -1856,7 +1896,15 @@
    "2F-esc-b-up"
   ],
   [
+   "2F-x1s1",
+   "2F-esc-b-up"
+  ],
+  [
    "2F-c7",
+   "2F-esc-b-dn"
+  ],
+  [
+   "2F-x1s1",
    "2F-esc-b-dn"
   ],
   [
@@ -1968,7 +2016,15 @@
    "3F-esc-a-up"
   ],
   [
+   "3F-x0s1",
+   "3F-esc-a-up"
+  ],
+  [
    "3F-c3",
+   "3F-esc-a-dn"
+  ],
+  [
+   "3F-x0s1",
    "3F-esc-a-dn"
   ],
   [
@@ -1976,7 +2032,15 @@
    "3F-esc-b-up"
   ],
   [
+   "3F-x1s1",
+   "3F-esc-b-up"
+  ],
+  [
    "3F-c7",
+   "3F-esc-b-dn"
+  ],
+  [
+   "3F-x1s1",
    "3F-esc-b-dn"
   ],
   [
@@ -2088,7 +2152,15 @@
    "4F-esc-a-up"
   ],
   [
+   "4F-x0s1",
+   "4F-esc-a-up"
+  ],
+  [
    "4F-c3",
+   "4F-esc-a-dn"
+  ],
+  [
+   "4F-x0s1",
    "4F-esc-a-dn"
   ],
   [
@@ -2096,7 +2168,15 @@
    "4F-esc-b-up"
   ],
   [
+   "4F-x1s1",
+   "4F-esc-b-up"
+  ],
+  [
    "4F-c7",
+   "4F-esc-b-dn"
+  ],
+  [
+   "4F-x1s1",
    "4F-esc-b-dn"
   ],
   [
