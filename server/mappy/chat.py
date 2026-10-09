@@ -115,12 +115,19 @@ class ChatService:
         return [pid for pid, s in hits
                 if s >= hits[0][1] - SCORE_BAND and self.mall.places[pid].category == top_cat][:CANDIDATES]
 
+    def _own_category(self, query: str) -> str | None:
+        """A category word in the user's own text, unless the text names a known brand ("coffee bean"
+        is Coffee Bean & Tea Leaf, not just coffee)."""
+        return None if brand_in(query) else self.search.alias_category(query)
+
     def _find_category(self, req: ErrandReq) -> str | None:
         """The category to list for a search. The LLM's guess only counts when search agrees with it,
         so "sinehan" in a mall without a cinema isn't answered with gift shops."""
-        if cat := self.search.alias_category(req.query):
+        if cat := self._own_category(req.query):
             return cat
-        hits = self._matches(req.query, None) if req.category else []
+        if not req.category or brand_in(req.query):  # a known brand resolves by name or swaps, see _resolve
+            return None
+        hits = self._matches(req.query, None)
         return req.category if hits and self.mall.places[hits[0]].category == req.category else None
 
     def _errand(self, new_id: str, query: str, ids: list[str]) -> Errand:
@@ -149,7 +156,7 @@ class ChatService:
     def _errand_or_alternative(self, query: str, category: str | None,
                                new_id: str) -> tuple[Errand | None, StandIn | None]:
         """The errand for a request, and what it stands in for when a missing brand was swapped."""
-        if cat := self.search.alias_category(query):  # a category word in the user's own text beats the LLM's guess
+        if cat := self._own_category(query):  # a category word in the user's own text beats the LLM's guess
             ids, stand_in = self._matches(query, cat), None
         else:
             ids, stand_in = self._resolve(query, category)

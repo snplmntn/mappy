@@ -271,3 +271,22 @@ def test_absent_brand_swaps_even_when_search_would_hit(mall, search, monkeypatch
     out = run(svc(mall, search).chat("ramen nagi", AT, "14:00", Trip()))
     assert out["result"]["alternatives_for"] == "Ramen Nagi"
     assert out["reply"].startswith("No Ramen Nagi in this mall")
+
+
+def test_brand_with_a_category_word_swaps(mall, search):
+    out = run(svc(mall, search).chat("coffee bean", AT, "14:00", Trip()))
+    assert out["result"]["alternatives_for"] == "Coffee Bean & Tea Leaf"
+    assert {p["id"] for p in out["result"]["places"]} == {"starbucks-gf", "starbucks-2f"}
+    assert out["reply"].startswith("No Coffee Bean & Tea Leaf in this mall, but here are other coffee places.")
+
+
+def test_brand_with_a_category_word_swaps_in_a_plan(mall, search):
+    x = Extraction(intent="plan", source="llm", errands=[
+        ErrandReq(query="coffee bean", category="cafe"), ErrandReq(query="phone repair", category="phone_repair")])
+    out = run(svc(mall, search, FixedLLM(x)).chat("coffee bean tapos phone repair", AT, "14:00", Trip()))
+    assert "No Coffee Bean & Tea Leaf here, so I added other coffee places instead." in out["reply"]
+
+
+def test_plain_category_word_still_lists_the_category(mall, search):
+    out = run(svc(mall, search).chat("coffee", AT, "14:00", Trip()))
+    assert "alternatives_for" not in out["result"] and out["reply"].startswith("Here's what I found")
