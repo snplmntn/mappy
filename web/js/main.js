@@ -253,7 +253,24 @@ function readAtParam() {
   if ((at.anchor && state.index.anchors[at.anchor]) || (at.node && state.index.nodes[at.node])) update({ at });
 }
 
+/** iOS slides the whole page up under the keyboard; size the app to the visible area instead. */
+function fitAboveKeyboard() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const sync = () => {
+    document.documentElement.style.setProperty("--app-height", `${vv.height}px`);
+    if (window.scrollY) window.scrollTo(0, 0);
+    // Keep the end of the chat (or the suggestion chips) next to the composer.
+    const thread = document.getElementById("thread");
+    thread.scrollTop = thread.scrollHeight;
+  };
+  vv.addEventListener("resize", sync);
+  vv.addEventListener("scroll", sync);
+  sync();
+}
+
 async function boot() {
+  fitAboveKeyboard();
   document.getElementById("mapBtn").append(icon("map"), h("span", {}, "Map"));
   document.getElementById("newBtn").append(icon("compose"), h("span", {}, "New trip"));
   document.getElementById("locationIcon").append(icon("pin"));

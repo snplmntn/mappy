@@ -120,6 +120,10 @@ svg.icon {stroke-width:1.7}
  .suggestion {padding:10px 8px;gap:6px;min-height:48px}
  .suggestion span {font-size:13px}
  .minimal-app .composer {padding:8px 8px 8px 16px;gap:4px}
+ /* Phones: composer stays at the bottom, in thumb reach; suggestions sit right above it. */
+ .minimal-app .is-empty .thread {flex:1 1 auto;flex-direction:column;margin-top:0;padding-bottom:12px}
+ .minimal-app .is-empty .composer-wrap {margin-bottom:0}
+ .minimal-app .is-empty .empty {margin-top:auto}
  .modal-body {border-radius:22px 22px 0 0}
 }
 @media(max-width:360px){.topbar > .icon-btn span {display:inline}.topbar > .icon-btn .icon {display:none}.suggestion span {font-size:12px}}
