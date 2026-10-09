@@ -1,5 +1,7 @@
 # Mappy
 
+*Mappy = map + happy: a mall map that gets you there without the stress.*
+
 **An errand isn't a point, it's a task with a duration.** Mappy plans your mall trip around waiting time, offline.
 
 Mappy is an offline, on-device AI mall navigator that runs on one local laptop, with no cloud and no internet.
