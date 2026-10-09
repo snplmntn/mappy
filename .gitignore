@@ -8,3 +8,4 @@ web/dist/
 .pytest_cache/
 server/.cache/
 .superpowers/
+*.egg-info/
