@@ -1,8 +1,9 @@
 """Shared data models. Trip state travels between phone and server as JSON."""
 
+import re
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 DAY_MIN = 24 * 60
 
@@ -15,6 +16,32 @@ def hhmm_to_min(s: str) -> int:
 def min_to_hhmm(m: float) -> str:
     m = int(round(m)) % DAY_MIN
     return f"{m // 60:02d}:{m % 60:02d}"
+
+
+_TIME_RE = re.compile(r"^(\d{1,2})(?::(\d{2}))?(?::\d{2})?\s*(a\.?m\.?|p\.?m\.?)?$", re.I)
+
+
+def normalize_hhmm(value: object) -> str | None:
+    """Accept '15:30', '3:30 pm', '3pm', '15:30:00'; return 'HH:MM', or None when unreadable.
+    A bare 1-7 without am/pm means afternoon (mall hours)."""
+    if not isinstance(value, str):
+        return None
+    m = _TIME_RE.match(value.strip())
+    if not m:
+        return None
+    h, mins = int(m.group(1)), int(m.group(2) or 0)
+    ampm = (m.group(3) or "").lower().replace(".", "")
+    if ampm == "pm" and h < 12:
+        h += 12
+    elif ampm == "am" and h == 12:
+        h = 0
+    elif not ampm and not m.group(2) and 1 <= h <= 7:
+        h += 12
+    return f"{h:02d}:{mins:02d}" if h < 24 and mins < 60 else None
+
+
+def _time_field(*names: str):
+    return field_validator(*names, mode="before")(lambda cls, v: normalize_hhmm(v))
 
 
 class Errand(BaseModel):
@@ -33,6 +60,8 @@ class Errand(BaseModel):
     status: Literal["todo", "dropped", "done"] = "todo"
     dropped_at: str | None = None
 
+    _times = _time_field("ready_at", "dropped_at")
+
 
 class OrderRule(BaseModel):
     errand: str
@@ -44,6 +73,8 @@ class Constraints(BaseModel):
     deadline: str | None = None
     order: list[OrderRule] = []
     elevator_only: bool = False
+
+    _times = _time_field("deadline")
 
 
 class Trip(BaseModel):
@@ -69,6 +100,8 @@ class Edit(BaseModel):
     status: str | None = None
     place_hint: str | None = None
     value: bool | None = None
+
+    _times = _time_field("time")
 
 
 class ErrandReq(BaseModel):

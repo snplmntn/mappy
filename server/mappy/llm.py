@@ -16,7 +16,7 @@ from .models import Edit, ErrandReq, Extraction, Trip
 from .rules import SEPARATORS
 
 EDIT_OPS = ["set_duration", "set_ready_at", "add", "remove", "order", "deadline", "status", "choose", "elevator_only"]
-MAX_ERRANDS = 5
+MAX_PARSED_ERRANDS = 8  # parse more than the planner takes, so chat can say what was left out
 FILLER = re.compile(
     r"\b(ko|ako|yung|ng|na|lang|daw|muna|mag|ma|pa|papa|ang|sa|po|i|want|to|need|gusto|kailangan|"
     r"papaayos|ipaayos|magpaayos|ipagawa|ayusin|bili|bibili|bumili|mamili|kakain|kumain)\b",
@@ -38,7 +38,7 @@ def SCHEMA(categories: list[str]) -> dict:  # noqa: N802 - reads like a constant
         "type": "object",
         "properties": {
             "i": {"enum": ["find", "plan", "edit", "locate", "other"]},
-            "e": {"type": "array", "maxItems": MAX_ERRANDS, "items": {
+            "e": {"type": "array", "maxItems": MAX_PARSED_ERRANDS, "items": {
                 "type": "object",
                 "properties": {"q": {"type": "string"}, "c": nullable({"enum": categories})},
                 "required": ["q"]}},
@@ -96,7 +96,7 @@ def from_short(d: dict, source: str = "llm") -> Extraction:
         except ValidationError:
             continue
     intent = d.get("i") if d.get("i") in ("find", "plan", "edit", "locate", "other") else "other"
-    return Extraction(intent=intent, errands=errands[:MAX_ERRANDS], edits=edits,
+    return Extraction(intent=intent, errands=errands[:MAX_PARSED_ERRANDS], edits=edits,
                       landmarks=[x for x in d.get("l") or [] if x], floor=d.get("f"), source=source)
 
 
@@ -117,7 +117,7 @@ def fallback_extract(message: str, trip: Trip) -> Extraction:
             continue
         cleaned = re.sub(r"\s+", " ", FILLER.sub(" ", raw)).strip()
         chunks.append(cleaned or raw)
-    chunks = chunks[:MAX_ERRANDS]
+    chunks = chunks[:MAX_PARSED_ERRANDS]
     intent = "plan" if len(chunks) >= 2 else "find"
     return Extraction(intent=intent, errands=[ErrandReq(query=c) for c in chunks], source="fallback")
 

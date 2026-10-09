@@ -12,8 +12,8 @@ def test_fallback_single_is_find():
     assert fallback_extract("pharmacy", Trip()).intent == "find"
 
 
-def test_fallback_caps_five():
-    assert len(fallback_extract("a1, b2, c3, d4, e5, f6, g7", Trip()).errands) == 5
+def test_fallback_keeps_all_errands_for_chat_to_cap():
+    assert len(fallback_extract("a1, b2, c3, d4, e5, f6, g7", Trip()).errands) == 7
 
 
 def test_trip_summary():

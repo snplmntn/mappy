@@ -38,6 +38,7 @@ class _Planner:
     def __init__(self, trip: Trip, start: str, now: int, router: Router, mall: Mall):
         self.trip, self.start, self.now, self.router, self.mall = trip, start, now, router, mall
         self.warnings: list[str] = []
+        self.ignore_order = False
         self.deadline = hhmm_to_min(trip.constraints.deadline) if trip.constraints.deadline else None
         self.errands: list[Errand] = []
         self.cands: dict[str, list[str]] = {}
@@ -73,7 +74,7 @@ class _Planner:
                 return False
             first.setdefault(eid, i)
             last[eid] = i
-        for rule in self.trip.constraints.order:
+        for rule in [] if self.ignore_order else self.trip.constraints.order:
             if rule.errand not in first:
                 continue
             if rule.rule == "first" and first[rule.errand] != 0:
@@ -170,7 +171,7 @@ class _Planner:
     def run(self) -> Plan:
         if not self.tokens:
             return Plan(stops=[], legs=[], total_min=0, walk_min=0, idle_min=0,
-                        finish_at=min_to_hhmm(self.now), warnings=self._deadline_warnings(self.now))
+                        finish_at=min_to_hhmm(self.now), warnings=self.warnings + self._deadline_warnings(self.now))
         k = MAX_CANDIDATES
         while k > 1 and self._n_orders() * len(self._assignments(k)) > MAX_COMBOS:
             k -= 1
@@ -178,6 +179,10 @@ class _Planner:
             best = self._greedy()
         else:
             best = self._exhaustive(k)
+            if best is None:
+                self.ignore_order = True
+                self.warnings.append("Hindi masunod ang hiniling na pagkakasunod-sunod, kaya inayos ko na lang.")
+                best = self._exhaustive(k)
         _, t_end, walk, idle, timeline = best
         return self._to_plan(timeline, t_end, walk, idle)
 

@@ -134,3 +134,15 @@ def test_five_errands_stays_fast(mall):
 def test_empty_trip(mall):
     p = plan_trip(Trip(), "GF-c1", NOW, Router(mall), mall)
     assert p.stops == [] and p.finish_at == "14:00"
+
+
+def test_conflicting_order_rules_do_not_crash(mall):
+    t = base(order=[OrderRule(errand="e2", rule="first"), OrderRule(errand="e3", rule="first")])
+    p = plan_trip(t, "GF-c1", NOW, Router(mall), mall)
+    assert len(p.stops) == 4 and p.warnings
+
+
+def test_all_unreachable_keeps_warnings(mall):
+    t = Trip(errands=[E("e1", "Ghost", "food", "no-such-place", 30)])
+    p = plan_trip(t, "GF-c1", NOW, Router(mall), mall)
+    assert p.stops == [] and any("Ghost" in w for w in p.warnings)

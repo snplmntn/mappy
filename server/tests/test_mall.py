@@ -55,3 +55,12 @@ def test_time_helpers():
     assert hhmm_to_min("16:05") == 965
     assert min_to_hhmm(965) == "16:05"
     assert min_to_hhmm(24 * 60 + 5) == "00:05"
+
+
+def test_time_fields_normalize_or_drop():
+    from mappy.models import Constraints, Edit, Errand
+
+    e = Errand(id="e1", label="x", query="x", candidates=[], duration_min=5, ready_at="3pm", dropped_at="15:30:00")
+    assert e.ready_at == "15:00" and e.dropped_at == "15:30"
+    assert Constraints(deadline="5:00 PM").deadline == "17:00"
+    assert Edit(op="deadline", time="garbage").time is None

@@ -124,7 +124,9 @@ def apply_edits(trip: Trip, edits: list[Edit], now_min: int, make_errand: MakeEr
             elif ed.op == "order" and ed.rule:
                 e = _resolve(t, ed.errand, ed.op, place_name)
                 other = _resolve(t, ed.other, ed.op, place_name).id if ed.rule in ("before", "after") else None
-                t.constraints.order = [o for o in t.constraints.order if o.errand != e.id]
+                exclusive = ed.rule in ("first", "last")
+                t.constraints.order = [o for o in t.constraints.order
+                                       if o.errand != e.id and not (exclusive and o.rule == ed.rule)]
                 t.constraints.order.append(OrderRule(errand=e.id, rule=ed.rule, other=other))
                 word = {"first": "una", "last": "huli"}.get(ed.rule, ed.rule)
                 changes.append(f"{e.label}: {word}")

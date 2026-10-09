@@ -41,7 +41,9 @@ function stopTools(stop, errand, actions) {
 function planPanel(result, latest, actions) {
   const { plan, changes = [] } = result;
   if (!plan || !plan.stops.length) {
-    return h("div", { class: "panel" }, h("div", { class: "row" }, "Wala nang natitirang stops. Tapos ka na!"));
+    const warnings = (plan?.warnings || []).map((w) => h("div", { class: "warn", role: "status" }, w));
+    const empty = warnings.length ? "Walang ma-plano sa ngayon." : "Wala nang natitirang stops. Tapos ka na!";
+    return h("div", { class: "panel" }, warnings, h("div", { class: "row" }, empty));
   }
   const errands = Object.fromEntries(state.trip.errands.map((e) => [e.id, e]));
   const changedText = changes.join(" ").toLowerCase();

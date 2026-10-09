@@ -104,3 +104,8 @@ def test_does_not_mutate_input():
     tr = trip3()
     run(tr, [Edit(op="set_duration", minutes=30)])
     assert tr.errands[0].duration_min == 45
+
+
+def test_new_first_rule_replaces_other_first_rule():
+    t, _, _ = run(trip3(), [Edit(op="order", errand="e2", rule="first"), Edit(op="order", errand="e3", rule="first")])
+    assert [(o.errand, o.rule) for o in t.constraints.order] == [("e3", "first")]

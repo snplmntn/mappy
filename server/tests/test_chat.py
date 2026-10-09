@@ -98,3 +98,16 @@ def test_route_to_place(mall, search):
 def test_start_node_defaults_to_first_anchor(mall, search):
     assert svc(mall, search).start_node(None) == "GF-c1"
     assert svc(mall, search).start_node({"node": "2F-c3"}) == "2F-c3"
+
+
+def test_fallback_six_errands_says_capped(mall, search):
+    out = run(svc(mall, search).chat("kape, kain, damit, regalo, cellphone, sapatos", AT, "14:00", Trip()))
+    assert len(out["trip"]["errands"]) <= 5 and "Hanggang 5" in out["reply"]
+
+
+def test_kain_muna_then_kape_muna_does_not_crash(mall, search):
+    s = svc(mall, search)
+    trip = Trip.model_validate(run(s.chat("phone, kain, kape, damit", AT, "14:00", Trip()))["trip"])
+    trip = Trip.model_validate(run(s.chat("kain muna", AT, "14:01", trip))["trip"])
+    out = run(s.chat("kape muna", AT, "14:02", trip))
+    assert out["result"]["type"] == "plan"
