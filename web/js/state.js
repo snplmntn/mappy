@@ -8,6 +8,11 @@ const saved = store.get(KEY, {});
 /** What this page load found in storage, for diagnosing phones that forget their spot. */
 export const savedInfo = { found: Object.keys(saved).length > 0, hadAt: Boolean(saved.at), version: saved.version || null };
 
+/** The last places list in a thread, sent back with each message so "iba pa" can page it. */
+function lastPlacesIn(messages) {
+  return [...messages].reverse().find((m) => m.result?.type === "places")?.result || null;
+}
+
 export const state = {
   mall: null,
   index: null,
@@ -17,7 +22,7 @@ export const state = {
   mode: "normal",
   busy: false,
   pending: null,
-  lastPlaces: null, // the last places list shown, sent back so "iba pa" can page it (not saved)
+  lastPlaces: lastPlacesIn(saved.messages || []), // recovered from the saved thread, so a reload keeps "iba pa" working
 };
 
 const listeners = new Set();
@@ -39,7 +44,7 @@ export function pushMessage(msg) {
 /** Saved chats, trips and spots from an older map would point at stores that no longer exist. */
 export function dropIfStale(mall) {
   if (saved.version && saved.version === mall.version) return;
-  Object.assign(state, { trip: JSON.parse(JSON.stringify(EMPTY_TRIP)), messages: [], at: saved.version ? null : state.at });
+  Object.assign(state, { trip: JSON.parse(JSON.stringify(EMPTY_TRIP)), messages: [], lastPlaces: null, at: saved.version ? null : state.at });
 }
 
 export function resetTrip() {

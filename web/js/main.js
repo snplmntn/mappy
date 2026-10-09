@@ -281,7 +281,7 @@ async function boot() {
   document.getElementById("mapBtn").addEventListener("click", () => nav.browse());
   document.getElementById("newBtn").addEventListener("click", () => {
     resetTrip();
-    update({ messages: [], mode: "normal" });
+    update({ messages: [], lastPlaces: null, mode: "normal" });
     toast("New trip");
   });
   input.addEventListener("input", autosize);
