@@ -110,12 +110,32 @@ export function renderFloor(svgEl, floorId, opts = {}) {
       g.append(s("text", { class: "m-stop-text", x: st.x, y: st.y + 1 }, st.label));
     }
   }
+  if (opts.dropped && opts.dropped.floor === floorId) {
+    const { x, y } = opts.dropped;
+    g.append(s("path", { class: "m-drop", d: `M${x} ${y}c-5-8-12-12-12-19a12 12 0 0 1 24 0c0 7-7 11-12 19z` }));
+  }
   const you = opts.you === false ? null : atNode();
   if (you && you.floor === floorId) {
     g.append(s("circle", { class: "m-you-halo", cx: you.x, cy: you.y, r: 26 }));
     g.append(s("circle", { class: "m-you", cx: you.x, cy: you.y, r: 10 }));
   }
   svgEl.replaceChildren(g);
+}
+
+function insidePolygon(points, x, y) {
+  let hit = false;
+  for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+    const [xi, yi] = points[i];
+    const [xj, yj] = points[j];
+    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) hit = !hit;
+  }
+  return hit;
+}
+
+function insidePlace(p, x, y) {
+  if (p.shape) return insidePolygon(p.shape, x, y);
+  const [rx, ry, w, hh] = p.rect;
+  return x >= rx && x <= rx + w && y >= ry && y <= ry + hh;
 }
 
 export function bbox(points, pad = 60, minSize = 240) {
@@ -197,7 +217,7 @@ function buildSteps(legs, stops) {
 
 /** Full-screen navigation: route steps, floor switcher, pan/zoom, browse and pick modes. */
 export class Navigator {
-  constructor({ onClose, onDirections }) {
+  constructor({ onClose, onDirections, onSetLocation }) {
     this.view = document.getElementById("navView");
     this.chat = document.getElementById("chatView");
     this.svg = document.getElementById("mapSvg");
@@ -206,6 +226,7 @@ export class Navigator {
     this.sheet = document.getElementById("navSheet");
     this.onClose = onClose;
     this.onDirections = onDirections;
+    this.onSetLocation = onSetLocation;
     this.camera = { x: 0, y: 0, w: 1000, h: 800 };
     this.pointers = new Map();
     this.reset("browse");
@@ -213,7 +234,7 @@ export class Navigator {
   }
 
   reset(mode) {
-    Object.assign(this, { mode, steps: [], legs: [], stops: [], step: 0, preview: null, selected: null, summary: null });
+    Object.assign(this, { mode, steps: [], legs: [], stops: [], step: 0, preview: null, selected: null, dropped: null, summary: null });
   }
 
   /** opts: {legs, stops:[{floor,x,y,label,name,reason,dest}], summary:{finish}} */
@@ -281,6 +302,7 @@ export class Navigator {
       focus: step && !this.preview ? step.focus : null,
       focusLabel: step ? step.focusLabel : null,
       hit: this.selected,
+      dropped: this.dropped,
     });
     this.applyCamera();
     this.drawTop(step);
@@ -300,7 +322,7 @@ export class Navigator {
       secondary = floors[this.shownFloor()].name;
     } else if (this.mode === "browse" || !step) {
       primary = floors[this.shownFloor()].name;
-      secondary = "Tap a store for directions";
+      secondary = "Tap a store for directions, or tap where you are";
     } else if (this.preview) {
       primary = floors[this.preview].name;
       secondary = "Previewing another floor";
@@ -336,11 +358,19 @@ export class Navigator {
     }
     if (this.mode === "browse" || !step) {
       const p = this.selected && state.index.places[this.selected];
+      const imHere = (nodeId) => h("button", {
+        class: "round", type: "button", "aria-label": "Set as my location", title: "I'm here",
+        onclick: () => { this.onSetLocation(nodeId); this.selected = null; this.dropped = null; this.draw(); },
+      }, icon("locate"));
       if (p) {
         row(h("div", { class: "eta" }, h("b", {}, p.name), h("div", {}, `${CATEGORY_NAMES[p.category] || p.category} · ${state.index.floors[p.floor].name}`)),
-          h("button", { class: "next", type: "button", onclick: () => this.onDirections(p.id) }, "Directions"));
+          imHere(p.node),
+          h("button", { class: "next", type: "button", onclick: (e) => { e.currentTarget.classList.add("loading"); this.onDirections(p.id); } }, "Directions"));
+      } else if (this.dropped) {
+        row(h("div", { class: "eta" }, h("b", {}, "Dropped pin"), h("div", {}, `${state.index.floors[this.dropped.floor].name} · tap the button to set your location`)),
+          h("button", { class: "next", type: "button", onclick: () => { this.onSetLocation(this.dropped.id); this.dropped = null; this.draw(); } }, "I'm here"));
       } else {
-        row(h("div", { class: "eta" }, h("b", {}, state.mall.mall.name), h("div", {}, "Tap a store to see directions")));
+        row(h("div", { class: "eta" }, h("b", {}, state.mall.mall.name), h("div", {}, "Tap a store, or tap where you are")));
       }
       return;
     }
@@ -521,9 +551,18 @@ export class Navigator {
       return;
     }
     if (this.mode !== "browse") return;
-    const hit = state.mall.places.find((p) => p.floor === floorId && x >= p.rect[0] && x <= p.rect[0] + p.rect[2]
-      && y >= p.rect[1] && y <= p.rect[1] + p.rect[3]);
+    const hit = state.mall.places.find((p) => p.floor === floorId && insidePlace(p, x, y));
     this.selected = hit ? hit.id : null;
+    this.dropped = null;
+    if (!hit) {
+      let best = null;
+      for (const n of state.mall.nodes) {
+        if (n.floor !== floorId) continue;
+        const d = Math.hypot(n.x - x, n.y - y);
+        if (!best || d < best.d) best = { ...n, d };
+      }
+      if (best && best.d < 80) this.dropped = best;
+    }
     this.draw();
   }
 }

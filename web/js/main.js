@@ -16,16 +16,32 @@ function botError(err) {
   pushMessage({ role: "bot", text: err instanceof OfflineError ? OFFLINE : SERVER_ERROR });
 }
 
-async function withBusy(fn) {
+/** Run an async action while the control that started it shows a spinner (state.pending = its key). */
+async function withBusy(fn, pending = "send") {
   if (state.busy) return;
-  update({ busy: true });
+  update({ busy: true, pending });
   try {
     await fn();
   } catch (err) {
     botError(err);
   } finally {
-    update({ busy: false });
+    update({ busy: false, pending: null });
   }
+}
+
+let toastTimer;
+function toast(text) {
+  let el = document.getElementById("toast");
+  if (!el) {
+    el = h("div", { id: "toast", class: "toast", role: "status", "aria-live": "polite" });
+    document.body.append(el);
+  }
+  el.textContent = text;
+  el.hidden = false;
+  el.animate([{ opacity: 0, transform: "translate(-50%, 8px)" }, { opacity: 1, transform: "translate(-50%, 0)" }], { duration: 180, easing: "ease-out" });
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.hidden = true; }, 2200);
+  if (navigator.vibrate) navigator.vibrate(10);
 }
 
 const actions = {
@@ -47,7 +63,7 @@ const actions = {
     input.focus();
   },
 
-  applyEdits(edits) {
+  applyEdits(edits, pending = "edit") {
     return withBusy(async () => {
       const res = await post("/api/plan", { at: state.at, now: nowHHMM(), trip: state.trip, edits });
       if (res.question) {
@@ -56,26 +72,26 @@ const actions = {
       }
       update({ trip: res.trip });
       pushMessage({ role: "bot", text: "Updated your plan.", result: { type: "plan", plan: res.plan, changes: res.changes } });
-    });
+    }, pending);
   },
 
   navigateToPlace(placeId) {
     const p = state.index.places[placeId];
-    return this.navigate({ place: placeId }, { ...placePoint(placeId), label: "", name: p.name, dest: true });
+    return this.navigate({ place: placeId }, { ...placePoint(placeId), label: "", name: p.name, dest: true }, `nav:${placeId}`);
   },
 
   navigateToNode(nodeId) {
     update({ mode: "normal" });
-    return this.navigate({ node: nodeId }, { ...nodePoint(nodeId), label: "", name: "your friend", dest: true });
+    return this.navigate({ node: nodeId }, { ...nodePoint(nodeId), label: "", name: "your friend", dest: true }, `node:${nodeId}`);
   },
 
-  navigate(to, stop) {
+  navigate(to, stop, pending) {
     return withBusy(async () => {
       const res = await post("/api/route", { at: state.at, to, elevator_only: state.trip.constraints.elevator_only });
       if (res.walk_min === null) pushMessage({ role: "bot", text: "I can't find a way there from where you are." });
       else if (!res.legs.length) pushMessage({ role: "bot", text: "You're already there." });
       else nav.route({ legs: res.legs, stops: [stop] });
-    });
+    }, pending);
   },
 
   startPlan(plan) {
@@ -86,9 +102,10 @@ const actions = {
     nav.route({ legs: plan.legs, stops, summary: { finish: plan.finish_at } });
   },
 
-  setAt(at) {
+  setAt(at, { quiet = false } = {}) {
     update({ at, mode: "normal" });
-    pushMessage({ role: "bot", text: `Got it. You're at ${atLabel()}.` });
+    toast(`Location set: ${atLabel()}`);
+    if (!quiet) pushMessage({ role: "bot", text: `Got it. You're at ${atLabel()}.` });
   },
 
   relocate(text, floor) {
@@ -96,14 +113,16 @@ const actions = {
       const res = await post("/api/locate", { text, floor });
       const msg = res.candidates.length ? `On the ${state.index.floors[floor].name}:` : `I couldn't find that on the ${state.index.floors[floor].name}.`;
       pushMessage({ role: "bot", text: msg, result: { type: "locate", ...res }, query: text });
-    });
+    }, `floor:${floor}`);
   },
 };
 
 function autosize() {
   input.style.height = "auto";
   input.style.height = `${Math.min(input.scrollHeight, 120)}px`;
-  sendBtn.disabled = !input.value.trim() || state.busy;
+  const sending = state.busy && state.pending === "send";
+  sendBtn.classList.toggle("loading", sending);
+  sendBtn.disabled = sending || !input.value.trim() || state.busy;
 }
 
 function closeModal() {
@@ -162,12 +181,17 @@ async function boot() {
   if (state.at && !atNode()) update({ at: null });
   readAtParam();
   document.getElementById("fineprint").textContent = state.mall.mall.note || "";
-  nav = new Navigator({ onClose: render, onDirections: (pid) => actions.navigateToPlace(pid) });
+  nav = new Navigator({
+    onClose: render,
+    onDirections: (pid) => actions.navigateToPlace(pid),
+    onSetLocation: (nodeId) => actions.setAt({ node: nodeId }, { quiet: true }),
+  });
   document.getElementById("placePill").addEventListener("click", openLocation);
   document.getElementById("mapBtn").addEventListener("click", () => nav.browse());
   document.getElementById("newBtn").addEventListener("click", () => {
     resetTrip();
     update({ messages: [], mode: "normal" });
+    toast("New trip");
   });
   input.addEventListener("input", autosize);
   input.addEventListener("keydown", (e) => {
@@ -184,6 +208,7 @@ async function boot() {
   });
   subscribe(render);
   render();
+  document.getElementById("thread").dataset.ok = "1";
   if (!state.at) openLocation();
 }
 

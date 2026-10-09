@@ -14,6 +14,7 @@ export const state = {
   messages: saved.messages || [],
   mode: "normal",
   busy: false,
+  pending: null,
 };
 
 const listeners = new Set();
@@ -53,7 +54,18 @@ export function atLabel() {
   const { at, index } = state;
   if (!at || !index) return "Set your location";
   if (at.anchor && index.anchors[at.anchor]) return index.anchors[at.anchor].label;
-  if (at.node && index.nodes[at.node]) return `${index.floors[index.nodes[at.node].floor].name}, pinned spot`;
+  if (at.node && index.nodes[at.node]) {
+    const n = index.nodes[at.node];
+    let best = null;
+    for (const p of Object.values(index.places)) {
+      const door = index.nodes[p.node];
+      if (!door || door.floor !== n.floor) continue;
+      const d = Math.hypot(door.x - n.x, door.y - n.y);
+      if (!best || d < best.d) best = { name: p.name, d };
+    }
+    const floor = index.floors[n.floor].name;
+    return best ? `${floor}, near ${best.name}` : floor;
+  }
   return "Set your location";
 }
 

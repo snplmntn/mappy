@@ -47,6 +47,15 @@ class LocateReq(BaseModel):
     floor: str | None = None
 
 
+class RevalidatingStaticFiles(StaticFiles):
+    """Phones must never run a stale mix of old and new app files, so every load revalidates (cheap via ETag)."""
+
+    def file_response(self, *args, **kwargs):
+        response = super().file_response(*args, **kwargs)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
 def _qr_svg(data: str, scale: int = 6) -> str:
     return segno.make(data, error="m").svg_inline(scale=scale, border=2, dark="#10213f")
 
@@ -115,5 +124,5 @@ def create_app(settings: Settings | None = None, embedder=None, llm=None) -> Fas
 <h2>Location codes</h2><div class="grid">{cards}</div></body></html>"""
 
     if settings.web_dir.exists():
-        app.mount("/", StaticFiles(directory=settings.web_dir, html=True), name="web")
+        app.mount("/", RevalidatingStaticFiles(directory=settings.web_dir, html=True), name="web")
     return app

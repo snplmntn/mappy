@@ -3,11 +3,14 @@ import { state } from "./state.js";
 import { icon } from "./icons.js";
 import { CATEGORY_NAMES, miniMap, nodePoint } from "./map.js";
 
+/** Class list for a control, adding the spinner when its action is running. */
+const busyClass = (base, key) => (state.busy && state.pending === key ? `${base} loading` : base);
+
 const DURATIONS = [15, 30, 45, 60, 90];
 
 function placesCard(result, actions) {
   return h("div", { class: "card" }, result.places.map((p) =>
-    h("button", { class: "row", type: "button", onclick: () => actions.navigateToPlace(p.id) },
+    h("button", { class: busyClass("row", `nav:${p.id}`), type: "button", onclick: () => actions.navigateToPlace(p.id) },
       h("div", { class: "row-main" },
         h("div", { class: "row-title" }, p.name, p.fictional ? h("span", { class: "tag" }, "demo") : null),
         h("div", { class: "row-sub" }, [CATEGORY_NAMES[p.category] || p.category, p.floor_name, p.walk_min ? `${p.walk_min} min walk` : null]
@@ -18,14 +21,18 @@ function placesCard(result, actions) {
 function durationControl(errand, actions) {
   const wrap = h("div", { class: "stop-actions" });
   const collapsed = () => {
-    wrap.replaceChildren(h("button", { class: "pill", type: "button", onclick: expanded }, `${errand.duration_min} min`));
+    wrap.replaceChildren(h("button", { class: busyClass("pill", `dur:${errand.id}`), type: "button", onclick: expanded }, `${errand.duration_min} min`));
     return wrap;
   };
   const expanded = () => {
     const options = DURATIONS.includes(errand.duration_min) ? DURATIONS : [...DURATIONS, errand.duration_min].sort((a, b) => a - b);
     wrap.replaceChildren(...options.map((m) => h("button", {
       class: "pill", type: "button", "aria-pressed": m === errand.duration_min ? "true" : "false",
-      onclick: () => (m === errand.duration_min ? collapsed() : actions.applyEdits([{ op: "set_duration", errand: errand.id, minutes: m }])),
+      onclick: (e) => {
+        if (m === errand.duration_min) return collapsed();
+        e.currentTarget.classList.add("loading");
+        return actions.applyEdits([{ op: "set_duration", errand: errand.id, minutes: m }], `dur:${errand.id}`);
+      },
     }, `${m} min`)));
   };
   return collapsed();
@@ -47,7 +54,10 @@ function planCard(result, latest, actions) {
     if (latest && errand) {
       const status = stop.kind === "drop" ? ["dropped", "Dropped off"] : stop.kind === "pick" ? ["done", "Picked up"] : ["done", "Done"];
       const controls = stop.kind === "pick" ? h("div", { class: "stop-actions" }) : durationControl(errand, actions);
-      controls.append(h("button", { class: "pill", type: "button", onclick: () => actions.applyEdits([{ op: "status", errand: errand.id, status: status[0] }]) }, status[1]));
+      controls.append(h("button", {
+        class: busyClass("pill", `status:${errand.id}`), type: "button",
+        onclick: () => actions.applyEdits([{ op: "status", errand: errand.id, status: status[0] }], `status:${errand.id}`),
+      }, status[1]));
       extra.push(controls);
     }
     return h("li", { class: `stop ${stop.kind}` },
@@ -63,7 +73,8 @@ function planCard(result, latest, actions) {
   if (latest) {
     const elevator = h("input", {
       class: "switch", type: "checkbox", role: "switch", checked: state.trip.constraints.elevator_only,
-      "aria-label": "Elevators only", onchange: (e) => actions.applyEdits([{ op: "elevator_only", value: e.target.checked }]),
+      "aria-label": "Elevators only", disabled: state.busy,
+      onchange: (e) => actions.applyEdits([{ op: "elevator_only", value: e.target.checked }], "elevator"),
     });
     children.push(h("div", { class: "card-foot" },
       h("label", { class: "switch-row" }, h("span", {}, "Elevators only"), elevator),
@@ -79,14 +90,14 @@ function locateCard(result, latest, actions, text) {
   if (latest) {
     const near = (c) => c.matched.map((pid) => state.index.places[pid]?.name).filter(Boolean).join(", ");
     children.push(h("div", {}, spots.map((sp) =>
-      h("button", { class: "row", type: "button", onclick: () => (friend ? actions.navigateToNode(sp.cand.node) : actions.setAt({ node: sp.cand.node })) },
+      h("button", { class: busyClass("row", `node:${sp.cand.node}`), type: "button", onclick: () => (friend ? actions.navigateToNode(sp.cand.node) : actions.setAt({ node: sp.cand.node })) },
         h("div", { class: "row-main" },
           h("div", { class: "row-title" }, `Spot ${sp.label}`),
           h("div", { class: "row-sub" }, [state.index.floors[sp.floor].name, near(sp.cand) ? `near ${near(sp.cand)}` : null].filter(Boolean).join(" · "))),
         h("span", { class: "row-sub" }, friend ? "Navigate" : "I'm here")))));
     if (result.ask === "floor") {
       children.push(h("div", { class: "stop-actions", style: "padding:0 16px 14px" },
-        state.index.floorOrder.map((fid) => h("button", { class: "pill", type: "button", onclick: () => actions.relocate(text, fid) }, fid))));
+        state.index.floorOrder.map((fid) => h("button", { class: busyClass("pill", `floor:${fid}`), type: "button", onclick: () => actions.relocate(text, fid) }, fid))));
     }
   }
   return h("div", { class: `card${latest ? "" : " stale"}` }, children);

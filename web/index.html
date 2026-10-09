@@ -21,7 +21,7 @@
     </header>
     <main id="thread" class="thread"></main>
     <footer class="composer-wrap">
-      <form id="composer" class="composer" autocomplete="off">
+      <form id="composer" class="composer" autocomplete="off" onsubmit="event.preventDefault()">
         <textarea id="input" rows="1" maxlength="500" placeholder="Ask Mappy" aria-label="Message"></textarea>
         <button id="send" class="send" type="submit" aria-label="Send" disabled></button>
       </form>
@@ -37,6 +37,12 @@
   </section>
 
   <div id="modal" class="modal" hidden role="dialog" aria-modal="true"></div>
+  <script>
+    window.addEventListener("error", function () {
+      var t = document.getElementById("thread");
+      if (t && !t.dataset.ok) t.innerHTML = '<div class="empty"><h1>Mappy did not load</h1><p>Pull down to refresh the page.</p></div>';
+    });
+  </script>
   <script type="module" src="/js/main.js"></script>
 </body>
 </html>
