@@ -53,7 +53,8 @@ The map is a **reconstruction**: real store names (from public listings) on a la
 | Low-end Android (2–3 GB RAM, Android Go class) | Under 150 KB of gzipped JS, no map library, SVG drawn from data, one floor at a time, system fonts |
 | Spare Android phone as access point, mobile data OFF | Up to ~10 clients. **The subnet may change per hotspot session**, so the QR is generated at server start (see §8) |
 | Android routes around "no internet" Wi-Fi via mobile data | Users must enable **airplane mode, then Wi-Fi**. The join card says so. It is also the demo's offline proof. |
-| One machine serves up to ~10 phones | LLM calls have a 6 s timeout with a deterministic fallback; embeddings are precomputed; the model stays loaded |
+| **Demo machine: laptop, Intel i3 12th gen, 8 GB RAM, no GPU** | Everything runs on CPU: one LLM (Qwen3-1.7B Q4_K_M, ~1.4 GB RAM) + in-process embeddings (~120 MB). Total app RAM about 2 GB, so the whole machine fits in about 5.5 GB of 8. Dev machines emulate it (CPU only, 4 threads). |
+| One machine serves up to ~10 phones | Rules handle simple messages without the LLM; the LLM processes one request at a time with an 8 s timeout and a deterministic fallback; the system prompt is cached; embeddings are precomputed; the model stays loaded |
 | 3 builders, ~16 h | Two frozen contracts: `mall.json` and the HTTP API. No one blocks anyone else. |
 
 ---
@@ -66,18 +67,30 @@ The map is a **reconstruction**: real store names (from public listings) on a la
  | web/  chat + SVG map  | -------> | server/  FastAPI (Python 3.12)         |
  | (static, <150KB gz)   | <------- |  |- mall      load + validate + graph  |
  +-----------------------+   JSON   |  |- router    Dijkstra, all-pairs      |
-                                    |  |- search    embeddings + fuzzy       |
+                                    |  |- search    e5-small ONNX (in-proc)  |
                                     |  |- planner   wait-aware ordering      |
                                     |  |- locator   landmark matching        |
-                                    |  |- ai        OpenAI-compatible client |
+                                    |  |- ai        rules + LLM client       |
                                     |  '- api       routes, QR, static       |
                                     +-------------------+--------------------+
                                                         | localhost
                                     +-------------------v--------------------+
-                                    | LM Studio / llama.cpp (Vulkan, RX 6600) |
-                                    |  or Ollama: chat model + embed model    |
+                                    | llama-server (llama.cpp, CPU build)    |
+                                    |  Qwen3-1.7B Q4_K_M, ctx 2048, 1 slot   |
                                     +----------------------------------------+
 ```
+
+### Models and downloads (verified Oct 9)
+
+| Role | File | Size | Source | License |
+|---|---|---|---|---|
+| LLM | `Qwen3-1.7B-Q4_K_M.gguf` | 1.11 GB | huggingface.co/unsloth/Qwen3-1.7B-GGUF | Apache 2.0 |
+| Embeddings | `onnx/model.onnx` + `onnx/tokenizer.json`, quantized locally to int8 for AVX2 (~120 MB) | 470 MB download | huggingface.co/intfloat/multilingual-e5-small | MIT |
+| Runtime | `llama-<build>-bin-win-cpu-x64.zip`, one pinned build | < 100 MB | github.com/ggml-org/llama.cpp/releases | MIT |
+
+- The shipped `model_qint8_avx512_vnni.onnx` is **not** used, because 12th-gen i3 parts have no AVX-512.
+- `tools/setup.ps1` downloads everything into `models/` (gitignored), verifies SHA-256 hashes, quantizes the embedding model and writes `.env`.
+- Disk needed: ~2.5 GB (keep 5 GB free). **Run setup on home internet**; the demo network has none.
 
 The phone runs no AI. The edge box runs all of it. The phone downloads `mall.json` once and draws the map itself.
 
@@ -218,9 +231,15 @@ type Candidate = { node: string, floor: string, x: number, y: number, score: num
 ## 6. Server components
 
 ### 6.1 `ai`: local models
-- One OpenAI-compatible client (`LLM_BASE_URL`, `LLM_MODEL`, `EMBED_MODEL`), so LM Studio, llama.cpp-server and Ollama are interchangeable.
-- **Chat model:** qwen2.5-3b-instruct (Q4) by default. Try 7B on the RX 6600 XT. Pick in the smoke test using 10 Taglish prompts.
-- **Embedding model:** bge-m3 (multilingual, so the Taglish fallback still works). Place vectors are precomputed at startup and cached to disk, keyed by the hash of `mall.json`.
+- **Rules first.** Before any LLM call, a rule layer handles quick chips, single-intent searches ("phone repair", "CR"), and common steering phrases: durations (`30 min`, `1 oras`, `isang oras`), `wag na X`, `X muna`, `ready by 4`, `aalis ako ng 6`. If the rules fully resolve the message, the LLM is never called (target: under 300 ms on the i3). The LLM handles multi-errand sentences, landmark descriptions, and anything the rules can't resolve.
+- **LLM:** Qwen3-1.7B Q4_K_M served by `llama-server` on localhost (`LLM_BASE_URL`), CPU build.
+  - Settings: thinking disabled; `--ctx-size 2048`; 1 parallel slot; `--threads` = number of physical cores; model kept loaded.
+  - The system prompt (instructions + 4 short few-shot examples) is a **fixed prefix** so llama.cpp's prompt cache reuses it. Only the trip summary and the message are processed per request.
+  - Output is constrained by a JSON schema (llama.cpp grammar) with short keys, so a small model can't emit invalid JSON and generates fewer tokens.
+  - When the slot is busy, a request does **not** queue. It goes straight to the fallback.
+  - Identical messages are cached in memory (LRU), which covers repeated demo-script lines.
+- **Embeddings:** multilingual-e5-small, int8 ONNX, run **in-process** with onnxruntime. Place vectors are precomputed at startup and cached to disk, keyed by the hash of `mall.json`. A query embedding takes about 20–50 ms on CPU.
+- **Model choice is backed by the eval set** (`server/eval/taglish.jsonl`, about 50 messages each with its expected JSON). `tools/eval.py` reports accuracy and median/p95 latency under the i3 emulation. The pitch quotes only these measured numbers.
 - **One extraction call per message**, with a JSON-schema-constrained output. When a trip exists, the prompt includes a compact list of its errands (`e1: Phone screen repair, FixIt Mobile 4F, 45 min, async, todo`) so the model can refer to them by id:
   ```json
   { "intent": "find|plan|edit|locate|other",
@@ -239,7 +258,7 @@ type Candidate = { node: string, floor: string, x: number, y: number, score: num
     "landmarks": [ "Jollibee", "H&M" ],
     "floor_hint": "4F" }
   ```
-- **Timeout 6 s, then fallback:** split the message on `, / and / at / tapos / then / saka`, embed each chunk, and set intent to `plan` if there are 2 or more chunks, else `find`. For steering, the fallback catches durations with a regex (`30 min`, `1 oras`, `1 hr`) and applies them to the only async errand. If there are several, it asks which. The demo never hangs.
+- **Timeout 8 s (or slot busy), then fallback:** split the message on `, / and / at / tapos / then / saka`, embed each chunk, and set intent to `plan` if there are 2 or more chunks, else `find`. For steering, the fallback catches durations with a regex (`30 min`, `1 oras`, `1 hr`) and applies them to the only async errand. If there are several, it asks which. The demo never hangs.
 
 ### 6.1b `trip`: applying edits (pure, unit-tested)
 `apply_edits(trip, edits, now) -> (trip, changes[], question?)`. Deterministic, never calls a model.
@@ -334,7 +353,7 @@ Chat first, map as result. Matches the kiosk look.
 
 | | **A: Sean (engine + AI + server)** | **B: UI/UX** | **C: data + submission** |
 |---|---|---|---|
-| 5:00-6:00 | Smoke test (hotspot, firewall, model on GPU), scaffold, `data/sample/mall.json` | Read contracts, set up `web/`, mock API | Store list CSV from public listings: name, floor, category |
+| 5:00-6:00 | Smoke test (hotspot, firewall, model on CPU at 4 threads), setup.ps1, scaffold, `data/sample/mall.json` | Read contracts, set up `web/`, mock API | Store list CSV from public listings: name, floor, category |
 | 6:00-9:00 | mall loader + validation, router, planner + unit tests | **Map editor** (outline, nodes, edges, connectors, place rects, anchors; exports `mall.json`) | Category/service table; floor plan of zones (section 10) |
 | 9:00-12:00 | ai extraction + fallback, trip edits, search, `/chat` orchestration | Phone UI: chat, cards, map, floor strip | Lay out all floors in the editor |
 | 12:00-2:00 | locator, `/print`, integrate the real map | Map steps + transfer cards; cheap-phone perf pass | Anchors; fix data issues found by validation |
@@ -369,9 +388,9 @@ Beacons/Wi-Fi fingerprinting, live position tracking, voice, camera/photo input,
 |---|---|
 | Phones can't reach the laptop | Firewall rule + airplane-mode instruction; tested in the first hour |
 | Hotspot subnet changes, so printed QRs break | Server-generated QR; on-screen anchors if the subnet is unstable |
-| GPU not used by the runtime on the RX 6600 XT | LM Studio/llama.cpp Vulkan; CPU 3B as fallback |
-| The demo machine isn't the desktop | Decide tonight; the 3B CPU path + 6 s fallback keeps it usable |
-| LLM emits bad JSON or is slow | Schema-constrained output, 6 s timeout, deterministic fallback |
+| The i3 laptop is slower than the emulation | Rules-first path, prompt cache, 8 s fallback; run the eval once on the real laptop tonight; keep it plugged in on the Best performance power mode |
+| 8 GB of RAM runs out | The app uses about 2 GB; close other apps; Chrome holds only the print page |
+| LLM emits bad JSON or is slow | Grammar-constrained output, 8 s timeout, deterministic fallback |
 | Map data late | Engine developed on `data/sample`; validation errors are explicit |
 | Low-end phone janks | 150 KB budget, one floor at a time, throttle testing |
 | A judge asks "isn't this just a server?" | Edge-box framing + live no-internet demo |
@@ -385,8 +404,8 @@ Unit tests (pytest) for pure logic only:
 - locator: disambiguating with two landmarks No integration tests and no UI tests.
 
 ## 14. Disclosures (for submission)
-- **Models:** chat and embedding models as finally chosen.
-- **Runtime:** LM Studio / llama.cpp / Ollama.
+- **Models:** Qwen3-1.7B (Unsloth Q4_K_M GGUF, Apache 2.0); intfloat/multilingual-e5-small (MIT), quantized by us.
+- **Runtime:** llama.cpp (llama-server, CPU build), onnxruntime.
 - **Frameworks:** FastAPI etc.
 - **Map data:** OpenStreetMap building outlines (c OpenStreetMap contributors, ODbL); store names from public listings.
 - **Layout:** our own reconstruction.
