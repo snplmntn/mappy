@@ -1,0 +1,7 @@
+pyproject.toml
+server/mappy/__init__.py
+server/mappy.egg-info/PKG-INFO
+server/mappy.egg-info/SOURCES.txt
+server/mappy.egg-info/dependency_links.txt
+server/mappy.egg-info/requires.txt
+server/mappy.egg-info/top_level.txt

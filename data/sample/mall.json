@@ -1,0 +1,56 @@
+{
+  "mall": {"id": "sample", "name": "Sample Mall", "note": "test fixture"},
+  "floors": [
+    {"id": "GF", "name": "Ground Floor", "level": 0, "width": 1000, "height": 600, "scale_m_per_px": 0.1, "outline": [[50,150],[950,150],[950,450],[50,450]]},
+    {"id": "2F", "name": "2nd Floor", "level": 1, "width": 1000, "height": 600, "scale_m_per_px": 0.1, "outline": [[50,150],[950,150],[950,450],[50,450]]},
+    {"id": "AX", "name": "Annex", "level": 0, "width": 1000, "height": 600, "scale_m_per_px": 0.1, "outline": [[50,150],[950,150],[950,450],[50,450]]}
+  ],
+  "nodes": [
+    {"id":"GF-c1","floor":"GF","x":100,"y":300},{"id":"GF-c2","floor":"GF","x":300,"y":300},
+    {"id":"GF-c3","floor":"GF","x":500,"y":300},{"id":"GF-c4","floor":"GF","x":700,"y":300},
+    {"id":"GF-c5","floor":"GF","x":900,"y":300},{"id":"GF-esc-a","floor":"GF","x":300,"y":350},
+    {"id":"GF-esc-b","floor":"GF","x":700,"y":350},{"id":"GF-el","floor":"GF","x":500,"y":350},
+    {"id":"GF-br","floor":"GF","x":900,"y":250},
+    {"id":"2F-c1","floor":"2F","x":100,"y":300},{"id":"2F-c2","floor":"2F","x":300,"y":300},
+    {"id":"2F-c3","floor":"2F","x":500,"y":300},{"id":"2F-c4","floor":"2F","x":700,"y":300},
+    {"id":"2F-c5","floor":"2F","x":900,"y":300},{"id":"2F-esc-a","floor":"2F","x":300,"y":350},
+    {"id":"2F-esc-b","floor":"2F","x":700,"y":350},{"id":"2F-el","floor":"2F","x":500,"y":350},
+    {"id":"AX-br","floor":"AX","x":100,"y":300},{"id":"AX-c1","floor":"AX","x":300,"y":300},
+    {"id":"AX-c2","floor":"AX","x":600,"y":300}
+  ],
+  "edges": [
+    ["GF-c1","GF-c2"],["GF-c2","GF-c3"],["GF-c3","GF-c4"],["GF-c4","GF-c5"],
+    ["GF-c2","GF-esc-a"],["GF-c4","GF-esc-b"],["GF-c3","GF-el"],["GF-c5","GF-br"],
+    ["2F-c1","2F-c2"],["2F-c2","2F-c3"],["2F-c3","2F-c4"],["2F-c4","2F-c5"],
+    ["2F-c2","2F-esc-a"],["2F-c4","2F-esc-b"],["2F-c3","2F-el"],
+    ["AX-br","AX-c1"],["AX-c1","AX-c2"]
+  ],
+  "connectors": [
+    {"id":"esc-a-up","name":"Escalator A","kind":"escalator","direction":"up","stops":["GF-esc-a","2F-esc-a"]},
+    {"id":"esc-b-down","name":"Escalator B","kind":"escalator","direction":"down","stops":["2F-esc-b","GF-esc-b"]},
+    {"id":"elev-1","name":"Elevator 1","kind":"elevator","direction":"both","stops":["GF-el","2F-el"]},
+    {"id":"bridge-ax","name":"Annex Bridge","kind":"bridge","direction":"both","stops":["GF-br","AX-br"],"seconds":480}
+  ],
+  "places": [
+    {"id":"cr-gf","name":"Restroom","floor":"GF","rect":[80,180,40,40],"node":"GF-c1","category":"restroom","tags":["cr","banyo","toilet"]},
+    {"id":"starbucks-gf","name":"Starbucks","floor":"GF","rect":[280,180,40,40],"node":"GF-c2","category":"cafe","tags":["coffee","kape"]},
+    {"id":"jollibee-gf","name":"Jollibee","floor":"GF","rect":[480,180,40,40],"node":"GF-c3","category":"food","tags":["kain","chickenjoy","meal"]},
+    {"id":"hm-gf","name":"H&M","floor":"GF","rect":[680,180,40,40],"node":"GF-c4","category":"clothing","tags":["damit","clothes","shirt"]},
+    {"id":"kultura-gf","name":"Kultura","floor":"GF","rect":[680,380,40,40],"node":"GF-c4","category":"gift","tags":["regalo","pasalubong","souvenir"]},
+    {"id":"starbucks-2f","name":"Starbucks","floor":"2F","rect":[680,180,40,40],"node":"2F-c4","category":"cafe","tags":["coffee","kape"]},
+    {"id":"techno-2f","name":"Techno","floor":"2F","rect":[280,180,40,40],"node":"2F-c2","category":"electronics","tags":["cellphone","gadget"]},
+    {"id":"foodcourt-2f","name":"Food Court","floor":"2F","rect":[480,180,40,40],"node":"2F-c3","category":"food","tags":["kain","meal","ramen"]},
+    {"id":"bos-ax","name":"BOS Shoe Repair","floor":"AX","rect":[280,180,40,40],"node":"AX-c1","category":"shoe_repair","tags":["sapatos","shoes","bag"]},
+    {"id":"fixit-ax","name":"FixIt Mobile","floor":"AX","rect":[580,180,40,40],"node":"AX-c2","category":"phone_repair","tags":["phone","screen","battery","cellphone"],"fictional":true}
+  ],
+  "category_defaults": {
+    "phone_repair":{"duration_min":45,"async":true},"shoe_repair":{"duration_min":30,"async":true},
+    "food":{"duration_min":30,"async":false},"cafe":{"duration_min":20,"async":false},
+    "clothing":{"duration_min":25,"async":false},"gift":{"duration_min":15,"async":false},
+    "electronics":{"duration_min":20,"async":false},"restroom":{"duration_min":5,"async":false}
+  },
+  "anchors": [
+    {"id":"gf-entrance","label":"GF · Main Entrance","floor":"GF","node":"GF-c1","heading_deg":90},
+    {"id":"2f-esc-a","label":"2F · Escalator A","floor":"2F","node":"2F-esc-a","heading_deg":0}
+  ]
+}
