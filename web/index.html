@@ -3,14 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
-  <meta name="theme-color" content="#f7f4e9" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#242424" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#212121" media="(prefers-color-scheme: dark)">
+  <script src="/js/theme.js"></script>
   <title>Mappy</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="/css/app.css">
-  <link rel="stylesheet" href="/css/neobrutal.css">
+  <link rel="stylesheet" href="/css/minimal.css">
 </head>
-<body>
+<body class="minimal-app">
   <section id="chatView" class="view">
     <header class="topbar">
       <a class="brand" href="/" aria-label="Mappy home"><span class="brand-symbol" aria-hidden="true">m</span><span>mappy<span class="brand-period">.</span></span></a>
@@ -20,7 +21,9 @@
         <span id="placeText" class="place-text">Set your location</span>
       </button>
       <button id="mapBtn" class="icon-btn" type="button" aria-label="Open map"></button>
+      <a class="qr-link" href="/print" aria-label="Open QR codes">QR codes</a>
       <button id="newBtn" class="icon-btn" type="button" aria-label="New trip"></button>
+      <button class="theme-toggle" data-theme-toggle type="button" aria-label="Switch color theme"></button>
     </header>
     <main id="thread" class="thread" aria-label="Trip assistant"></main>
     <footer class="composer-wrap">

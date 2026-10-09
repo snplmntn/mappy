@@ -341,7 +341,7 @@ export class Navigator {
       secondary = floors[this.shownFloor()].name;
     } else if (this.mode === "browse" || !step) {
       primary = floors[this.shownFloor()].name;
-      secondary = "Tap a store for directions, or tap where you are";
+      secondary = "Tap a store to get directions";
     } else if (this.preview) {
       primary = floors[this.preview].name;
       secondary = "Previewing another floor";
@@ -369,8 +369,12 @@ export class Navigator {
   }
 
   drawSheet(step) {
-    const closeBtn = h("button", { class: "round", type: "button", "aria-label": "Close map", onclick: () => this.close() }, icon("close"));
-    const row = (...children) => this.sheet.replaceChildren(h("div", { class: "grabber" }), h("div", { class: "sheet-row" }, closeBtn, ...children));
+    const closeBtn = h("button", { class: "back-to-chat", type: "button", onclick: () => this.close() }, icon("back"), "Back to chat");
+    const row = (...children) => {
+      const themeBtn = h("button", { class: "theme-toggle", type: "button", "data-theme-toggle": "", "aria-label": "Switch color theme" });
+      this.sheet.replaceChildren(h("div", { class: "map-toolbar" }, closeBtn, themeBtn), h("div", { class: "sheet-row" }, ...children));
+      window.dispatchEvent(new Event("mappy-theme-controls"));
+    };
     if (this.mode === "pick") {
       row(h("div", { class: "eta" }, h("b", {}, "Set your location"), h("div", {}, "Tap the walkway where you're standing")));
       return;
