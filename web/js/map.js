@@ -26,9 +26,6 @@ const TWEEN_MS = 420;
 const WALK_MPS = 1.2;
 const NO_COMPASS_MS = 3000;
 const HTTPS_PORT = 8443; // the server's default MAPPY_HTTPS_PORT
-const FOLLOW_SPAN = 420;
-const BEAM_R = 90;
-const BEAM_HALF = (35 * Math.PI) / 180;
 
 const pts = (path) => path.map((p) => p.join(",")).join(" ");
 
@@ -55,7 +52,7 @@ function connectorGlyph(c, x, y) {
 
 /**
  * Draw one floor like an indoor mall map: building, walkways, storefronts, escalators, route, pins.
- * opts: {route, otherRoutes, stops:[{floor,x,y,label,dest}], focus, focusLabel, candidates, hit, you, cone}
+ * opts: {route, otherRoutes, stops:[{floor,x,y,label,dest}], focus, focusLabel, candidates, hit, you}
  */
 export function renderFloor(svgEl, floorId, opts = {}) {
   const { mall, index } = state;
@@ -129,14 +126,6 @@ export function renderFloor(svgEl, floorId, opts = {}) {
   }
   const you = opts.you === false ? null : atNode();
   if (you && you.floor === floorId) {
-    if (opts.cone) {
-      g.append(s("defs", {}, s("radialGradient", { id: "you-beam", gradientUnits: "userSpaceOnUse", cx: you.x, cy: you.y, r: BEAM_R },
-        s("stop", { offset: "0.15", class: "beam-near" }), s("stop", { offset: "1", class: "beam-far" }))));
-      const dx = BEAM_R * Math.sin(BEAM_HALF);
-      const dy = BEAM_R * Math.cos(BEAM_HALF);
-      g.append(s("path", { class: "m-you-cone", fill: "url(#you-beam)", visibility: "hidden",
-        d: `M${you.x} ${you.y}l${-dx} ${-dy}a${BEAM_R} ${BEAM_R} 0 0 1 ${2 * dx} 0z` }));
-    }
     g.append(s("circle", { class: "m-you-halo", cx: you.x, cy: you.y, r: 26 }));
     g.append(s("circle", { class: "m-you", cx: you.x, cy: you.y, r: 10 }));
   }
@@ -218,14 +207,6 @@ function connectorNodeAt(floorId, [x, y]) {
   return null;
 }
 
-/** Rotate [x, y] by deg (clockwise on screen) around [cx, cy]. */
-function rotate([x, y], deg, [cx, cy]) {
-  const r = (deg * Math.PI) / 180;
-  const c = Math.cos(r);
-  const sn = Math.sin(r);
-  return [cx + (x - cx) * c - (y - cy) * sn, cy + (x - cx) * sn + (y - cy) * c];
-}
-
 /** Turn API legs into navigation steps with explicit up/down guidance. */
 function buildSteps(legs, stops) {
   const { floors } = state.index;
@@ -272,9 +253,6 @@ export class Navigator {
     this.compassBtn = document.getElementById("compassBtn");
     this.camera = { x: 0, y: 0, w: 1000, h: 800 };
     this.pointers = new Map();
-    this.follow = false;
-    this.rotation = 0;
-    this.pivot = [0, 0];
     this.reset("browse");
     this.bindGestures();
     this.bindCompass();
@@ -353,10 +331,7 @@ export class Navigator {
       focusLabel: step ? step.focusLabel : null,
       hit: this.selected,
       dropped: this.dropped,
-      cone: true,
     });
-    const you = atNode();
-    this.pivot = you && you.floor === this.shownFloor() ? [you.x, you.y] : this.floorCenter();
     this.applyCamera();
     this.drawTop(step);
     this.drawFloors(step);
@@ -478,22 +453,8 @@ export class Navigator {
     }
     const f = state.index.floors[floorId];
     const whole = this.mode !== "route" || !points.length;
-    if (whole) {
-      const { x, y, w, h: hh } = floorContentBox(f);
-      points.splice(0, points.length, [x, y], [x + w, y], [x, y + hh], [x + w, y + hh]);
-    }
-    const box = bbox(points.map((p) => this.toView(p)), whole ? 0 : 90, whole ? 200 : 420);
+    const box = whole ? floorContentBox(f) : bbox(points, 90, 420);
     this.setCamera(this.cameraFor(box), animate);
-  }
-
-  floorCenter() {
-    const { x, y, w, h: hh } = floorContentBox(state.index.floors[this.shownFloor()]);
-    return [x + w / 2, y + hh / 2];
-  }
-
-  /** Map coordinates -> where they're drawn after the heading-up rotation. */
-  toView(p) {
-    return rotate(p, -this.rotation, this.pivot);
   }
 
   cameraFor(box) {
@@ -536,21 +497,17 @@ export class Navigator {
     fitLabels(this.svg, ppu);
   }
 
-  /** Screen point -> drawn (rotated) coordinates. */
-  toCamera(clientX, clientY) {
+  toMap(clientX, clientY) {
     const r = this.svg.getBoundingClientRect();
     return [this.camera.x + ((clientX - r.left) / r.width) * this.camera.w, this.camera.y + ((clientY - r.top) / r.height) * this.camera.h];
   }
 
-  /** Screen point -> map coordinates. */
-  toMap(clientX, clientY) {
-    return rotate(this.toCamera(clientX, clientY), this.rotation, this.pivot);
-  }
-
   bindCompass() {
-    this.compassBtn.append(s("svg", { viewBox: "0 0 24 24", width: 26, height: 26, "aria-hidden": "true" },
-      s("path", { class: "needle-n", d: "M12 3l3.5 9h-7z" }), s("path", { class: "needle-s", d: "M12 21l-3.5-9h7z" })));
-    this.compassBtn.addEventListener("click", () => this.toggleFollow());
+    this.compassBtn.append(s("svg", { viewBox: "0 0 24 24", width: 28, height: 28, "aria-hidden": "true" },
+      s("path", { d: "M12 2.5l7 18-7-4.2-7 4.2z" })));
+    this.compassBtn.addEventListener("click", () => this.explainCompass());
+    // iOS and newer Chrome only show the motion permission prompt during a tap.
+    this.view.addEventListener("click", () => { if (compassHeading() === null) startCompass(); });
     let frame = 0;
     onHeading(() => {
       if (this.view.hidden || frame) return;
@@ -561,37 +518,21 @@ export class Navigator {
     });
   }
 
-  /** Compass button: switch between the fixed map and a map that turns with you, or say why it can't. */
-  async toggleFollow() {
+  /** Compass button: say what the arrow means, or why there isn't one. */
+  async explainCompass() {
     await startCompass();
     const problem = compassProblem();
-    if (problem === "insecure") {
-      this.notify?.(`The compass needs the secure link: https://${location.hostname}:${HTTPS_PORT}`);
-      return;
-    }
-    if (problem === "unsupported" || problem === "denied") {
-      this.notify?.(problem === "denied" ? "Allow Motion & Orientation access to use the compass" : "This browser has no compass");
-      return;
-    }
-    if (problem === "waiting") {
+    if (problem === "insecure") this.notify?.(`The compass needs the secure link: https://${location.hostname}:${HTTPS_PORT}`);
+    else if (problem === "denied") this.notify?.("Allow Motion & Orientation access to use the compass");
+    else if (problem === "unsupported") this.notify?.("This browser has no compass");
+    else if (problem === "waiting") {
       this.notify?.("Starting the compass…");
       setTimeout(() => {
         if (compassHeading() !== null) return;
         this.notify?.("No compass readings from this phone");
         this.report();
       }, NO_COMPASS_MS);
-      return;
-    }
-    if (!atNode()) this.notify?.("Set your location to see which way you're facing");
-    this.follow = !this.follow;
-    if (!this.follow) this.rotation = 0;
-    this.applyHeading();
-    const you = atNode();
-    if (this.follow && you && you.floor === this.shownFloor()) {
-      this.setCamera(this.cameraFor(bbox([this.toView([you.x, you.y])], 0, FOLLOW_SPAN)), true);
-    } else {
-      this.fit(true);
-    }
+    } else this.notify?.("The arrow points where you're facing on the map");
   }
 
   /** Tell the laptop what this phone's compass is doing, to diagnose phones we can't see. */
@@ -604,7 +545,7 @@ export class Navigator {
       } catch {
         /* reported below */
       }
-      const info = { ...compassReport(), follow: this.follow, you: Boolean(atNode()), storage, origin: location.origin };
+      const info = { ...compassReport(), storage, origin: location.origin };
       const body = JSON.stringify({ message: `compass: ${JSON.stringify(info)}`, stack: "", ua: navigator.userAgent });
       navigator.sendBeacon?.("/api/client-error", new Blob([body], { type: "application/json" }));
     } catch {
@@ -612,30 +553,12 @@ export class Navigator {
     }
   }
 
-  /** Apply the latest compass reading: heading cone, heading-up rotation, compass needle. */
+  /** Turn the compass arrow to where the phone faces, in map terms (the map isn't drawn north-up). */
   applyHeading() {
-    const north = state.index.floors[this.shownFloor()].north_deg || 0;
     const compass = compassHeading();
-    const heading = compass === null ? null : norm(compass - north);
-    if (this.follow && heading !== null) this.rotation = heading;
-    const g = this.svg.firstElementChild;
-    if (g) {
-      const [px, py] = this.pivot;
-      g.setAttribute("transform", `rotate(${-this.rotation} ${px} ${py})`);
-      for (const t of g.querySelectorAll("text")) {
-        t.setAttribute("transform", `rotate(${this.rotation} ${t.getAttribute("x")} ${t.getAttribute("y")})`);
-      }
-      const cone = g.querySelector(".m-you-cone");
-      if (cone) {
-        cone.setAttribute("visibility", heading === null ? "hidden" : "visible");
-        cone.setAttribute("transform", `rotate(${heading || 0} ${px} ${py})`);
-      }
-    }
-    this.compassBtn.classList.toggle("following", this.follow);
-    this.compassBtn.classList.toggle("off", heading === null);
-    this.compassBtn.setAttribute("aria-pressed", String(this.follow));
-    this.compassBtn.setAttribute("aria-label", this.follow ? "Stop turning the map with you" : "Turn the map with you");
-    this.compassBtn.firstElementChild.style.transform = `rotate(${-north - this.rotation}deg)`;
+    const off = compass === null;
+    this.compassBtn.classList.toggle("off", off);
+    if (!off) this.compassBtn.firstElementChild.style.transform = `rotate(${norm(compass - (state.index.floors[this.shownFloor()].north_deg || 0))}deg)`;
   }
 
   zoomAt(factor, clientX, clientY) {
@@ -643,7 +566,7 @@ export class Navigator {
     const ppu = r.width / this.camera.w;
     const next = Math.min(MAX_PPU, Math.max(MIN_PPU, ppu * factor));
     const k = ppu / next;
-    const [px, py] = this.toCamera(clientX, clientY);
+    const [px, py] = this.toMap(clientX, clientY);
     this.camera = { x: px - (px - this.camera.x) * k, y: py - (py - this.camera.y) * k, w: this.camera.w * k, h: this.camera.h * k };
     this.applyCamera();
   }
@@ -654,7 +577,6 @@ export class Navigator {
     let moved = 0;
     let lastTap = 0;
     svg.addEventListener("pointerdown", (e) => {
-      if (compassHeading() === null) startCompass();
       cancelAnimationFrame(this.raf);
       svg.setPointerCapture(e.pointerId);
       this.pointers.set(e.pointerId, [e.clientX, e.clientY]);
