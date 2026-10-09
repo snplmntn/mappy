@@ -25,12 +25,18 @@ export function subscribe(fn) {
 
 export function update(patch) {
   Object.assign(state, patch);
-  store.set(KEY, { at: state.at, trip: state.trip, messages: state.messages.slice(-MAX_MESSAGES) });
+  store.set(KEY, { version: state.mall?.version, at: state.at, trip: state.trip, messages: state.messages.slice(-MAX_MESSAGES) });
   listeners.forEach((fn) => fn(state));
 }
 
 export function pushMessage(msg) {
   update({ messages: [...state.messages, msg].slice(-MAX_MESSAGES) });
+}
+
+/** Saved chats, trips and spots from an older map would point at stores that no longer exist. */
+export function dropIfStale(mall) {
+  if (saved.version && saved.version === mall.version) return;
+  Object.assign(state, { trip: JSON.parse(JSON.stringify(EMPTY_TRIP)), messages: [], at: saved.version ? null : state.at });
 }
 
 export function resetTrip() {

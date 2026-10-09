@@ -1,6 +1,7 @@
 """HTTP API and static web app. Thin wiring over ChatService; logic lives elsewhere."""
 
 import html
+from datetime import datetime
 from typing import Annotated
 
 import segno
@@ -42,6 +43,12 @@ class RouteReq(BaseModel):
     elevator_only: bool = False
 
 
+class ClientErrorReq(BaseModel):
+    message: str = Field(max_length=2000)
+    stack: str = Field(default="", max_length=8000)
+    ua: str = Field(default="", max_length=400)
+
+
 class LocateReq(BaseModel):
     text: str = Field(min_length=1, max_length=300)
     floor: str | None = None
@@ -76,7 +83,7 @@ def create_app(settings: Settings | None = None, embedder=None, llm=None) -> Fas
         etag = f'"{mall.hash}"'
         if request.headers.get("if-none-match") == etag:
             return Response(status_code=304)
-        return JSONResponse(mall.raw, headers={"ETag": etag, "Cache-Control": "no-cache"})
+        return JSONResponse({**mall.raw, "version": mall.hash}, headers={"ETag": etag, "Cache-Control": "no-cache"})
 
     @app.post("/api/chat")
     async def chat(req: ChatReq):
@@ -95,6 +102,15 @@ def create_app(settings: Settings | None = None, embedder=None, llm=None) -> Fas
         landmarks = search.names_in(req.text) or [req.text]
         cands, ask = locate(mall, search, landmarks, req.floor)
         return {"candidates": [c.model_dump() for c in cands], "ask": ask}
+
+    @app.post("/api/client-error", status_code=204)
+    def client_error(req: ClientErrorReq):
+        """Phones report crashes here so they can be diagnosed from the laptop."""
+        settings.log_dir.mkdir(parents=True, exist_ok=True)
+        stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with (settings.log_dir / "client-errors.log").open("a", encoding="utf-8") as f:
+            f.write(f"[{stamp}] {req.ua}\n{req.message}\n{req.stack}\n\n")
+        return Response(status_code=204)
 
     @app.get("/api/health")
     async def health():

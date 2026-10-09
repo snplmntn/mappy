@@ -47,7 +47,7 @@ function planCard(result, latest, actions) {
         h("p", {}, warnings.length ? "Try a different request." : "You've finished every stop.")), h("div", { style: "height:12px" }));
   }
   const errands = Object.fromEntries(state.trip.errands.map((e) => [e.id, e]));
-  const items = plan.stops.map((stop, i) => {
+  const items = plan.stops.filter((stop) => state.index.places[stop.place]).map((stop, i) => {
     const place = state.index.places[stop.place];
     const errand = errands[stop.errand];
     const extra = [];
@@ -105,6 +105,8 @@ function locateCard(result, latest, actions, text) {
 
 export function renderResult(result, { latest, actions, text }) {
   if (!result) return null;
+  if (result.type === "places") result = { ...result, places: result.places.filter((p) => state.index.places[p.id]) };
+  if (result.type === "locate") result = { ...result, candidates: result.candidates.filter((c) => state.index.nodes[c.node]) };
   if (result.type === "places") return placesCard(result, actions);
   if (result.type === "plan") return planCard(result, latest, actions);
   if (result.type === "locate" && result.candidates.length) return locateCard(result, latest, actions, text);

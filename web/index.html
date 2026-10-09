@@ -38,10 +38,21 @@
 
   <div id="modal" class="modal" hidden role="dialog" aria-modal="true"></div>
   <script>
-    window.addEventListener("error", function () {
-      var t = document.getElementById("thread");
-      if (t && !t.dataset.ok) t.innerHTML = '<div class="empty"><h1>Mappy did not load</h1><p>Pull down to refresh the page.</p></div>';
-    });
+    (function () {
+      function report(message, stack) {
+        try {
+          var body = JSON.stringify({ message: String(message).slice(0, 2000), stack: String(stack || "").slice(0, 8000), ua: navigator.userAgent });
+          if (navigator.sendBeacon) navigator.sendBeacon("/api/client-error", new Blob([body], { type: "application/json" }));
+        } catch (e) { /* reporting must never throw */ }
+        var t = document.getElementById("thread");
+        if (t && !t.dataset.ok) {
+          t.innerHTML = '<div class="empty"><h1>Mappy did not load</h1><p>Pull down to refresh the page.</p><p class="fineprint"></p></div>';
+          t.querySelector(".fineprint").textContent = String(message);
+        }
+      }
+      window.addEventListener("error", function (e) { report(e.message, e.error && e.error.stack); });
+      window.addEventListener("unhandledrejection", function (e) { report(e.reason, e.reason && e.reason.stack); });
+    })();
   </script>
   <script type="module" src="/js/main.js"></script>
 </body>

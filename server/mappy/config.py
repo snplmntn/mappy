@@ -40,6 +40,7 @@ class Settings:
     wifi_ssid: str = field(default_factory=lambda: _get("MAPPY_WIFI_SSID", "mappy"))
     wifi_pass: str = field(default_factory=lambda: _get("MAPPY_WIFI_PASS", ""))
     cache_dir: Path = field(default_factory=lambda: ROOT / "server" / ".cache")
+    log_dir: Path = field(default_factory=lambda: ROOT / "server" / ".logs")
     web_dir: Path = field(default_factory=lambda: ROOT / "web")
 
 

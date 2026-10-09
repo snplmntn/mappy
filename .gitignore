@@ -9,3 +9,4 @@ web/dist/
 server/.cache/
 .superpowers/
 *.egg-info/
+server/.logs/

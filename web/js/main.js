@@ -1,5 +1,5 @@
 import { h, nowHHMM } from "./util.js";
-import { atLabel, atNode, indexMall, pushMessage, resetTrip, state, subscribe, update } from "./state.js";
+import { atLabel, atNode, dropIfStale, indexMall, pushMessage, resetTrip, state, subscribe, update } from "./state.js";
 import { getJSON, OfflineError, post } from "./api.js";
 import { renderThread } from "./chat.js";
 import { icon } from "./icons.js";
@@ -173,6 +173,7 @@ async function boot() {
   sendBtn.append(icon("send", 18));
   try {
     const mall = await getJSON("/api/mall");
+    dropIfStale(mall);
     update({ mall, index: indexMall(mall) });
   } catch {
     document.getElementById("thread").replaceChildren(h("div", { class: "empty" }, h("h1", {}, "Can't reach Mappy"), h("p", {}, OFFLINE)));
