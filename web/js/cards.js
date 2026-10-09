@@ -1,6 +1,6 @@
 import { h } from "./util.js";
 import { state } from "./state.js";
-import { icon } from "./icons.js";
+import { icon, categoryIcon } from "./icons.js";
 import { CATEGORY_NAMES, miniMap, nodePoint } from "./map.js";
 
 /** Class list for a control, adding the spinner when its action is running. */
@@ -11,6 +11,7 @@ const DURATIONS = [15, 30, 45, 60, 90];
 function placesCard(result, actions) {
   return h("div", { class: "card" }, result.places.map((p) =>
     h("button", { class: busyClass("row", `nav:${p.id}`), type: "button", onclick: () => actions.navigateToPlace(p.id) },
+      h("span", { class: "row-icon" }, categoryIcon(p.category)),
       h("div", { class: "row-main" },
         h("div", { class: "row-title" }, p.name, p.fictional ? h("span", { class: "tag" }, "demo") : null),
         h("div", { class: "row-sub" }, [CATEGORY_NAMES[p.category] || p.category, p.floor_name, p.walk_min ? `${p.walk_min} min walk` : null]

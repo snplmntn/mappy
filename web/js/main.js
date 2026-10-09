@@ -40,13 +40,14 @@ function toast(text) {
   }
   el.textContent = text;
   el.hidden = false;
-  el.animate([{ opacity: 0, transform: "translate(-50%, 8px)" }, { opacity: 1, transform: "translate(-50%, 0)" }], { duration: 180, easing: "ease-out" });
+  el.animate([{ opacity: 0, transform: "translate(-50%, 8px)" }, { opacity: 1, transform: "translate(-50%, 0)" }], { duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 180, easing: "ease-out" });
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { el.hidden = true; }, 2200);
   if (navigator.vibrate) navigator.vibrate(10);
 }
 
 const actions = {
+  browse() { nav.browse(); },
   send(text) {
     text = text.trim();
     if (!text || state.busy) return;
@@ -165,13 +166,18 @@ function autosize() {
   sendBtn.disabled = sending || !input.value.trim() || state.busy;
 }
 
+let modalTrigger;
 function closeModal() {
   document.getElementById("modal").hidden = true;
+  document.getElementById("chatView").inert = false;
+  modalTrigger?.focus();
 }
 
 function openLocation() {
   const modal = document.getElementById("modal");
+  modalTrigger = document.activeElement;
   const row = (title, sub, onclick) => h("button", { class: "row", type: "button", onclick },
+    h("span", { class: "row-icon" }, icon("pin")),
     h("div", { class: "row-main" }, h("div", { class: "row-title" }, title), sub ? h("div", { class: "row-sub" }, sub) : null),
     h("span", { class: "chev" }, icon("chevron")));
   const anchors = Object.values(state.index.anchors).map((a) => row(a.label, null, () => { closeModal(); actions.setAt({ anchor: a.id }); }));
@@ -182,7 +188,9 @@ function openLocation() {
     : [];
   modal.replaceChildren(h("div", { class: "modal-body" },
     h("div", { class: "grabber" }),
-    h("h2", {}, "Where are you?"),
+    h("button", { class: "icon-btn modal-close", type: "button", "aria-label": "Close location dialog", onclick: closeModal }, icon("close")),
+    h("div", { class: "modal-emblem" }, icon("locate")),
+    h("h2", { id: "locationTitle" }, "Where are you?"),
     h("p", {}, "Scan a Mappy location code with your camera, or choose below."),
     h("div", { class: "list" },
       row("Describe what you see", "e.g. “next to Starbucks, across from H&M”", () => { closeModal(); actions.prefill("I'm next to "); }),
@@ -190,11 +198,24 @@ function openLocation() {
     h("div", { class: "list" }, anchors),
     ...share));
   modal.hidden = false;
+  modal.setAttribute("aria-labelledby", "locationTitle");
+  document.getElementById("chatView").inert = true;
+  modal.querySelector("button").focus();
+  modal.onkeydown = (e) => {
+    if (e.key === "Escape") closeModal();
+    if (e.key === "Tab") {
+      const buttons = [...modal.querySelectorAll("button")];
+      const first = buttons[0], last = buttons[buttons.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  };
   modal.onclick = (e) => { if (e.target === modal) closeModal(); };
 }
 
 function render() {
   document.getElementById("placeText").textContent = atLabel();
+  document.getElementById("newBtn").disabled = state.busy;
   renderThread(actions);
   autosize();
 }
@@ -208,8 +229,10 @@ function readAtParam() {
 }
 
 async function boot() {
-  document.getElementById("mapBtn").append(icon("map"));
-  document.getElementById("newBtn").append(icon("compose"));
+  document.getElementById("mapBtn").append(icon("map"), h("span", {}, "Map"));
+  document.getElementById("newBtn").append(icon("compose"), h("span", {}, "New trip"));
+  document.getElementById("locationIcon").append(icon("pin"));
+  document.getElementById("composerIcon").append(icon("sparkle"));
   sendBtn.append(icon("send", 18));
   micBtn.append(icon("mic"));
   micBtn.addEventListener("click", startVoice);
@@ -238,13 +261,14 @@ async function boot() {
   });
   input.addEventListener("input", autosize);
   input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
       e.preventDefault();
       document.getElementById("composer").requestSubmit();
     }
   });
   document.getElementById("composer").addEventListener("submit", (e) => {
     e.preventDefault();
+    if (state.busy || !input.value.trim()) return;
     const text = input.value;
     input.value = "";
     actions.send(text);
@@ -252,7 +276,6 @@ async function boot() {
   subscribe(render);
   render();
   document.getElementById("thread").dataset.ok = "1";
-  if (!state.at) openLocation();
 }
 
 boot();
