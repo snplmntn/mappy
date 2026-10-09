@@ -9,6 +9,8 @@ const MIN_CHANGE_DEG = 1;
 const listeners = new Set();
 let heading = null;
 let started = false;
+let denied = false;
+let events = 0;
 let vec = null;
 
 export const norm = (deg) => ((deg % 360) + 360) % 360;
@@ -52,6 +54,7 @@ function smooth(raw) {
 }
 
 function handle(e) {
+  events += 1;
   const raw = read(e);
   if (raw === null) return;
   const next = smooth(norm(raw));
@@ -60,24 +63,35 @@ function handle(e) {
   listeners.forEach((fn) => fn(heading));
 }
 
+/** Why there's no heading yet: "insecure" (http page), "unsupported", "denied", or "waiting" for readings. */
+export function compassProblem() {
+  if (!window.isSecureContext) return "insecure";
+  if (!supported()) return "unsupported";
+  if (denied) return "denied";
+  return heading === null ? "waiting" : null;
+}
+
+/** What the browser gave us, for diagnosing phones from the laptop. */
+export function compassReport() {
+  return { problem: compassProblem(), started, events, absoluteEvent: "ondeviceorientationabsolute" in window, needsPermission: supported() && needsPermission() };
+}
+
 /**
- * Listen for compass readings. Readings arrive without asking where the browser allows it (Android);
- * pass ask=true from a tap to show the permission prompt where it's required (iOS).
- * Resolves to false when the compass can't be used.
+ * Listen for compass readings. Where the browser gates them behind a permission (iOS, newer Chrome),
+ * call from a tap: the prompt is only allowed during one. Resolves to false when the compass can't be used.
  */
-export async function startCompass({ ask = false } = {}) {
+export async function startCompass() {
   if (!supported()) return false;
-  if (ask && needsPermission()) {
-    try {
-      if ((await DeviceOrientationEvent.requestPermission()) !== "granted") return false;
-    } catch {
-      return false;
-    }
-  }
   if (!started) {
     started = true;
     // Android Chrome reports north-referenced readings on its own event; iOS adds webkitCompassHeading to the plain one.
     window.addEventListener("ondeviceorientationabsolute" in window ? "deviceorientationabsolute" : "deviceorientation", handle);
   }
-  return true;
+  if (heading !== null || !needsPermission()) return true;
+  try {
+    denied = (await DeviceOrientationEvent.requestPermission()) !== "granted";
+  } catch {
+    // Not during a tap: try again on the next one.
+  }
+  return !denied;
 }

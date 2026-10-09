@@ -1,7 +1,7 @@
 import { h, s } from "./util.js";
 import { atNode, state } from "./state.js";
 import { icon } from "./icons.js";
-import { compassHeading, norm, onHeading, startCompass, supported, turn } from "./compass.js";
+import { compassHeading, compassProblem, compassReport, norm, onHeading, startCompass, turn } from "./compass.js";
 
 const CAT_CLASS = {
   food: "m-food", cafe: "m-food",
@@ -24,7 +24,8 @@ const MIN_PPU = 0.25;
 const MAX_PPU = 4;
 const TWEEN_MS = 420;
 const WALK_MPS = 1.2;
-const NO_COMPASS_MS = 2500;
+const NO_COMPASS_MS = 3000;
+const HTTPS_PORT = 8443; // the server's default MAPPY_HTTPS_PORT
 const TURN_LOOKAHEAD_M = 8;
 const FOLLOW_SPAN = 420;
 
@@ -328,6 +329,8 @@ export class Navigator {
 
   show(floorId) {
     startCompass();
+    clearTimeout(this.compassCheck);
+    this.compassCheck = setTimeout(() => { if (compassHeading() === null && !this.reported) { this.reported = true; this.report(); } }, NO_COMPASS_MS * 2);
     this.floor = floorId;
     const opening = this.view.hidden;
     this.view.hidden = false;
@@ -573,19 +576,28 @@ export class Navigator {
     });
   }
 
-  /** Compass button: switch between the fixed map and a map that turns with you. */
+  /** Compass button: switch between the fixed map and a map that turns with you, or say why it can't. */
   async toggleFollow() {
-    if (!supported()) {
-      this.notify?.("Open Mappy's https link to use the compass");
+    await startCompass();
+    const problem = compassProblem();
+    if (problem === "insecure") {
+      this.notify?.(`The compass needs the secure link: https://${location.hostname}:${HTTPS_PORT}`);
       return;
     }
-    if (!(await startCompass({ ask: true }))) {
-      this.notify?.("Allow motion & orientation access to use the compass");
+    if (problem === "unsupported" || problem === "denied") {
+      this.notify?.(problem === "denied" ? "Allow Motion & Orientation access to use the compass" : "This browser has no compass");
       return;
     }
-    if (compassHeading() === null) {
-      setTimeout(() => { if (compassHeading() === null) this.notify?.("No compass found on this phone"); }, NO_COMPASS_MS);
+    if (problem === "waiting") {
+      this.notify?.("Starting the compass…");
+      setTimeout(() => {
+        if (compassHeading() !== null) return;
+        this.notify?.("No compass readings from this phone");
+        this.report();
+      }, NO_COMPASS_MS);
+      return;
     }
+    if (!atNode()) this.notify?.("Set your location to see which way you're facing");
     this.follow = !this.follow;
     if (!this.follow) this.rotation = 0;
     this.applyHeading();
@@ -594,6 +606,16 @@ export class Navigator {
       this.setCamera(this.cameraFor(bbox([this.toView([you.x, you.y])], 0, FOLLOW_SPAN)), true);
     } else {
       this.fit(true);
+    }
+  }
+
+  /** Tell the laptop why this phone's compass isn't working. */
+  report() {
+    try {
+      const body = JSON.stringify({ message: `compass: ${JSON.stringify(compassReport())}`, stack: "", ua: navigator.userAgent });
+      navigator.sendBeacon?.("/api/client-error", new Blob([body], { type: "application/json" }));
+    } catch {
+      /* diagnostics must never break the map */
     }
   }
 
@@ -617,6 +639,7 @@ export class Navigator {
       }
     }
     this.compassBtn.classList.toggle("following", this.follow);
+    this.compassBtn.classList.toggle("off", heading === null);
     this.compassBtn.setAttribute("aria-pressed", String(this.follow));
     this.compassBtn.setAttribute("aria-label", this.follow ? "Stop turning the map with you" : "Turn the map with you");
     this.compassBtn.firstElementChild.style.transform = `rotate(${-north - this.rotation}deg)`;
@@ -647,6 +670,7 @@ export class Navigator {
     let moved = 0;
     let lastTap = 0;
     svg.addEventListener("pointerdown", (e) => {
+      if (compassHeading() === null) startCompass();
       cancelAnimationFrame(this.raf);
       svg.setPointerCapture(e.pointerId);
       this.pointers.set(e.pointerId, [e.clientX, e.clientY]);
