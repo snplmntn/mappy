@@ -17,6 +17,9 @@ QUESTION_WORDS = re.compile(r"^(?:where can i (?:find|get|buy)|where can i|where
                             r"\s+(?:ang|ng|ba|po|yung|the)?\s*", re.I)
 OTHER_RE = re.compile(r"^\s*(?:hi|hello|hey|yo|salamat|thanks?|thank you|ty|ok(?:ay)?|sige|"
                       r"good (?:morning|afternoon|evening)|anong oras|what time)\b", re.I)
+# "Show me more" of the last list, only when the whole message is the cue ("more coffee" is a find).
+MORE_RE = re.compile(r"^\s*(?:iba pa|iba pang|yung iba|meron pa|may iba pa|ano pa|"
+                     r"show more|more|others?|something else|next)\b[\s?!.]*$", re.I)
 NUM_WORDS = {"isa": 1, "isang": 1, "dalawa": 2, "dalawang": 2, "tatlo": 3, "tatlong": 3}
 UNIT_AHEAD = r"(?!\s*(?:mins?\b|minutes?|minutos?|oras|hrs?\b|hours?))"
 
@@ -164,6 +167,8 @@ def parse(message: str, trip: Trip, search: Search) -> Extraction | None:
             return Extraction(intent="locate", landmarks=names, floor=floor_hint(msg))
     if OTHER_RE.search(msg):
         return Extraction(intent="other")
+    if MORE_RE.search(msg):
+        return Extraction(intent="more")
     if steer := _steering(msg, trip):
         return steer
     if PLAN_SEPARATORS.search(msg):

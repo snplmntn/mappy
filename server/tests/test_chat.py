@@ -336,3 +336,27 @@ def test_nudge_names_a_matched_trait_and_skips_listed_stores(mall, search, monke
     *listed, nudge = out["result"]["places"]
     assert nudge["nudge"] is True and nudge["id"] not in {p["id"] for p in listed}
     assert "Food Court on 2nd Floor does ramen too, 2 min." in out["reply"]
+
+
+def test_more_pages_through_the_category(mall, search):
+    s = svc(mall, search)
+    first = run(s.chat("food", AT, "14:00", Trip()))["result"]
+    assert first["type"] == "places" and first["category"] == "food" and len(first["places"]) == 2
+    shown = {**first, "places": first["places"][:1]}
+    out = run(s.chat("iba pa", AT, "14:00", Trip(), prev=shown))
+    assert out["meta"]["intent"] == "more" and out["reply"] == "More food places:"
+    assert [p["id"] for p in out["result"]["places"]] == [first["places"][1]["id"]]
+    assert out["result"]["category"] == "food"
+    done = run(s.chat("iba pa", AT, "14:00", Trip(), prev=first))
+    assert done["result"]["type"] == "text" and "every food place" in done["reply"]
+
+
+def test_more_without_prev_asks_first(mall, search):
+    for prev in (None, {"places": "junk"}, {"category": "food", "places": "junk"}):
+        out = run(svc(mall, search).chat("iba pa", AT, "14:00", Trip(), prev=prev))
+        assert out["result"]["type"] == "text" and "first" in out["reply"]
+
+
+def test_find_result_carries_the_top_category(mall, search):
+    out = run(svc(mall, search).chat("CR", AT, "14:00", Trip()))
+    assert out["result"]["category"] == "restroom"

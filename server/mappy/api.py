@@ -39,6 +39,7 @@ class ChatReq(BaseModel):
     at: dict | None = None
     now: str = Field(pattern=HHMM)
     trip: Trip = Trip()
+    prev: dict | None = None  # the last places result the phone showed, for "iba pa"
 
 
 class PlanReq(BaseModel):
@@ -153,7 +154,7 @@ def create_app(settings: Settings | None = None, embedder=None, llm=None) -> Fas
     @app.post("/api/chat")
     async def chat(req: ChatReq, request: Request):
         started = time.perf_counter()
-        out = await svc.chat(req.message, req.at, req.now, req.trip)
+        out = await svc.chat(req.message, req.at, req.now, req.trip, req.prev)
         ms = round((time.perf_counter() - started) * 1000)
         out["meta"] |= {"ms": ms, "model": settings.llm_model}
         edge.record(request.client.host if request.client else None, req.message,

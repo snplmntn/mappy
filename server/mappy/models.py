@@ -110,7 +110,7 @@ class ErrandReq(BaseModel):
 
 
 class Extraction(BaseModel):
-    intent: Literal["find", "plan", "edit", "locate", "other"]
+    intent: Literal["find", "plan", "edit", "locate", "other", "more"]
     errands: list[ErrandReq] = []
     edits: list[Edit] = []
     landmarks: list[str] = []

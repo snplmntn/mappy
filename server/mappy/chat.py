@@ -188,8 +188,9 @@ class ChatService:
         return None if s is None else max(1, math.ceil(s / 60))
 
     def _places_result(self, query: str, ids: list[str], start: str, router: Router,
-                       scores: dict[str, int] | None = None) -> dict:
-        """Tappable rows, nearest first, or best `scores` first then nearest."""
+                       scores: dict[str, int] | None = None, category: str | None = None) -> dict:
+        """Tappable rows, nearest first, or best `scores` first then nearest. `category` is what the list
+        is of (the top place's when not given), so "iba pa" can page through the rest of it."""
         scores = scores or {}
         rows = []
         for pid in ids:
@@ -198,13 +199,34 @@ class ChatService:
                          "category": p.category, "fictional": p.fictional,
                          "walk_min": self._walk_min(start, pid, router)})
         rows.sort(key=lambda r: (-scores.get(r["id"], 0), r["walk_min"] is None, r["walk_min"] or 0))
-        return {"type": "places", "query": query, "places": rows[:FIND_RESULTS]}
+        category = category or (rows[0]["category"] if rows else None)
+        return {"type": "places", "query": query, "category": category, "places": rows[:FIND_RESULTS]}
 
     def _alternatives_result(self, alt: StandIn, start: str, router: Router, exclude: tuple[str, ...] = ()) -> dict:
         ids = self.search.alternatives(alt.category, alt.traits, exclude)
         scores = {pid: self.search.trait_score(pid, alt.traits) for pid in ids}
-        result = self._places_result(alt.name, ids, start, router, scores)
-        return {**result, "category": alt.category, "alternatives_for": alt.name}
+        result = self._places_result(alt.name, ids, start, router, scores, alt.category)
+        return {**result, "alternatives_for": alt.name}
+
+    def _more(self, prev: dict | None, start: str, router: Router, trip: Trip) -> dict:
+        """The rest of the last list's category, minus what the phone already showed. A swap's list keeps
+        its trait ranking. `prev` comes from the phone, so anything malformed reads as no list at all."""
+        prev = prev if isinstance(prev, dict) else {}
+        places, category = prev.get("places"), prev.get("category")
+        if not isinstance(places, list) or not isinstance(category, str) or not self.search.by_category(category):
+            return _text("Ask for a store or a type first, then say “more”.", trip)
+        shown = tuple(p["id"] for p in places if isinstance(p, dict) and "id" in p)
+        swapped = prev.get("alternatives_for")
+        brand = brand_in(swapped) if isinstance(swapped, str) else None
+        traits = brand.traits if brand else ()
+        ids = self.search.alternatives(category, traits, shown)
+        if not ids:
+            return _text(f"That's every {_label(category)} place in this mall.", trip)
+        scores = {pid: self.search.trait_score(pid, traits) for pid in ids}
+        result = self._places_result(str(prev.get("query") or ""), ids, start, router, scores, category)
+        if isinstance(swapped, str) and swapped:
+            result["alternatives_for"] = swapped  # so later "more" keeps the trait ranking
+        return {"reply": f"More {_label(category)} places:", "result": result, "trip": trip.model_dump(by_alias=True)}
 
     def _alternatives_reply(self, alt: StandIn, rows: list[dict]) -> str:
         reply = f"No {alt.name} in this mall, but here are other {_label(alt.category)} places."
@@ -240,23 +262,26 @@ class ChatService:
         plan = plan_trip(trip, start, now_min, self._router(trip), self.mall)
         return {"type": "plan", "plan": plan.model_dump(), "changes": changes}
 
-    async def chat(self, message: str, at: dict | None, now: str, trip: Trip) -> dict:
+    async def chat(self, message: str, at: dict | None, now: str, trip: Trip, prev: dict | None = None) -> dict:
         x = await self._extract(message, trip)
-        out = self._respond(x, at, now, trip)
+        out = self._respond(x, at, now, trip, prev)
         if x.source == "rules" and _dead_end(x, out):
             # The rules were sure but found nothing, so let the LLM read it before giving up.
             # Keep the rules' plain "couldn't find" unless the LLM gets somewhere.
             if (retry := await self._ask_llm(message, trip)) is not None:
-                retry_out = self._respond(retry, at, now, trip)
+                retry_out = self._respond(retry, at, now, trip, prev)
                 if not _dead_end(retry, retry_out):
                     x, out = retry, retry_out
         out["meta"] = {"engine": x.source, "intent": x.intent}  # which engine understood it, for the receipt line
         return out
 
-    def _respond(self, x: Extraction, at: dict | None, now: str, trip: Trip) -> dict:
+    def _respond(self, x: Extraction, at: dict | None, now: str, trip: Trip, prev: dict | None = None) -> dict:
         now_min = hhmm_to_min(now)
         start = self.start_node(at)
         router = self._router(trip)
+
+        if x.intent == "more":
+            return self._more(prev, start, router, trip)
 
         if x.intent == "find" and x.errands:
             req = x.errands[0]
@@ -270,7 +295,7 @@ class ChatService:
                         "trip": trip.model_dump(by_alias=True)}
             if not ids:
                 return _text(_not_found([req.query]), trip)
-            result = self._places_result(req.query, ids, start, router)
+            result = self._places_result(req.query, ids, start, router, category=cat)
             reply = f"Here's what I found for “{req.query}”:"
             if cat is None and (nudge := self._nudge(result["places"], start, router, tuple(ids))):
                 result["places"].append({**nudge[0], "nudge": True})

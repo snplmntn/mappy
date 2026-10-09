@@ -17,6 +17,7 @@ export const state = {
   mode: "normal",
   busy: false,
   pending: null,
+  lastPlaces: null, // the last places list shown, sent back so "iba pa" can page it (not saved)
 };
 
 const listeners = new Set();

@@ -61,8 +61,8 @@ const actions = {
     if (!text || state.busy) return;
     pushMessage({ role: "user", text });
     return withBusy(async () => {
-      const res = await post("/api/chat", { message: text, at: state.at, now: nowHHMM(), trip: state.trip });
-      update({ trip: res.trip });
+      const res = await post("/api/chat", { message: text, at: state.at, now: nowHHMM(), trip: state.trip, prev: state.lastPlaces });
+      update({ trip: res.trip, ...(res.result?.type === "places" && { lastPlaces: res.result }) });
       pushMessage({ role: "bot", text: res.reply, result: res.result, query: text, meta: res.meta });
     });
   },
