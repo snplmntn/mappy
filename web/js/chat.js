@@ -1,13 +1,14 @@
-import { h } from "./util.js";
-import { state } from "./state.js";
+import { h, s } from "./util.js";
+import { state, atNode } from "./state.js";
+import { renderFloor, bbox } from "./map.js";
 import { icon } from "./icons.js";
 import { renderResult } from "./cards.js";
 
 const SUGGESTIONS = [
-  { title: "Fix my phone, eat, then buy a gift", hint: "Plans around repair time", send: "Fix my phone screen, eat, then buy a gift for mom" },
-  { title: "Nearest restroom", hint: "Closest one to you", send: "restroom" },
-  { title: "Find an ATM", hint: "Cash on this floor or nearby", send: "ATM" },
-  { title: "Find my friend", hint: "Describe what they can see", prefill: "My friend is next to " },
+  { title: "Plan my errands", icon: "bag", hint: "Phone repair, lunch, a little shopping", send: "Fix my phone screen, eat, then buy a gift for mom" },
+  { title: "Nearest restroom", icon: "restroom", hint: "Find the closest one", send: "restroom" },
+  { title: "Find an ATM", icon: "cash", hint: "A quick stop for cash", send: "ATM" },
+  { title: "Meet a friend", icon: "friend", hint: "Find your way to each other", prefill: "My friend is next to " },
 ];
 
 function seconds(ms) {
@@ -32,12 +33,27 @@ function latestIndex(type) {
 }
 
 function emptyState(actions) {
+  const floorId = atNode()?.floor || (state.index.floors.GF ? "GF" : state.index.floorOrder[0]);
+  const floor = state.index.floors[floorId];
+  const box = bbox(floor.outline, 18);
+  const preview = s("svg", { class: "welcome-map", viewBox: `${box.x} ${box.y} ${box.w} ${box.h}`, "aria-hidden": "true" });
+  renderFloor(preview, floorId);
   return h("div", { class: "empty" },
-    h("h1", {}, "Where to?"),
-    h("p", {}, `${state.mall?.mall.name || "Mall"} · works offline`),
+    h("div", { class: "welcome-heading" },
+      h("div", { class: "eyebrow" }, icon("sparkle"), "YOUR MALL COMPANION"),
+      h("h1", {}, "Where would you", h("br"), h("span", {}, "like to go?")),
+      h("p", {}, "Find a store, plan your errands, or meet a friend. Start here.")),
+    h("div", { class: "welcome-grid" }, h("div", { class: "quick-tasks" },
+    h("div", { class: "section-label" }, "What brings you here?", h("span", {}, "Choose a starting point")),
     h("div", { class: "suggestions" }, SUGGESTIONS.map((sg) =>
       h("button", { class: "suggestion", type: "button", onclick: () => (sg.send ? actions.send(sg.send) : actions.prefill(sg.prefill, "friend")) },
-        h("b", {}, sg.title), h("span", {}, sg.hint)))));
+        h("span", { class: "task-icon" }, icon(sg.icon)),
+        h("span", { class: "suggestion-copy" }, h("b", {}, sg.title), h("span", {}, sg.hint)), icon("arrow"))))),
+    h("button", { class: "map-preview", type: "button", onclick: actions.browse, "aria-label": `Explore ${state.mall.mall.name} map` },
+      h("div", { class: "preview-heading" }, h("span", {}, icon("layers"), floor.name), h("span", { class: "preview-open" }, icon("arrow"))),
+      preview,
+      h("div", { class: "preview-caption" }, h("div", {}, h("span", { class: "eyebrow" }, "EXPLORE THE MALL"), h("b", {}, state.mall.mall.name)), h("span", {}, "Open map", icon("arrow"))))),
+    h("div", { class: "welcome-note" }, icon("shield"), "Your plans stay here.", h("span", {}, "Built to work without internet.")));
 }
 
 export function renderThread(actions) {
