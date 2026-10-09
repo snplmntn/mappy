@@ -1,4 +1,9 @@
+import json
+import math
+import sys
 from pathlib import Path
+
+import pytest
 
 from mappy.mall import load_mall
 from mappy.router import Router
@@ -50,3 +55,28 @@ def test_floors_are_shaped_like_the_building():
     raw = json.loads(P.read_text(encoding="utf-8"))
     for f in raw["floors"]:
         assert f["walk_path"].startswith("M") and len(f["outline"]) >= 10, f["id"]
+
+
+def _bearing(a, b):
+    """Compass bearing from latlon a to latlon b, degrees clockwise from north."""
+    dlat, dlon = b[0] - a[0], (b[1] - a[1]) * math.cos(math.radians(a[0]))
+    return math.degrees(math.atan2(dlon, dlat)) % 360
+
+
+def test_north_deg_turns_map_directions_into_compass_bearings():
+    pytest.importorskip("shapely")
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
+    import build_sm_makati as b
+
+    pts, angle = b.project(b.MAIN_LATLON)
+    px = b.to_portrait(pts)
+    north = b.map_north_deg(angle)
+    for i, j in [(0, 6), (5, 11), (12, 17)]:
+        on_map = math.degrees(math.atan2(px[j][0] - px[i][0], -(px[j][1] - px[i][1])))
+        diff = ((on_map + north) - _bearing(b.MAIN_LATLON[i], b.MAIN_LATLON[j]) + 180) % 360 - 180
+        assert abs(diff) < 1
+
+
+def test_floors_carry_north():
+    m = json.loads(P.read_text(encoding="utf-8"))
+    assert len({f["north_deg"] for f in m["floors"]}) == 1

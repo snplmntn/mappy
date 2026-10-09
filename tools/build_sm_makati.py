@@ -157,14 +157,25 @@ def project(latlon, angle=None):
     return [(x * c - y * s, x * s + y * c) for x, y in pts], angle
 
 
+def to_portrait(pts_m):
+    """Turn the long axis from horizontal to vertical (fits phones)."""
+    return [(-y, x) for x, y in pts_m]
+
+
 def portrait_px(pts_m):
     """Meters with the long axis horizontal -> pixels with the long axis vertical (fits phones)."""
-    rot = [(-y, x) for x, y in pts_m]
+    rot = to_portrait(pts_m)
     minx, miny = min(p[0] for p in rot), min(p[1] for p in rot)
     out = [(round((x - minx) / M_PER_PX + MARGIN, 1), round((y - miny) / M_PER_PX + MARGIN, 1)) for x, y in rot]
     w = max(p[0] for p in out) + MARGIN
     h = max(p[1] for p in out) + MARGIN
     return out, round(w), round(h), (minx, miny)
+
+
+def map_north_deg(angle):
+    """Compass bearing of the map's "up", in degrees clockwise from true north, so phones can turn their heading into map space."""
+    (x0, y0), (x1, y1) = to_portrait(project([(14.55, 121.0), (14.551, 121.0)], angle)[0])
+    return round(math.degrees(math.atan2(-(x1 - x0), -(y1 - y0))) % 360, 1)
 
 
 def largest(g):
@@ -424,9 +435,10 @@ def build() -> dict:
     annex_m, _ = project(ANNEX_LATLON, angle)
     main_px, main_w, main_h, _ = portrait_px(main_m)
     annex_px, annex_w, annex_h, _ = portrait_px(annex_m)
+    north = map_north_deg(angle)
     # Where the annex sits relative to the main building, in the main building's frame.
-    rot_main = [(-y, x) for x, y in main_m]
-    rot_annex = [(-y, x) for x, y in annex_m]
+    rot_main = to_portrait(main_m)
+    rot_annex = to_portrait(annex_m)
     mminx, mminy = min(p[0] for p in rot_main), min(p[1] for p in rot_main)
     acx = sum(p[0] for p in rot_annex) / len(rot_annex)
     acy = sum(p[1] for p in rot_annex) / len(rot_annex)
@@ -494,7 +506,7 @@ def build() -> dict:
         name = "Annex" if fid == "AX" else next(n for f, n, _ in MAIN_FLOORS if f == fid)
         level = 0 if fid == "AX" else next(lv for f, _, lv in MAIN_FLOORS if f == fid)
         floors.append({"id": fid, "name": name, "level": level, "width": w, "height": h,
-                       "scale_m_per_px": M_PER_PX, "outline": [list(p) for p in poly_px],
+                       "scale_m_per_px": M_PER_PX, "north_deg": north, "outline": [list(p) for p in poly_px],
                        "walk_path": svg_path(plan.walk), "atria": rails,
                        "blanks": [coords(u.poly) for u in blanks] + [coords(g) for g in plan.leftovers]})
         nodes += [{"id": n, "floor": fid, "x": x, "y": y} for n, (x, y) in g.nodes.items()]

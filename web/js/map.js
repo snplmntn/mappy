@@ -1,6 +1,7 @@
 import { h, s } from "./util.js";
 import { atNode, state } from "./state.js";
 import { icon } from "./icons.js";
+import { compassHeading, norm, onHeading, startCompass, supported, turn } from "./compass.js";
 
 const CAT_CLASS = {
   food: "m-food", cafe: "m-food",
@@ -23,6 +24,9 @@ const MIN_PPU = 0.25;
 const MAX_PPU = 4;
 const TWEEN_MS = 420;
 const WALK_MPS = 1.2;
+const NO_COMPASS_MS = 2500;
+const TURN_LOOKAHEAD_M = 8;
+const FOLLOW_SPAN = 420;
 
 const pts = (path) => path.map((p) => p.join(",")).join(" ");
 
@@ -49,7 +53,7 @@ function connectorGlyph(c, x, y) {
 
 /**
  * Draw one floor like an indoor mall map: building, walkways, storefronts, escalators, route, pins.
- * opts: {route, otherRoutes, stops:[{floor,x,y,label,dest}], focus, focusLabel, candidates, hit, you}
+ * opts: {route, otherRoutes, stops:[{floor,x,y,label,dest}], focus, focusLabel, candidates, hit, you, cone}
  */
 export function renderFloor(svgEl, floorId, opts = {}) {
   const { mall, index } = state;
@@ -123,6 +127,7 @@ export function renderFloor(svgEl, floorId, opts = {}) {
   }
   const you = opts.you === false ? null : atNode();
   if (you && you.floor === floorId) {
+    if (opts.cone) g.append(s("path", { class: "m-you-cone", d: `M${you.x} ${you.y}l-22-58a62 62 0 0 1 44 0z`, visibility: "hidden" }));
     g.append(s("circle", { class: "m-you-halo", cx: you.x, cy: you.y, r: 26 }));
     g.append(s("circle", { class: "m-you", cx: you.x, cy: you.y, r: 10 }));
   }
@@ -204,6 +209,34 @@ function connectorNodeAt(floorId, [x, y]) {
   return null;
 }
 
+/** Rotate [x, y] by deg (clockwise on screen) around [cx, cy]. */
+function rotate([x, y], deg, [cx, cy]) {
+  const r = (deg * Math.PI) / 180;
+  const c = Math.cos(r);
+  const sn = Math.sin(r);
+  return [cx + (x - cx) * c - (y - cy) * sn, cy + (x - cx) * sn + (y - cy) * c];
+}
+
+/** Map bearing (degrees clockwise from map-up) from a to b. */
+const mapBearing = (a, b) => norm((Math.atan2(b[0] - a[0], a[1] - b[1]) * 180) / Math.PI);
+
+/** Where a walking leg first heads: the path point a few metres out, so tiny first segments don't mislead. */
+function legHeading(leg) {
+  const scale = state.index.floors[leg.floor].scale_m_per_px;
+  const [start] = leg.path;
+  const ahead = leg.path.find((p) => Math.hypot(p[0] - start[0], p[1] - start[1]) * scale >= TURN_LOOKAHEAD_M) || leg.path[leg.path.length - 1];
+  return ahead === start ? null : mapBearing(start, ahead);
+}
+
+function turnText(deg) {
+  const a = Math.abs(deg);
+  const side = deg < 0 ? "left" : "right";
+  if (a < 25) return "Straight ahead";
+  if (a < 70) return `Bear ${side}`;
+  if (a < 135) return `Turn ${side}`;
+  return "Turn around";
+}
+
 /** Turn API legs into navigation steps with explicit up/down guidance. */
 function buildSteps(legs, stops) {
   const { floors } = state.index;
@@ -236,7 +269,7 @@ function buildSteps(legs, stops) {
 
 /** Full-screen navigation: route steps, floor switcher, pan/zoom, browse and pick modes. */
 export class Navigator {
-  constructor({ onClose, onDirections, onSetLocation }) {
+  constructor({ onClose, onDirections, onSetLocation, notify }) {
     this.view = document.getElementById("navView");
     this.chat = document.getElementById("chatView");
     this.svg = document.getElementById("mapSvg");
@@ -246,10 +279,16 @@ export class Navigator {
     this.onClose = onClose;
     this.onDirections = onDirections;
     this.onSetLocation = onSetLocation;
+    this.notify = notify;
+    this.compassBtn = document.getElementById("compassBtn");
     this.camera = { x: 0, y: 0, w: 1000, h: 800 };
     this.pointers = new Map();
+    this.follow = false;
+    this.rotation = 0;
+    this.pivot = [0, 0];
     this.reset("browse");
     this.bindGestures();
+    this.bindCompass();
   }
 
   reset(mode) {
@@ -288,6 +327,7 @@ export class Navigator {
   }
 
   show(floorId) {
+    startCompass();
     this.floor = floorId;
     const opening = this.view.hidden;
     this.view.hidden = false;
@@ -322,7 +362,10 @@ export class Navigator {
       focusLabel: step ? step.focusLabel : null,
       hit: this.selected,
       dropped: this.dropped,
+      cone: true,
     });
+    const you = atNode();
+    this.pivot = you && you.floor === this.shownFloor() ? [you.x, you.y] : this.floorCenter();
     this.applyCamera();
     this.drawTop(step);
     this.drawFloors(step);
@@ -351,9 +394,13 @@ export class Navigator {
       secondary = step.secondary;
       chip = step.floorChange ? h("div", { class: "floor-change" }, step.floorChange) : null;
     }
+    const bearing = this.mode === "route" && step && !this.preview && step.leg.path.length > 1 ? legHeading(step.leg) : null;
+    this.turnChip = bearing === null ? null
+      : h("div", { class: "turn-chip", hidden: true, "data-bearing": bearing }, icon("walk", 16), h("span"));
     this.top.replaceChildren(
       h("div", { class: `maneuver${ic === "pin" ? " arrive" : ""}` }, icon(ic, 28)),
-      h("div", { class: "nav-text" }, h("div", { class: "nav-primary" }, primary), h("div", { class: "nav-secondary" }, secondary), chip));
+      h("div", { class: "nav-text" }, h("div", { class: "nav-primary" }, primary), h("div", { class: "nav-secondary" }, secondary), chip, this.turnChip));
+    this.applyHeading();
   }
 
   drawFloors(step) {
@@ -443,8 +490,22 @@ export class Navigator {
     }
     const f = state.index.floors[floorId];
     const whole = this.mode !== "route" || !points.length;
-    const box = whole ? floorContentBox(f) : bbox(points, 90, 420);
+    if (whole) {
+      const { x, y, w, h: hh } = floorContentBox(f);
+      points.splice(0, points.length, [x, y], [x + w, y], [x, y + hh], [x + w, y + hh]);
+    }
+    const box = bbox(points.map((p) => this.toView(p)), whole ? 0 : 90, whole ? 200 : 420);
     this.setCamera(this.cameraFor(box), animate);
+  }
+
+  floorCenter() {
+    const { x, y, w, h: hh } = floorContentBox(state.index.floors[this.shownFloor()]);
+    return [x + w / 2, y + hh / 2];
+  }
+
+  /** Map coordinates -> where they're drawn after the heading-up rotation. */
+  toView(p) {
+    return rotate(p, -this.rotation, this.pivot);
   }
 
   cameraFor(box) {
@@ -487,9 +548,87 @@ export class Navigator {
     fitLabels(this.svg, ppu);
   }
 
-  toMap(clientX, clientY) {
+  /** Screen point -> drawn (rotated) coordinates. */
+  toCamera(clientX, clientY) {
     const r = this.svg.getBoundingClientRect();
     return [this.camera.x + ((clientX - r.left) / r.width) * this.camera.w, this.camera.y + ((clientY - r.top) / r.height) * this.camera.h];
+  }
+
+  /** Screen point -> map coordinates. */
+  toMap(clientX, clientY) {
+    return rotate(this.toCamera(clientX, clientY), this.rotation, this.pivot);
+  }
+
+  bindCompass() {
+    this.compassBtn.append(s("svg", { viewBox: "0 0 24 24", width: 26, height: 26, "aria-hidden": "true" },
+      s("path", { class: "needle-n", d: "M12 3l3.5 9h-7z" }), s("path", { class: "needle-s", d: "M12 21l-3.5-9h7z" })));
+    this.compassBtn.addEventListener("click", () => this.toggleFollow());
+    let frame = 0;
+    onHeading(() => {
+      if (this.view.hidden || frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        this.applyHeading();
+      });
+    });
+  }
+
+  /** Compass button: switch between the fixed map and a map that turns with you. */
+  async toggleFollow() {
+    if (!supported()) {
+      this.notify?.("Open Mappy's https link to use the compass");
+      return;
+    }
+    if (!(await startCompass({ ask: true }))) {
+      this.notify?.("Allow motion & orientation access to use the compass");
+      return;
+    }
+    if (compassHeading() === null) {
+      setTimeout(() => { if (compassHeading() === null) this.notify?.("No compass found on this phone"); }, NO_COMPASS_MS);
+    }
+    this.follow = !this.follow;
+    if (!this.follow) this.rotation = 0;
+    this.applyHeading();
+    const you = atNode();
+    if (this.follow && you && you.floor === this.shownFloor()) {
+      this.setCamera(this.cameraFor(bbox([this.toView([you.x, you.y])], 0, FOLLOW_SPAN)), true);
+    } else {
+      this.fit(true);
+    }
+  }
+
+  /** Apply the latest compass reading: heading cone, heading-up rotation, compass needle, turn hint. */
+  applyHeading() {
+    const north = state.index.floors[this.shownFloor()].north_deg || 0;
+    const compass = compassHeading();
+    const heading = compass === null ? null : norm(compass - north);
+    if (this.follow && heading !== null) this.rotation = heading;
+    const g = this.svg.firstElementChild;
+    if (g) {
+      const [px, py] = this.pivot;
+      g.setAttribute("transform", `rotate(${-this.rotation} ${px} ${py})`);
+      for (const t of g.querySelectorAll("text")) {
+        t.setAttribute("transform", `rotate(${this.rotation} ${t.getAttribute("x")} ${t.getAttribute("y")})`);
+      }
+      const cone = g.querySelector(".m-you-cone");
+      if (cone) {
+        cone.setAttribute("visibility", heading === null ? "hidden" : "visible");
+        cone.setAttribute("transform", `rotate(${heading || 0} ${px} ${py})`);
+      }
+    }
+    this.compassBtn.classList.toggle("following", this.follow);
+    this.compassBtn.setAttribute("aria-pressed", String(this.follow));
+    this.compassBtn.setAttribute("aria-label", this.follow ? "Stop turning the map with you" : "Turn the map with you");
+    this.compassBtn.firstElementChild.style.transform = `rotate(${-north - this.rotation}deg)`;
+    const chip = this.turnChip;
+    if (chip) {
+      chip.hidden = heading === null;
+      if (heading !== null) {
+        const rel = turn(heading, Number(chip.dataset.bearing));
+        chip.firstElementChild.style.transform = `rotate(${rel}deg)`;
+        chip.lastElementChild.textContent = turnText(rel);
+      }
+    }
   }
 
   zoomAt(factor, clientX, clientY) {
@@ -497,7 +636,7 @@ export class Navigator {
     const ppu = r.width / this.camera.w;
     const next = Math.min(MAX_PPU, Math.max(MIN_PPU, ppu * factor));
     const k = ppu / next;
-    const [px, py] = this.toMap(clientX, clientY);
+    const [px, py] = this.toCamera(clientX, clientY);
     this.camera = { x: px - (px - this.camera.x) * k, y: py - (py - this.camera.y) * k, w: this.camera.w * k, h: this.camera.h * k };
     this.applyCamera();
   }
