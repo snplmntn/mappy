@@ -1,8 +1,7 @@
 (() => {
-  const system = matchMedia("(prefers-color-scheme: dark)");
   let saved;
   try { saved = localStorage.getItem("mappy-theme"); } catch (_) {}
-  let theme = saved === "light" || saved === "dark" ? saved : system.matches ? "dark" : "light";
+  let theme = saved === "dark" ? "dark" : "light";
   function apply() {
     document.documentElement.dataset.theme = theme;
     document.querySelectorAll('meta[name="theme-color"]').forEach(meta => {
@@ -25,15 +24,10 @@
     try { localStorage.setItem("mappy-theme", theme); } catch (_) {}
     apply();
   });
-  system.addEventListener("change", () => {
-    if (saved === "light" || saved === "dark") return;
-    theme = system.matches ? "dark" : "light";
-    apply();
-  });
   window.addEventListener("mappy-theme-controls", apply);
   function syncSavedTheme() {
     try { saved = localStorage.getItem("mappy-theme"); } catch (_) {}
-    theme = saved === "light" || saved === "dark" ? saved : system.matches ? "dark" : "light";
+    theme = saved === "dark" ? "dark" : "light";
     apply();
   }
   window.addEventListener("storage", event => {
