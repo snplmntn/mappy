@@ -25,7 +25,7 @@ BRANDS: tuple[Brand, ...] = (
     Brand("Jollibee", "food", ("fried chicken", "chicken", "burger", "spaghetti", "fast food"), ("jabee", "jolibee")),
     Brand("McDonald's", "food", ("burger", "fries", "chicken", "fast food"), ("mcdo", "mcdonalds", "mcdonald")),
     Brand("KFC", "food", ("fried chicken", "chicken", "fast food"), ("kentucky",)),
-    Brand("Mang Inasal", "food", ("chicken", "Filipino", "rice")),
+    Brand("Mang Inasal", "food", ("chicken", "Filipino", "rice"), ("inasal",)),
     Brand("Chowking", "food", ("Chinese", "noodles", "halo-halo", "fast food")),
     Brand("Greenwich", "food", ("pizza", "pasta")),
     Brand("Shakey's", "food", ("pizza", "chicken"), ("shakeys",)),
@@ -46,6 +46,8 @@ BRANDS: tuple[Brand, ...] = (
     Brand("Chatime", "food", ("milk tea",)),
     Brand("Macao Imperial", "food", ("milk tea",)),
     Brand("Serenitea", "food", ("milk tea",)),
+    Brand("Tiger Sugar", "food", ("milk tea",)),  # milk tea is food here: the demo mall files Gong Cha under food
+    Brand("Gong Cha", "food", ("milk tea",)),
     Brand("Dairy Queen", "food", ("ice cream", "dessert")),
     Brand("Potato Corner", "food", ("fries", "snack")),
     Brand("Andok's", "food", ("chicken", "Filipino"), ("andoks",)),
@@ -71,8 +73,6 @@ BRANDS: tuple[Brand, ...] = (
     Brand("Mary Grace", "cafe", ("coffee", "ensaymada", "pastry")),
     Brand("Delifrance", "cafe", ("coffee", "bread", "sandwich")),
     Brand("Kumori", "cafe", ("bakery", "Japanese", "pastry")),
-    Brand("Tiger Sugar", "cafe", ("milk tea",)),
-    Brand("Gong Cha", "cafe", ("milk tea",)),
     # clothing
     Brand("Uniqlo", "clothing", ("fashion", "basics")),
     Brand("H&M", "clothing", ("fashion",)),

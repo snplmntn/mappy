@@ -136,3 +136,8 @@ def test_trait_phrases_read_as_english():
     assert trait_phrase("ramen") == "ramen"
     assert "Japanese" in traits_of("Ramen Nagi")   # proper adjectives are capitalized for display
     assert all(t.islower() or t[0].isupper() for b in BRANDS for t in b.traits)
+
+
+def test_milk_tea_brands_are_food():
+    assert {b.category for b in BRANDS if "milk tea" in b.traits} == {"food"}
+    assert brand_in("inasal").name == "Mang Inasal"

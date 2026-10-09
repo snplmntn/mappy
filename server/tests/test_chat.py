@@ -1,7 +1,6 @@
 import asyncio
 
 from mappy.chat import ChatService, StandIn
-from mappy.learn import Picks
 from mappy.llm import LLMBusy
 from mappy.models import Edit, ErrandReq, Extraction, Trip
 from mappy.router import Router
@@ -193,7 +192,6 @@ def test_missing_brand_lists_same_kind(mall, search):
 
 def test_learned_pick_leads_the_alternatives(mall, search):
     s = svc(mall, search)
-    s.picks = Picks(None)
     s.picks.record("McDonald's", "foodcourt-2f")
     out = run(s.chat("mcdo", AT, "14:00", Trip()))
     assert out["result"]["places"][0]["id"] == "foodcourt-2f"
