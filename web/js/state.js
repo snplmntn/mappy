@@ -5,6 +5,8 @@ const MAX_MESSAGES = 40;
 const EMPTY_TRIP = { errands: [], constraints: { deadline: null, order: [], elevator_only: false } };
 
 const saved = store.get(KEY, {});
+/** What this page load found in storage, for diagnosing phones that forget their spot. */
+export const savedInfo = { found: Object.keys(saved).length > 0, hadAt: Boolean(saved.at), version: saved.version || null };
 
 export const state = {
   mall: null,

@@ -1,5 +1,5 @@
 import { h, nowHHMM } from "./util.js";
-import { atLabel, atNode, dropIfStale, indexMall, pushMessage, resetTrip, state, subscribe, update } from "./state.js";
+import { atLabel, atNode, dropIfStale, indexMall, pushMessage, resetTrip, savedInfo, state, subscribe, update } from "./state.js";
 import { ApiError, getJSON, OfflineError, post, SERVER_ERROR, TimeoutError } from "./api.js";
 import { renderThread } from "./chat.js";
 import { icon } from "./icons.js";
@@ -273,7 +273,22 @@ async function boot() {
   subscribe(render);
   render();
   document.getElementById("thread").dataset.ok = "1";
-  if (!state.at) openLocation();
+  if (!state.at) {
+    reportForgotSpot();
+    openLocation();
+  }
+}
+
+/** Tell the laptop why this phone asked "Where are you?" again, so lost storage can be diagnosed. */
+function reportForgotSpot() {
+  try {
+    const nav = performance.getEntriesByType("navigation")[0];
+    const info = { ...savedInfo, load: nav ? nav.type : "unknown", mallVersion: state.mall.version, url: location.href };
+    const body = JSON.stringify({ message: `forgot spot: ${JSON.stringify(info)}`, stack: "", ua: navigator.userAgent });
+    navigator.sendBeacon?.("/api/client-error", new Blob([body], { type: "application/json" }));
+  } catch {
+    /* diagnostics must never break the app */
+  }
 }
 
 boot();
