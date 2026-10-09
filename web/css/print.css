@@ -18,7 +18,6 @@ a { color: inherit; }
 [data-icon] { display: inline-flex; align-items: center; }
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 22px max(24px, calc((100vw - 1180px) / 2)); border-bottom: 3px solid var(--ink); background: #fffef8; }
 .brand { display: flex; align-items: center; text-decoration: none; font-size: 34px; font-weight: 900; letter-spacing: -2px; }
-.brand-symbol { display: grid; place-items: center; width: 34px; height: 38px; margin-right: 10px; padding-bottom: 4px; background: var(--yellow); border: 2px solid var(--ink); border-radius: 3px; box-shadow: 3px 3px 0 var(--ink); transform: rotate(-7deg); font-size: 27px; }
 .brand-period { color: #4933b8; }
 .header-actions { display: flex; gap: 12px; }
 .button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 16px; text-decoration: none; font-size: 13px; font-weight: 800; border: 2px solid var(--ink); border-radius: 3px; background: #fffef8; box-shadow: 3px 3px 0 var(--ink); transition: transform 120ms, box-shadow 120ms; }
