@@ -4,7 +4,7 @@ Every path ends in deterministic code (search, trip edits, planner, locator)."""
 import asyncio
 import math
 from dataclasses import dataclass, field
-from typing import Protocol
+from typing import NamedTuple, Protocol
 
 import httpx
 
@@ -50,6 +50,12 @@ class StandIn:
     category: str
     traits: tuple[str, ...] = ()
     swapped: bool = False           # a known brand (so plans say so), not just the LLM's category guess
+
+
+class Nudge(NamedTuple):
+    """A nearer same-kind store than the one the shopper named, and the sentence pointing to it."""
+    row: dict
+    sentence: str
 
 
 def _not_found(queries: list[str]) -> str:
@@ -190,6 +196,12 @@ class ChatService:
         s = router.seconds(start, self.mall.places[pid].node)
         return None if s is None else max(1, math.ceil(s / 60))
 
+    def _row(self, pid: str, start: str, router: Router) -> dict:
+        """One tappable place row as the phone renders it."""
+        p = self.mall.places[pid]
+        return {"id": pid, "name": p.name, "floor": p.floor, "floor_name": self.mall.floors[p.floor].name,
+                "category": p.category, "fictional": p.fictional, "walk_min": self._walk_min(start, pid, router)}
+
     def _places_result(self, query: str, ids: list[str], start: str, router: Router,
                        scores: dict[str, int] | None = None, category: str | None = None,
                        shown: tuple[str, ...] = ()) -> dict:
@@ -197,12 +209,7 @@ class ChatService:
         is of (the top place's when not given) and `shown` every id listed so far in this paging chain
         (earlier pages, then this one), so "iba pa" can page through the rest of it."""
         scores = scores or {}
-        rows = []
-        for pid in ids:
-            p = self.mall.places[pid]
-            rows.append({"id": pid, "name": p.name, "floor": p.floor, "floor_name": self.mall.floors[p.floor].name,
-                         "category": p.category, "fictional": p.fictional,
-                         "walk_min": self._walk_min(start, pid, router)})
+        rows = [self._row(pid, start, router) for pid in ids]
         rows.sort(key=lambda r: (-scores.get(r["id"], 0), r["walk_min"] is None, r["walk_min"] or 0))
         rows = rows[:FIND_RESULTS]
         category = category or (rows[0]["category"] if rows else None)
@@ -215,10 +222,10 @@ class ChatService:
         ids = self.search.alternatives(category, traits, exclude)
         return ids, {pid: self.search.trait_score(pid, traits) for pid in ids}
 
-    def _alternatives_result(self, alt: StandIn, start: str, router: Router, exclude: tuple[str, ...] = ()) -> dict:
+    def _alternatives_result(self, alt: StandIn, start: str, router: Router) -> dict:
         """Same-kind places for a missing store: what shoppers here picked instead first (most picked
         first), then the rest by trait match."""
-        ids, scores = self._ranked(alt.category, alt.traits, exclude)
+        ids, scores = self._ranked(alt.category, alt.traits)
         learned = [pid for pid in self.picks.ranked(alt.name) if pid in ids]
         lead = max(scores.values(), default=0) + len(learned)
         scores |= {pid: lead - i for i, pid in enumerate(learned)}
@@ -262,10 +269,9 @@ class ChatService:
             reply += f" {rows[0]['name']} is {rows[0]['walk_min']} min away."
         return reply
 
-    def _nudge(self, rows: list[dict], start: str, router: Router,
-               exclude: tuple[str, ...]) -> tuple[dict, str] | None:
+    def _nudge(self, rows: list[dict], start: str, router: Router, exclude: tuple[str, ...]) -> Nudge | None:
         """A same-kind store at least NUDGE_MIN minutes nearer than the store the shopper named (best
-        trait match first), and the sentence pointing to it."""
+        trait match first)."""
         top = rows[0]
         if top["walk_min"] is None:
             return None
@@ -275,10 +281,10 @@ class ChatService:
                    None)
         if pid is None:
             return None
-        near = self._places_result("", [pid], start, router)["places"][0]
+        near = self._row(pid, start, router)
         kind = next((trait_phrase(t) for t in self.search.matched_traits(pid, traits)), _label(near["category"]))
-        return near, (f"{top['name']} is {top['walk_min']} min away on {top['floor_name']}. "
-                      f"{near['name']} on {near['floor_name']} does {kind} too, {near['walk_min']} min.")
+        return Nudge(near, f"{top['name']} is {top['walk_min']} min away on {top['floor_name']}. "
+                           f"{near['name']} on {near['floor_name']} does {kind} too, {near['walk_min']} min.")
 
     def _plan_payload(self, trip: Trip, start: str, now_min: int, changes: list[str]) -> dict:
         plan = plan_trip(trip, start, now_min, self._router(trip), self.mall)
@@ -320,9 +326,9 @@ class ChatService:
             result = self._places_result(req.query, ids, start, router, category=cat)
             reply = f"Here's what I found for “{req.query}”:"
             if cat is None and (nudge := self._nudge(result["places"], start, router, tuple(ids))):
-                result["places"].append({**nudge[0], "nudge": True})
-                result["shown"].append(nudge[0]["id"])
-                reply += f" {nudge[1]}"
+                result["places"].append({**nudge.row, "nudge": True})
+                result["shown"].append(nudge.row["id"])
+                reply += f" {nudge.sentence}"
             return {"reply": reply, "result": result,
                     "trip": trip.model_dump(by_alias=True)}
 
