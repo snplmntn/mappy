@@ -70,46 +70,6 @@ svg.icon {stroke-width:1.7}
 .floors,.floor-btn,.maneuver {border-radius:12px}
 .floor-change {background:var(--bubble);color:var(--text)}
 .toast {border-radius:22px}
-.minimal-print .topbar {background:var(--bg);border-bottom:1px solid var(--line)}
-.minimal-print .button {border:1px solid var(--line);border-radius:12px;box-shadow:none;background:var(--surface);color:var(--text);font-weight:500}
-.minimal-print .print-button {background:var(--button);color:var(--button-text)}
-.minimal-print .button:hover {transform:none;box-shadow:none}
-.minimal-print .eyebrow {background:none;border:0;padding:0;box-shadow:none;transform:none;color:var(--text-2);font-weight:400}
-.minimal-print h1 {font-size:clamp(30px,4vw,44px);font-weight:500;letter-spacing:-1px}
-.minimal-print h1 > span {border:0;box-shadow:none;background:none;padding:0;color:var(--text-2)}
-.minimal-print h2,.minimal-print h3 {font-weight:550}
-.minimal-print .steps li .step-number {background:var(--bubble);border:0;border-radius:50%;box-shadow:none}
-.minimal-print .qr-card {background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:none}
-.minimal-print .card-icon {background:var(--bubble);color:var(--text-2);border:0;border-radius:12px}
-.minimal-print .location-card:nth-child(n) .card-kicker {background:none;border-bottom:1px solid var(--line);font-weight:500;color:var(--text-2)}
-.minimal-print .connection-note {background:none;border-left:2px solid var(--line)}
-.minimal-print .page-heading > p,.minimal-print .steps div > span,.minimal-print .connect-copy .helper,.minimal-print .offline-note,.minimal-print .section-description,.minimal-print .location-card p,.minimal-print footer {color:var(--text-2)}
-.minimal-print footer {border-top:1px solid var(--line)}
-.minimal-print .footer-brand {color:var(--text);font-weight:500}
-.minimal-edge header {border-bottom:1px solid var(--line)}
-.minimal-edge h1 {display:flex;align-items:center;font-size:24px;font-weight:600;letter-spacing:-1px}
-.minimal-edge h1 .period {color:var(--text)}
-.minimal-edge h1 .tag {margin-left:12px;padding:0;background:none;color:var(--text-2);border:0;box-shadow:none;transform:none;font-size:15px;font-weight:400;letter-spacing:0}
-.minimal-edge header p {margin-top:6px;font-size:13px;font-weight:400;letter-spacing:0}
-.minimal-edge header .theme-toggle {width:44px;padding:0;border:0}
-.minimal-edge header .theme-toggle span {display:none}
-.minimal-edge .net {min-height:44px;padding:0 14px;font-size:13px;border:1px solid var(--line);border-radius:12px;box-shadow:none;font-weight:500}
-.minimal-edge .net.off,.minimal-edge .net.on {background:var(--surface);color:var(--text)}
-.minimal-edge .net.off i {background:var(--green)}
-.minimal-edge .net.on i {background:var(--red)}
-.minimal-edge .net i {border:0;border-radius:50%;width:8px;height:8px}
-.minimal-edge .tiles {gap:14px}
-.minimal-edge .tile {padding:18px;border:1px solid var(--line);border-radius:16px;background:var(--surface);box-shadow:none}
-.minimal-edge .tile:nth-child(n) span {background:none;border:0;padding:0;color:var(--text-2);font-weight:400}
-.minimal-edge .tile b {font-size:36px;font-weight:500}
-.minimal-edge .tile small {font-weight:400}
-.minimal-edge .feed {border:1px solid var(--line);border-radius:16px;box-shadow:none}
-.minimal-edge .feed h2 {font-size:20px;font-weight:550;letter-spacing:-.5px;border-bottom:1px solid var(--line)}
-.minimal-edge .feed h2::before {animation:none;border:0;width:6px;height:6px;background:var(--green)}
-.minimal-edge li {border-bottom:1px solid var(--line);font-size:15px}
-.minimal-edge .when,.minimal-edge .ms,.minimal-edge .who,.minimal-edge .msg {font-weight:400;font-size:13px}
-.minimal-edge .pill,.minimal-edge .down {border:0;background:var(--bubble);color:var(--text);box-shadow:none;border-radius:8px;font-weight:400}
-.minimal-edge li.empty {font-size:14px;font-weight:400}
 @media(max-width:700px){
  .minimal-app {--workspace-gutter:16px}
  .minimal-app .topbar {min-height:0;margin-top:max(8px,env(safe-area-inset-top));gap:0 4px;padding:0}
@@ -141,11 +101,6 @@ svg.icon {stroke-width:1.7}
  :root[data-theme="dark"] {--bg:#212121;--surface:#292929;--text:#ececec;--text-2:#b4b4b4;--line:#444;--bubble:#303030;--button:#ececec;--button-text:#202020;--blue:#9fbdda;--glass:rgba(41,41,41,.96);--glass-line:#444;--ink:#ececec;--edge:#444;color-scheme:dark}
  :root[data-theme="dark"] .send {color:var(--button-text)}
 @media(prefers-reduced-motion:reduce){.suggestion {transition:none}}
-@media print{
- .minimal-print {--bg:white;--surface:white;--text:black;--text-2:#444;--line:#999;background:white;color:black}
- .minimal-print h1 {font-size:23px}.minimal-print h2 {font-size:17px}
- .minimal-print .qr-card {border-radius:0}
-}
 
 
 .theme-toggle {display:inline-flex;align-items:center;justify-content:center;gap:7px;min-width:44px;min-height:44px;padding:0 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--text);font-size:13px;white-space:nowrap}

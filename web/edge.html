@@ -5,12 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Mappy · Edge Box</title>
   <link rel="icon" href="data:,">
-  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#212121" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f7f4e9">
   <style>
     /* Same neobrutalist tokens as css/neobrutal.css, so the edge box reads as part of the app. */
     :root {
-      --bg: #ffffff;
+      --bg: #f7f4e9;
       --surface: #fffef8;
       --text: #191919;
       --text-2: #51514b;
@@ -26,20 +25,16 @@
       color-scheme: light;
       font-family: Arial, Helvetica, sans-serif;
     }
-    @media (prefers-color-scheme: dark) {
-      :root { --bg: #212121; --surface: #30302e; --text: #fffbed; --text-2: #c5c3b7; --ink: #000;
-        --edge: #79786d; --dots: #ffffff22; --blue: #b4a0ff; color-scheme: dark; }
-    }
     * { box-sizing: border-box; }
     body { margin: 0; background: var(--bg); color: var(--text); font-size: 16px; line-height: 1.4;
       background-image: radial-gradient(var(--dots) .8px, transparent .8px); background-size: 18px 18px; }
     .wrap { display: grid; grid-template-rows: auto auto 1fr; gap: 24px; height: 100vh; padding: 26px 32px 32px; }
     header { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding-bottom: 22px; border-bottom: 3px solid var(--edge); }
-    .brand { display: flex; align-items: center; gap: 3px; min-width: 0; }
+    .brand { display: flex; align-items: center; min-width: 0; }
     .brand-symbol { display: grid; place-items: center; width: 44px; height: 48px; padding-bottom: 5px; flex: none; color: #191919;
       background: var(--yellow); border: 2px solid var(--edge); border-radius: 3px; box-shadow: 3px 3px 0 var(--ink);
-      transform: rotate(-7deg); font-size: 34px; font-weight: 900; }
-    h1 { margin: 0; font-size: 38px; font-weight: 900; letter-spacing: -2px; line-height: 1; }
+      transform: rotate(-7deg); margin-right: 6px; font-size: 34px; font-weight: 900; letter-spacing: 0; }
+    h1 { display: flex; align-items: center; margin: 0; font-size: 38px; font-weight: 900; letter-spacing: -2px; line-height: 1; }
     h1 .period { color: var(--blue); }
     h1 .tag { display: inline-block; margin-left: 12px; padding: 4px 10px 6px; font-size: 22px; letter-spacing: -.8px; color: #191919;
       background: var(--lilac); border: 2px solid var(--edge); box-shadow: 3px 3px 0 var(--ink); transform: rotate(-2deg); vertical-align: 5px; }
@@ -100,10 +95,8 @@
       .when, .msg { grid-column: 1 / -1; }
     }
   </style>
-  <link rel="stylesheet" href="/css/minimal.css">
-  <script src="/js/theme.js"></script>
 </head>
-<body class="minimal-edge">
+<body>
   <div class="wrap">
     <header>
       <div class="brand">
@@ -113,7 +106,6 @@
         </div>
       </div>
       <div id="net" class="net"><i></i><span>Checking internet…</span></div>
-      <button class="theme-toggle" data-theme-toggle type="button" aria-label="Switch color theme"></button>
     </header>
     <section class="tiles">
       <div class="tile"><span>Phones connected</span><b id="phones">–</b><small>last 15 minutes</small></div>
