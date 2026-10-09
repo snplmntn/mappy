@@ -10,6 +10,8 @@ const SERVER_ERROR = "Something went wrong on the Mappy server. Try again.";
 
 const input = document.getElementById("input");
 const sendBtn = document.getElementById("send");
+const micBtn = document.getElementById("mic");
+const KEYBOARD_MIC_TIP = "Tap 🎤 on your keyboard to talk";
 let nav;
 
 function botError(err) {
@@ -117,9 +119,47 @@ const actions = {
   },
 };
 
+/** Voice input: the browser's speech recognition when allowed, otherwise the keyboard's own mic. */
+let listening = null;
+function startVoice() {
+  if (listening) {
+    listening.stop();
+    return;
+  }
+  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!Recognition || !window.isSecureContext) {
+    input.focus();
+    toast(KEYBOARD_MIC_TIP);
+    return;
+  }
+  const rec = new Recognition();
+  rec.lang = "en-PH";
+  rec.interimResults = true;
+  const before = input.value ? `${input.value.trim()} ` : "";
+  rec.onresult = (e) => {
+    input.value = before + [...e.results].map((r) => r[0].transcript).join("");
+    autosize();
+  };
+  rec.onerror = () => {
+    input.focus();
+    toast(KEYBOARD_MIC_TIP);
+  };
+  rec.onend = () => {
+    listening = null;
+    micBtn.classList.remove("listening");
+    micBtn.setAttribute("aria-label", "Speak");
+    autosize();
+  };
+  listening = rec;
+  micBtn.classList.add("listening");
+  micBtn.setAttribute("aria-label", "Stop listening");
+  rec.start();
+}
+
 function autosize() {
   input.style.height = "auto";
   input.style.height = `${Math.min(input.scrollHeight, 120)}px`;
+  micBtn.hidden = Boolean(input.value.trim()) && !listening;
   const sending = state.busy && state.pending === "send";
   sendBtn.classList.toggle("loading", sending);
   sendBtn.disabled = sending || !input.value.trim() || state.busy;
@@ -171,6 +211,8 @@ async function boot() {
   document.getElementById("mapBtn").append(icon("map"));
   document.getElementById("newBtn").append(icon("compose"));
   sendBtn.append(icon("send", 18));
+  micBtn.append(icon("mic"));
+  micBtn.addEventListener("click", startVoice);
   try {
     const mall = await getJSON("/api/mall");
     dropIfStale(mall);
