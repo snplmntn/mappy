@@ -1,6 +1,7 @@
 """HTTP API and static web app. Thin wiring over ChatService; logic lives elsewhere."""
 
 import html
+import io
 from datetime import datetime
 from typing import Annotated
 
@@ -63,8 +64,19 @@ class RevalidatingStaticFiles(StaticFiles):
         return response
 
 
+QR_STYLE = {"border": 2, "dark": "#10213f"}
+
+
 def _qr_svg(data: str, scale: int = 6) -> str:
-    return segno.make(data, error="m").svg_inline(scale=scale, border=2, dark="#10213f")
+    """Inline SVG for embedding in HTML. Has no xmlns, so it can't be served as a standalone image."""
+    return segno.make(data, error="m").svg_inline(scale=scale, **QR_STYLE)
+
+
+def _qr_svg_file(data: str, scale: int = 6) -> bytes:
+    """Standalone SVG document (with xmlns) that an <img src> can render."""
+    buf = io.BytesIO()
+    segno.make(data, error="m").save(buf, kind="svg", scale=scale, **QR_STYLE)
+    return buf.getvalue()
 
 
 def create_app(settings: Settings | None = None, embedder=None, llm=None) -> FastAPI:
@@ -119,7 +131,7 @@ def create_app(settings: Settings | None = None, embedder=None, llm=None) -> Fas
 
     @app.get("/api/qr")
     def qr(data: Annotated[str, Query(max_length=400)]):
-        return Response(_qr_svg(data), media_type="image/svg+xml")
+        return Response(_qr_svg_file(data), media_type="image/svg+xml")
 
     @app.get("/print", response_class=HTMLResponse)
     def print_page():
