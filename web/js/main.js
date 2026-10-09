@@ -298,9 +298,14 @@ async function boot() {
     input.value = "";
     actions.send(text);
   });
+  document.getElementById("chatView").addEventListener("click", (e) => {
+    if (!state.messages.length && !e.target.closest("button, a, summary, textarea, input, details")) input.focus();
+  });
   subscribe(render);
   render();
   document.getElementById("thread").dataset.ok = "1";
+  // Open ready to type, like a chat app. iOS ignores this until the first tap, which the listener above catches.
+  input.focus();
   if (!state.at) reportForgotSpot();
 }
 
