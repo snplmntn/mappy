@@ -2,7 +2,11 @@
 
 **An errand isn't a point, it's a task with a duration.** Mappy plans your mall trip around waiting time, offline.
 
-SM's directory kiosks have a queue, one screen, and no idea *why* you came. Mappy puts that kiosk in every phone: scan a QR code (no install), say what you need in Taglish, and a local AI on a laptop plans the whole trip, across floors.
+Mappy is an offline, on-device AI mall navigator that runs on one local laptop, with no cloud and no internet.
+
+Ask in English or Taglish (*"sira screen ng phone ko"*, *"kakain tapos bibili ng regalo"*). A local LLM (Qwen3-1.7B, CPU only) and on-device embeddings turn your words into a multi-floor trip plan that schedules errands around waiting time. If you change the plan by talking, it re-plans instantly. Scan a QR code to join; no app install is needed. Mappy offers indoor navigation without GPS, elevator-only accessible routes, and suggestions when a store isn't there. It is privacy-first: phones connect over the laptop's hotspot in airplane mode, so no data leaves the mall.
+
+This is edge AI built for connectivity dead zones, with fast responses (about 0.3 s) and deterministic fallbacks. The map is SM Makati's real building outline and store names; the interior layout is our reconstruction.
 
 Built for AppBuildersPH Hackathon 2026 (theme: Local AI).
 
@@ -89,11 +93,10 @@ Phone (Chrome, 13 KB gzipped)  ──HTTP──>  FastAPI on the laptop
 
 | | |
 |---|---|
-| **Models** | Qwen3-1.7B via Ollama `qwen3:1.7b` (Q4_K_M, Apache 2.0). intfloat/multilingual-e5-small (MIT), int8-quantized by us with onnxruntime. |
-| **Runtime and frameworks** | Ollama 0.40.1, onnxruntime, FastAPI, uvicorn, pydantic, numpy, tokenizers, rapidfuzz, httpx, segno. Vanilla JS + SVG (no frontend framework). |
-| **Map data** | Building outlines © OpenStreetMap contributors (ODbL), ways 27831200 and 263667838. Store names from public listings. Layout reconstructed. |
-| **Cloud/APIs at runtime** | None. Internet is used only during setup to download software and models. |
-| **Existing code/assets** | None. Built during the hackathon. |
+| **AI models (run locally, CPU only)** | Qwen3-1.7B (Q4_K_M, Apache 2.0) via Ollama 0.40.1, for understanding requests. intfloat/multilingual-e5-small (MIT), quantized to int8 by us with onnxruntime, for semantic store search. |
+| **Frameworks and libraries** | Python with FastAPI, uvicorn, pydantic, numpy, onnxruntime, onnx, tokenizers, rapidfuzz, httpx, segno (QR codes) and cryptography (local HTTPS cert). Frontend is vanilla JavaScript and SVG with no framework. |
+| **APIs / cloud at runtime** | None. Internet is used only during setup to download software and models. |
+| **Existing code and assets** | No pre-existing code; all application code was written during the hackathon. Third-party assets: Inter font (SIL Open Font License); building outlines © OpenStreetMap contributors (ODbL), ways 27831200 and 263667838. Store names come from public listings. The interior layout is our own reconstruction. Three phone-repair stalls (FixHub Mobile, QuickFix Gadget Clinic, ScreenDoc) are fictional, for the demo. |
 | **AI development tools** | Claude Code. |
 | **Why local** | See "Why local" above. |
 
