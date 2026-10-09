@@ -64,6 +64,37 @@ def test_category_word_beats_the_llm_guess(mall, search):
     assert [e["category"] for e in out["trip"]["errands"]] == ["food", "cafe"]
 
 
+class CountingLLM(FixedLLM):
+    calls = 0
+
+    async def extract(self, message, trip, summary=""):
+        self.calls += 1
+        return self.x
+
+
+def test_rules_dead_end_asks_the_llm(mall, search):
+    llm = CountingLLM(Extraction(intent="find", source="llm", errands=[ErrandReq(query="meal", category="food")]))
+    out = run(svc(mall, search, llm).chat("saan yung zzyzx", AT, "14:00", Trip()))
+    assert llm.calls == 1 and out["meta"]["engine"] == "llm" and out["result"]["type"] == "places"
+
+
+def test_rules_hit_skips_the_llm(mall, search):
+    llm = CountingLLM(Extraction(intent="other", source="llm"))
+    out = run(svc(mall, search, llm).chat("CR", AT, "14:00", Trip()))
+    assert llm.calls == 0 and out["result"]["type"] == "places"
+
+
+def test_llm_dead_end_keeps_the_rules_reply(mall, search):
+    llm = CountingLLM(Extraction(intent="locate", source="llm", landmarks=["Zzyzx"]))
+    out = run(svc(mall, search, llm).chat("saan yung zzyzx", AT, "14:00", Trip()))
+    assert llm.calls == 1 and "couldn't find" in out["reply"] and out["meta"]["engine"] == "rules"
+
+
+def test_dead_end_with_busy_llm_keeps_the_rules_reply(mall, search):
+    out = run(svc(mall, search).chat("saan yung zzyzx", AT, "14:00", Trip()))
+    assert "couldn't find" in out["reply"] and out["meta"]["engine"] == "rules"
+
+
 def test_busy_llm_falls_back(mall, search):
     out = run(svc(mall, search).chat("phone, kain, damit", AT, "14:00", Trip()))
     assert out["result"]["type"] == "plan" and len(out["trip"]["errands"]) >= 2

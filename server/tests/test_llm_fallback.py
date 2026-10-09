@@ -1,4 +1,4 @@
-from mappy.llm import SCHEMA, fallback_extract, from_short, trip_summary
+from mappy.llm import SCHEMA, _echoes_example, fallback_extract, from_short, trip_summary
 from mappy.models import Errand, Trip
 
 
@@ -38,3 +38,15 @@ def test_from_short_drops_unknown_ops_and_null_category():
 def test_schema_has_categories():
     s = SCHEMA(["food", "atm"])
     assert "food" in s["properties"]["e"]["items"]["properties"]["c"]["anyOf"][0]["enum"]
+
+
+def test_copied_worked_example_is_rejected():
+    copied = from_short({"i": "find", "e": [{"q": "birthday gift", "c": "gift"}]})
+    assert _echoes_example("san pwede magpagupit", copied)
+    assert not _echoes_example("where can I buy a birthday present", copied)
+    asked_as_query = from_short({"i": "find", "e": [{"q": "where can I buy a birthday present"}]})
+    assert _echoes_example("san pwede magpagupit", asked_as_query)
+
+
+def test_plain_other_is_never_an_echo():
+    assert not _echoes_example("thanks bro", from_short({"i": "other"}))

@@ -11,7 +11,7 @@ import httpx
 from .llm import LLMBusy, LLMError, fallback_extract, trip_summary
 from .locator import locate
 from .mall import Mall
-from .models import Edit, Errand, Extraction, Trip, hhmm_to_min
+from .models import Edit, Errand, ErrandReq, Extraction, Trip, hhmm_to_min
 from .planner import plan_trip
 from .router import Router
 from .rules import parse
@@ -40,6 +40,11 @@ def _text(reply: str, trip: Trip) -> dict:
 
 def _not_found(queries: list[str]) -> str:
     return f"I couldn't find “{', '.join(queries)}” in this mall. {TRY_INSTEAD}"
+
+
+def _dead_end(x: Extraction, out: dict) -> bool:
+    """A search, plan or locate that ended in plain text found nothing."""
+    return x.intent in ("find", "plan", "locate") and out["result"]["type"] == "text"
 
 
 def _help(trip: Trip) -> str:
@@ -97,6 +102,14 @@ class ChatService:
         """A category word in the user's own text beats the small LLM's guess."""
         return self.search.alias_category(query) or category
 
+    def _find_category(self, req: ErrandReq) -> str | None:
+        """The category to list for a search. The LLM's guess only counts when search agrees with it,
+        so "sinehan" in a mall without a cinema isn't answered with gift shops."""
+        if cat := self.search.alias_category(req.query):
+            return cat
+        hits = self._matches(req.query, None) if req.category else []
+        return req.category if hits and self.mall.places[hits[0]].category == req.category else None
+
     def make_errand(self, query: str, category: str | None, new_id: str) -> Errand | None:
         ids = self._matches(query, self._category(query, category))
         if not ids:
@@ -107,17 +120,20 @@ class ChatService:
                       category=first.category, candidates=ids, duration_min=duration,
                       duration_source="store" if first.service else "default", **{"async": is_async})
 
+    async def _ask_llm(self, message: str, trip: Trip) -> Extraction | None:
+        if self.llm is None:
+            return None
+        try:
+            summary = trip_summary(trip, self._name)
+            return await asyncio.wait_for(self.llm.extract(message, trip, summary), LLM_TIMEOUT_S)
+        except (LLMBusy, LLMError, asyncio.TimeoutError, httpx.HTTPError):
+            return None
+
     async def _extract(self, message: str, trip: Trip) -> Extraction:
         x = parse(message, trip, self.search)
         if x is not None:
             return x
-        if self.llm is not None:
-            try:
-                summary = trip_summary(trip, self._name)
-                return await asyncio.wait_for(self.llm.extract(message, trip, summary), LLM_TIMEOUT_S)
-            except (LLMBusy, LLMError, asyncio.TimeoutError, httpx.HTTPError):
-                pass
-        return fallback_extract(message, trip)
+        return await self._ask_llm(message, trip) or fallback_extract(message, trip)
 
     def _walk_min(self, start: str, pid: str, router: Router) -> int | None:
         s = router.seconds(start, self.mall.places[pid].node)
@@ -140,6 +156,13 @@ class ChatService:
     async def chat(self, message: str, at: dict | None, now: str, trip: Trip) -> dict:
         x = await self._extract(message, trip)
         out = self._respond(x, at, now, trip)
+        if x.source == "rules" and _dead_end(x, out):
+            # The rules were sure but found nothing, so let the LLM read it before giving up.
+            # Keep the rules' plain "couldn't find" unless the LLM gets somewhere.
+            if (retry := await self._ask_llm(message, trip)) is not None:
+                retry_out = self._respond(retry, at, now, trip)
+                if not _dead_end(retry, retry_out):
+                    x, out = retry, retry_out
         out["meta"] = {"engine": x.source, "intent": x.intent}  # which engine understood it, for the receipt line
         return out
 
@@ -150,7 +173,7 @@ class ChatService:
 
         if x.intent == "find" and x.errands:
             req = x.errands[0]
-            cat = self._category(req.query, req.category)
+            cat = self._find_category(req)
             ids = self.search.by_category(cat) if cat and self.search.by_category(cat) else self._matches(req.query, None)
             if not ids:
                 return _text(_not_found([req.query]), trip)

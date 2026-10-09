@@ -57,6 +57,23 @@ def SCHEMA(categories: list[str]) -> dict:  # noqa: N802 - reads like a constant
     }
 
 
+# (trip summary, message, expected JSON) shown to the model as worked examples.
+EXAMPLES = [
+    (None, "papaayos ko screen ng phone ko, kakain, tapos bibili ng regalo kay mama",
+     '{"i":"plan","e":[{"q":"phone screen repair","c":"phone_repair"},{"q":"meal","c":"food"},'
+     '{"q":"gift for mom","c":"gift"}]}'),
+    ("e1: Phone repair, FixHub Mobile, 45 min, async, todo | e2: Kain, Foodcourt, 30 min, sync, todo",
+     "sabi ng technician isang oras daw, at dagdag mo yung sapatos na ipapaayos",
+     '{"i":"edit","d":[{"op":"set_duration","e":"e1","n":60},{"op":"add","q":"shoe repair"}]}'),
+    (None, "basag yung screen ng tablet ko, nauuhaw na rin ako",
+     '{"i":"plan","e":[{"q":"tablet screen repair","c":"phone_repair"},{"q":"cold drink","c":"cafe"}]}'),
+    (None, "where can I buy a birthday present", '{"i":"find","e":[{"q":"birthday gift","c":"gift"}]}'),
+    (None, "nasa harap ako ng Watsons, tapos kita ko yung Jollibee sa kaliwa",
+     '{"i":"locate","l":["Watsons","Jollibee"]}'),
+    (None, "salamat!", '{"i":"other"}'),
+]
+
+
 def system_prompt(categories: list[str]) -> str:
     return (
         "You read short Taglish (Tagalog+English) messages from shoppers inside a mall and output JSON only.\n"
@@ -67,21 +84,17 @@ def system_prompt(categories: list[str]) -> str:
         "s: dropped|done, q: new errand phrase, v: true/false}. l=store names the user can see. f=floor like 4F or GF.\n"
         f"Categories: {', '.join(categories)}.\n"
         "Examples:\n"
-        'MSG: papaayos ko screen ng phone ko, kakain, tapos bibili ng regalo kay mama\n'
-        '{"i":"plan","e":[{"q":"phone screen repair","c":"phone_repair"},{"q":"meal","c":"food"},'
-        '{"q":"gift for mom","c":"gift"}]}\n'
-        "TRIP: e1: Phone repair, FixHub Mobile, 45 min, async, todo | e2: Kain, Foodcourt, 30 min, sync, todo\n"
-        "MSG: sabi ng technician isang oras daw, at dagdag mo yung sapatos na ipapaayos\n"
-        '{"i":"edit","d":[{"op":"set_duration","e":"e1","n":60},{"op":"add","q":"shoe repair"}]}\n'
-        "MSG: basag yung screen ng tablet ko, nauuhaw na rin ako\n"
-        '{"i":"plan","e":[{"q":"tablet screen repair","c":"phone_repair"},{"q":"cold drink","c":"cafe"}]}\n'
-        "MSG: where can I buy a birthday present\n"
-        '{"i":"find","e":[{"q":"birthday gift","c":"gift"}]}\n'
-        "MSG: nasa harap ako ng Watsons, tapos kita ko yung Jollibee sa kaliwa\n"
-        '{"i":"locate","l":["Watsons","Jollibee"]}\n'
-        "MSG: salamat!\n"
-        '{"i":"other"}'
+        + "\n".join((f"TRIP: {trip}\n" if trip else "") + f"MSG: {msg}\n{out}" for trip, msg, out in EXAMPLES)
     )
+
+
+def _echoes_example(message: str, result: Extraction) -> bool:
+    """Small models sometimes copy a worked example for a message they don't understand."""
+    m = message.strip().lower()
+    copied = {e.query.strip().lower() for e in result.errands}
+    return result.intent != "other" and any(
+        m != msg.lower() and (result == from_short(json.loads(out)) or msg.lower() in copied)
+        for _, msg, out in EXAMPLES)
 
 
 def from_short(d: dict, source: str = "llm") -> Extraction:
@@ -176,6 +189,8 @@ class LLMClient:
                 content = r.json()["message"]["content"]
                 content = re.sub(r"<think>.*?</think>", "", content, flags=re.S).strip()
                 result = from_short(json.loads(content))
+                if _echoes_example(message, result):
+                    raise ValueError("model echoed a worked example")
             except (httpx.HTTPError, KeyError, ValueError) as exc:
                 raise LLMError(str(exc)) from exc
         self._cache[key] = result
