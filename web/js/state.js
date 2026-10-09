@@ -51,10 +51,10 @@ export function indexMall(mall) {
 
 export function atLabel() {
   const { at, index } = state;
-  if (!at || !index) return "Saan ka?";
+  if (!at || !index) return "Set your location";
   if (at.anchor && index.anchors[at.anchor]) return index.anchors[at.anchor].label;
-  if (at.node && index.nodes[at.node]) return `${index.floors[index.nodes[at.node].floor].name}, piniling puwesto`;
-  return "Saan ka?";
+  if (at.node && index.nodes[at.node]) return `${index.floors[index.nodes[at.node].floor].name}, pinned spot`;
+  return "Set your location";
 }
 
 export function atNode() {

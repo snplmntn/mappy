@@ -1,115 +1,101 @@
-import { h, s } from "./util.js";
+import { h } from "./util.js";
 import { state } from "./state.js";
-import { bbox, pinForNode, renderFloor } from "./map.js";
+import { icon } from "./icons.js";
+import { CATEGORY_NAMES, miniMap, nodePoint } from "./map.js";
 
 const DURATIONS = [15, 30, 45, 60, 90];
 
-function floorBadge(floorId) {
-  return h("span", { class: "floor-badge", "aria-label": state.index.floors[floorId]?.name }, floorId);
+function placesCard(result, actions) {
+  return h("div", { class: "card" }, result.places.map((p) =>
+    h("button", { class: "row", type: "button", onclick: () => actions.navigateToPlace(p.id) },
+      h("div", { class: "row-main" },
+        h("div", { class: "row-title" }, p.name, p.fictional ? h("span", { class: "tag" }, "demo") : null),
+        h("div", { class: "row-sub" }, [CATEGORY_NAMES[p.category] || p.category, p.floor_name, p.walk_min ? `${p.walk_min} min walk` : null]
+          .filter(Boolean).join(" · "))),
+      h("span", { class: "chev" }, icon("chevron")))));
 }
 
-function placesPanel(result, actions) {
-  const rows = result.places.map((p) =>
-    h("button", { class: "row", type: "button", onclick: () => actions.routeToPlace(p.id) },
-      floorBadge(p.floor),
-      h("span", { class: "row-main" },
-        h("div", { class: "row-name" }, p.name, p.fictional ? h("span", { class: "demo-tag" }, "demo") : null),
-        h("div", { class: "row-sub" }, p.walk_min ? `${p.walk_min} min lakad, ${p.floor_name}` : p.floor_name))));
-  return h("div", { class: "panel" }, rows);
-}
-
-function stopTools(stop, errand, actions) {
-  const tools = [];
-  if (stop.kind !== "pick") {
+function durationControl(errand, actions) {
+  const wrap = h("div", { class: "stop-actions" });
+  const collapsed = () => {
+    wrap.replaceChildren(h("button", { class: "pill", type: "button", onclick: expanded }, `${errand.duration_min} min`));
+    return wrap;
+  };
+  const expanded = () => {
     const options = DURATIONS.includes(errand.duration_min) ? DURATIONS : [...DURATIONS, errand.duration_min].sort((a, b) => a - b);
-    for (const mins of options) {
-      tools.push(h("button", {
-        class: "chip-s", type: "button", "aria-pressed": mins === errand.duration_min ? "true" : "false",
-        "aria-label": `${mins} minutes`,
-        onclick: () => actions.applyEdits([{ op: "set_duration", errand: errand.id, minutes: mins }]),
-      }, `${mins}m`));
-    }
-  }
-  const status = stop.kind === "drop" ? ["dropped", "Naiwan ko na"] : stop.kind === "pick" ? ["done", "Nakuha ko na"] : ["done", "Tapos na"];
-  tools.push(h("button", {
-    class: "chip-s act", type: "button",
-    onclick: () => actions.applyEdits([{ op: "status", errand: errand.id, status: status[0] }]),
-  }, status[1]));
-  return h("div", { class: "stop-tools" }, tools);
+    wrap.replaceChildren(...options.map((m) => h("button", {
+      class: "pill", type: "button", "aria-pressed": m === errand.duration_min ? "true" : "false",
+      onclick: () => (m === errand.duration_min ? collapsed() : actions.applyEdits([{ op: "set_duration", errand: errand.id, minutes: m }])),
+    }, `${m} min`)));
+  };
+  return collapsed();
 }
 
-function planPanel(result, latest, actions) {
+function planCard(result, latest, actions) {
   const { plan, changes = [] } = result;
+  const warnings = (plan?.warnings || []).map((w) => h("div", { class: "note warn", role: "status" }, w));
   if (!plan || !plan.stops.length) {
-    const warnings = (plan?.warnings || []).map((w) => h("div", { class: "warn", role: "status" }, w));
-    const empty = warnings.length ? "Walang ma-plano sa ngayon." : "Wala nang natitirang stops. Tapos ka na!";
-    return h("div", { class: "panel" }, warnings, h("div", { class: "row" }, empty));
+    return h("div", { class: "card" }, warnings,
+      h("div", { class: "card-head" }, h("h3", {}, warnings.length ? "Nothing to plan right now" : "All done"),
+        h("p", {}, warnings.length ? "Try a different request." : "You've finished every stop.")), h("div", { style: "height:12px" }));
   }
   const errands = Object.fromEntries(state.trip.errands.map((e) => [e.id, e]));
-  const changedText = changes.join(" ").toLowerCase();
   const items = plan.stops.map((stop, i) => {
     const place = state.index.places[stop.place];
     const errand = errands[stop.errand];
-    const moved = errand && changedText.includes(errand.label.toLowerCase());
-    return h("li", { class: `stop stop-kind-${stop.kind}${moved ? " moved" : ""}` },
-      h("span", { class: "stop-num" }, String(i + 1)),
-      h("span", { class: "row-name" }, place.name, place.fictional ? h("span", { class: "demo-tag" }, "demo") : null),
+    const extra = [];
+    if (latest && errand) {
+      const status = stop.kind === "drop" ? ["dropped", "Dropped off"] : stop.kind === "pick" ? ["done", "Picked up"] : ["done", "Done"];
+      const controls = stop.kind === "pick" ? h("div", { class: "stop-actions" }) : durationControl(errand, actions);
+      controls.append(h("button", { class: "pill", type: "button", onclick: () => actions.applyEdits([{ op: "status", errand: errand.id, status: status[0] }]) }, status[1]));
+      extra.push(controls);
+    }
+    return h("li", { class: `stop ${stop.kind}` },
+      h("span", { class: "stop-dot" }, String(i + 1)),
+      h("span", { class: "stop-title" }, place.name, place.fictional ? h("span", { class: "tag" }, "demo") : null),
       h("span", { class: "stop-time" }, stop.arrive),
-      h("span", { class: "stop-reason" }, `${state.index.floors[place.floor].name}. ${stop.reason}`),
-      latest && errand ? stopTools(stop, errand, actions) : null);
+      h("span", { class: "stop-why" }, `${stop.reason} · ${state.index.floors[place.floor].name}`),
+      ...extra);
   });
-  const children = [];
-  if (changes.length) children.push(h("div", { class: "changes" }, h("b", {}, "Binago"), h("ul", {}, changes.map((c) => h("li", {}, c)))));
-  for (const w of plan.warnings) children.push(h("div", { class: "warn", role: "status" }, w));
-  children.push(h("ol", { class: "stops" }, items));
+  const children = [h("div", { class: "card-head" }, h("h3", {}, "Your plan"), h("p", {}, `Done by ${plan.finish_at} · ${plan.walk_min} min walking`))];
+  if (changes.length) children.push(h("div", { class: "note changes" }, h("b", {}, "Changed"), h("ul", {}, changes.map((c) => h("li", {}, c)))));
+  children.push(...warnings, h("ol", { class: "timeline" }, items));
   if (latest) {
     const elevator = h("input", {
-      type: "checkbox", checked: state.trip.constraints.elevator_only,
-      onchange: (e) => actions.applyEdits([{ op: "elevator_only", value: e.target.checked }]),
+      class: "switch", type: "checkbox", role: "switch", checked: state.trip.constraints.elevator_only,
+      "aria-label": "Elevators only", onchange: (e) => actions.applyEdits([{ op: "elevator_only", value: e.target.checked }]),
     });
-    children.push(h("div", { class: "plan-foot" },
-      h("span", { class: "plan-sum" }, "Tapos by ", h("b", {}, plan.finish_at), `, ${plan.walk_min} min lakad`),
-      h("label", { class: "toggle" }, elevator, "Elevator lang"),
-      h("button", { class: "primary", type: "button", onclick: () => actions.openPlan(plan) }, "Start")));
+    children.push(h("div", { class: "card-foot" },
+      h("label", { class: "switch-row" }, h("span", {}, "Elevators only"), elevator),
+      h("button", { class: "primary", type: "button", onclick: () => actions.startPlan(plan) }, icon("walk"), "Start navigation")));
   }
-  return h("div", { class: `panel${latest ? "" : " stale"}` }, children);
+  return h("div", { class: `card${latest ? "" : " stale"}` }, children);
 }
 
-function miniMap(candidates) {
-  const floor = candidates[0].floor;
-  const pins = candidates.map((c, i) => ({ ...pinForNode(c.node, i + 1) })).filter((p) => p.floor === floor);
-  const svgEl = s("svg", { class: "mini", role: "img", "aria-label": `Map of ${state.index.floors[floor].name}` });
-  renderFloor(svgEl, floor, { pins, you: false });
-  const box = bbox(pins.map((p) => [p.x, p.y]), 90, 320);
-  svgEl.setAttribute("viewBox", `${box.x} ${box.y} ${box.w} ${box.h}`);
-  return svgEl;
-}
-
-function locatePanel(result, latest, actions, text) {
-  const { candidates, ask } = result;
+function locateCard(result, latest, actions, text) {
   const friend = state.mode === "friend";
-  const children = [miniMap(candidates)];
+  const spots = result.candidates.map((c, i) => ({ ...nodePoint(c.node), label: i + 1, cand: c }));
+  const children = [miniMap(spots[0].floor, spots, result.candidates[0].matched)];
   if (latest) {
-    const buttons = candidates.map((c, i) =>
-      h("button", {
-        class: "chip-s", type: "button",
-        onclick: () => (friend ? actions.routeToNode(c.node) : actions.setAt({ node: c.node })),
-      }, `${i + 1}: ${c.floor} ${friend ? "Puntahan" : "Ito ako"}`));
-    children.push(h("div", { class: "loc-actions" }, buttons));
-    if (ask === "floor") {
-      const floors = [...new Set(state.index.floorOrder)];
-      children.push(h("div", { class: "loc-actions" },
-        floors.map((fid) => h("button", { class: "chip-s", type: "button", onclick: () => actions.relocate(text, fid) }, fid))));
+    const near = (c) => c.matched.map((pid) => state.index.places[pid]?.name).filter(Boolean).join(", ");
+    children.push(h("div", {}, spots.map((sp) =>
+      h("button", { class: "row", type: "button", onclick: () => (friend ? actions.navigateToNode(sp.cand.node) : actions.setAt({ node: sp.cand.node })) },
+        h("div", { class: "row-main" },
+          h("div", { class: "row-title" }, `Spot ${sp.label}`),
+          h("div", { class: "row-sub" }, [state.index.floors[sp.floor].name, near(sp.cand) ? `near ${near(sp.cand)}` : null].filter(Boolean).join(" · "))),
+        h("span", { class: "row-sub" }, friend ? "Navigate" : "I'm here")))));
+    if (result.ask === "floor") {
+      children.push(h("div", { class: "stop-actions", style: "padding:0 16px 14px" },
+        state.index.floorOrder.map((fid) => h("button", { class: "pill", type: "button", onclick: () => actions.relocate(text, fid) }, fid))));
     }
   }
-  return h("div", { class: `panel${latest ? "" : " stale"}` }, children);
+  return h("div", { class: `card${latest ? "" : " stale"}` }, children);
 }
 
-/** Render a chat result. latest: only the newest plan/locate panel stays interactive. */
 export function renderResult(result, { latest, actions, text }) {
   if (!result) return null;
-  if (result.type === "places") return placesPanel(result, actions);
-  if (result.type === "plan") return planPanel(result, latest, actions);
-  if (result.type === "locate" && result.candidates.length) return locatePanel(result, latest, actions, text);
+  if (result.type === "places") return placesCard(result, actions);
+  if (result.type === "plan") return planCard(result, latest, actions);
+  if (result.type === "locate" && result.candidates.length) return locateCard(result, latest, actions, text);
   return null;
 }

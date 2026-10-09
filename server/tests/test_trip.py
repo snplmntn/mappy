@@ -97,7 +97,7 @@ def test_deadline_and_elevator():
 
 def test_edit_without_errands_asks():
     t, changes, q = run(Trip(), [Edit(op="set_duration", minutes=30)])
-    assert q and "Wala ka pang plano" in q
+    assert q and "don't have a trip yet" in q
 
 
 def test_does_not_mutate_input():

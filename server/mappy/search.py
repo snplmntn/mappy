@@ -10,12 +10,12 @@ from .embed import Embedder
 from .mall import Mall
 
 CATEGORY_LABELS = {
-    "phone_repair": "Phone repair", "shoe_repair": "Shoe repair", "food": "Kain", "cafe": "Kape",
-    "clothing": "Damit", "shoes": "Sapatos", "accessories": "Accessories", "gift": "Regalo",
+    "phone_repair": "Phone repair", "shoe_repair": "Shoe repair", "food": "Food", "cafe": "Coffee",
+    "clothing": "Clothes", "shoes": "Shoes", "accessories": "Accessories", "gift": "Gifts",
     "home": "Home", "books_stationery": "Books & stationery", "beauty": "Beauty",
     "department_store": "Department store", "electronics": "Electronics", "gaming": "Gaming",
     "appliances": "Appliances", "grocery": "Grocery", "pharmacy": "Pharmacy", "bank": "Bank",
-    "atm": "ATM", "remittance": "Padala", "courier": "Courier", "pet": "Pet", "restroom": "CR",
+    "atm": "ATM", "remittance": "Money transfer", "courier": "Courier", "pet": "Pet", "restroom": "Restroom",
 }
 
 CATEGORY_ALIASES = {

@@ -11,7 +11,7 @@ from .search import CATEGORY_LABELS
 MakeErrand = Callable[[str, str | None, str], Errand | None]
 NameOf = Callable[[str], str | None]
 
-NO_PLAN_QUESTION = "Wala ka pang plano. Ano ang gagawin mo sa mall?"
+NO_PLAN_QUESTION = "You don't have a trip yet. What do you need to do at the mall?"
 ERRAND_OPS = {"set_duration", "set_ready_at", "remove", "order", "status", "choose"}
 ASYNC_OPS = {"set_duration", "set_ready_at", "status"}
 MATCH_MIN = 70
@@ -55,10 +55,10 @@ def resolve_errand(trip: Trip, ref: str | None, op: str, place_name: NameOf) -> 
                         key=lambda t: -t[0])
         best = scored[0][0]
         if best < MATCH_MIN:
-            return None, f"Alin ang ibig mong sabihin: {_labels(trip.errands)}?"
+            return None, f"Which one do you mean: {_labels(trip.errands)}?"
         tied = [e for s, e in scored if best - s <= TIE_MARGIN]
         if len(tied) > 1:
-            return None, f"Alin dito: {_labels(tied)}?"
+            return None, f"Which one: {_labels(tied)}?"
         return scored[0][1].id, None
     pool = active
     if op in ASYNC_OPS:
@@ -67,7 +67,7 @@ def resolve_errand(trip: Trip, ref: str | None, op: str, place_name: NameOf) -> 
             pool = async_active
     if len(pool) == 1:
         return pool[0].id, None
-    return None, f"Alin dito: {_labels(pool)}?"
+    return None, f"Which one: {_labels(pool)}?"
 
 
 def _find(trip: Trip, eid: str) -> Errand:
@@ -103,7 +103,7 @@ def apply_edits(trip: Trip, edits: list[Edit], now_min: int, make_errand: MakeEr
         for ed in edits:
             if ed.op == "set_duration" and ed.minutes:
                 e = _resolve(t, ed.errand, ed.op, place_name)
-                changes.append(f"{e.label}: {e.duration_min} → {ed.minutes} min (sabi mo)")
+                changes.append(f"{e.label}: {e.duration_min} → {ed.minutes} min (you said)")
                 e.duration_min, e.duration_source = ed.minutes, "user"
             elif ed.op == "set_ready_at" and ed.time:
                 e = _resolve(t, ed.errand, ed.op, place_name)
@@ -112,15 +112,15 @@ def apply_edits(trip: Trip, edits: list[Edit], now_min: int, make_errand: MakeEr
             elif ed.op == "add" and ed.query:
                 made = make_errand(ed.query, ed.category, new_errand_id(t))
                 if made is None:
-                    changes.append(f"Walang nahanap para sa “{ed.query}”")
+                    changes.append(f"Couldn't find “{ed.query}”")
                 else:
                     t.errands.append(made)
-                    changes.append(f"Dinagdag: {made.label}")
+                    changes.append(f"Added {made.label}")
             elif ed.op == "remove":
                 e = _resolve(t, ed.errand, ed.op, place_name)
                 t.errands = [x for x in t.errands if x.id != e.id]
                 t.constraints.order = [o for o in t.constraints.order if e.id not in (o.errand, o.other)]
-                changes.append(f"Tinanggal: {e.label}")
+                changes.append(f"Removed {e.label}")
             elif ed.op == "order" and ed.rule:
                 e = _resolve(t, ed.errand, ed.op, place_name)
                 other = _resolve(t, ed.other, ed.op, place_name).id if ed.rule in ("before", "after") else None
@@ -128,19 +128,19 @@ def apply_edits(trip: Trip, edits: list[Edit], now_min: int, make_errand: MakeEr
                 t.constraints.order = [o for o in t.constraints.order
                                        if o.errand != e.id and not (exclusive and o.rule == ed.rule)]
                 t.constraints.order.append(OrderRule(errand=e.id, rule=ed.rule, other=other))
-                word = {"first": "una", "last": "huli"}.get(ed.rule, ed.rule)
+                word = {"first": "first", "last": "last"}.get(ed.rule, ed.rule)
                 changes.append(f"{e.label}: {word}")
             elif ed.op == "deadline" and ed.time:
                 t.constraints.deadline = ed.time
-                changes.append(f"Aalis by {ed.time}")
+                changes.append(f"Leaving by {ed.time}")
             elif ed.op == "status" and ed.status in ("dropped", "done"):
                 e = _resolve(t, ed.errand, ed.op, place_name)
                 e.status = ed.status
                 if ed.status == "dropped":
                     e.dropped_at = min_to_hhmm(now_min)
-                    changes.append(f"{e.label}: naiwan na ({e.dropped_at})")
+                    changes.append(f"{e.label}: dropped off at {e.dropped_at}")
                 else:
-                    changes.append(f"{e.label}: tapos na ✓")
+                    changes.append(f"{e.label}: done")
             elif ed.op == "choose" and ed.place_hint:
                 e = _resolve(t, ed.errand, ed.op, place_name)
                 pid = _choose(e, ed.place_hint, place_name, place_floor)
@@ -149,7 +149,7 @@ def apply_edits(trip: Trip, edits: list[Edit], now_min: int, make_errand: MakeEr
                     changes.append(f"{e.label}: {place_name(pid)}")
             elif ed.op == "elevator_only" and ed.value is not None:
                 t.constraints.elevator_only = ed.value
-                changes.append("Elevator lang" if ed.value else "Pwede na ang escalator")
+                changes.append("Elevators only" if ed.value else "Escalators allowed")
     except _Question as q:
         return trip, [], str(q)
     return t, changes, None

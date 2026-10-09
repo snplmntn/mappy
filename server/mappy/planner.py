@@ -49,7 +49,7 @@ class _Planner:
             reachable = [p for p in pool if p in mall.places
                          and router.seconds(start, mall.places[p].node) is not None]
             if not reachable:
-                self.warnings.append(f"Hindi maabot ang {e.label}")
+                self.warnings.append(f"Can't reach {e.label}")
                 continue
             self.errands.append(e)
             self.cands[e.id] = reachable
@@ -181,7 +181,7 @@ class _Planner:
             best = self._exhaustive(k)
             if best is None:
                 self.ignore_order = True
-                self.warnings.append("Hindi masunod ang hiniling na pagkakasunod-sunod, kaya inayos ko na lang.")
+                self.warnings.append("Couldn't keep the order you asked for, so I picked the fastest one.")
                 best = self._exhaustive(k)
         _, t_end, walk, idle, timeline = best
         return self._to_plan(timeline, t_end, walk, idle)
@@ -191,17 +191,17 @@ class _Planner:
             return []
         dl = self.trip.constraints.deadline
         if self.now >= self.deadline:
-            return [f"Lampas na sa {dl}."]
+            return [f"It's already past {dl}."]
         if t_end > self.deadline:
             visits = [e for e in self.errands if not e.async_]
             longest = max(visits, key=lambda e: e.duration_min, default=None)
-            hint = f" Tanggalin ang {longest.label}?" if longest else ""
-            return [f"Hindi aabot ng {dl}.{hint}"]
+            hint = f" Skip {longest.label}?" if longest else ""
+            return [f"You won't make it by {dl}.{hint}"]
         return []
 
     def _reason(self, tok: _Tok, index: int, ready_at: float | None, pending: set[str], ate: bool) -> str:
         e = tok.errand
-        src = " (sabi mo)" if e.duration_source == "user" else ""
+        src = " (you said)" if e.duration_source == "user" else ""
         if tok.kind == "drop":
             if index == 0:
                 return f"Drop off first — {e.label} takes {e.duration_min} min{src}"

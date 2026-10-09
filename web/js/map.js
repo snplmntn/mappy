@@ -1,337 +1,544 @@
 import { h, s } from "./util.js";
 import { atNode, state } from "./state.js";
+import { icon } from "./icons.js";
 
 const CAT_CLASS = {
   food: "m-food", cafe: "m-food",
-  clothing: "m-shop", shoes: "m-shop", accessories: "m-shop", gift: "m-shop", home: "m-shop", pet: "m-shop",
-  books_stationery: "m-shop", beauty: "m-shop", department_store: "m-shop", grocery: "m-shop",
+  clothing: "m-shopping", shoes: "m-shopping", accessories: "m-shopping", gift: "m-shopping", home: "m-shopping",
+  books_stationery: "m-shopping", beauty: "m-shopping", department_store: "m-shopping", grocery: "m-shopping", pet: "m-shopping",
   electronics: "m-tech", gaming: "m-tech", appliances: "m-tech",
   phone_repair: "m-service", shoe_repair: "m-service", pharmacy: "m-service", bank: "m-service",
   atm: "m-service", remittance: "m-service", courier: "m-service",
   restroom: "m-rest",
 };
-const LABEL_PX = 11;
-const LABEL_MIN_PPU = 0.42; // screen px per map unit below which labels would overlap
-const MIN_ZOOM = 0.6;
-const MAX_ZOOM = 6;
-const FIT_PAD = 70;
+export const CATEGORY_NAMES = {
+  phone_repair: "Phone repair", shoe_repair: "Shoe repair", food: "Food", cafe: "Coffee", clothing: "Clothes",
+  shoes: "Shoes", accessories: "Accessories", gift: "Gifts", home: "Home", books_stationery: "Books & stationery",
+  beauty: "Beauty", department_store: "Department store", electronics: "Electronics", gaming: "Gaming",
+  appliances: "Appliances", grocery: "Grocery", pharmacy: "Pharmacy", bank: "Bank", atm: "ATM",
+  remittance: "Money transfer", courier: "Courier", pet: "Pets", restroom: "Restroom",
+};
+const LABEL_UNITS = 13;
+const LABEL_MIN_PPU = 0.5;
+const MIN_PPU = 0.25;
+const MAX_PPU = 4;
+const TWEEN_MS = 420;
+const WALK_MPS = 1.2;
 
-const points = (path) => path.map((p) => p.join(",")).join(" ");
-const shortName = (name) => (name.length > 14 ? `${name.slice(0, 13)}…` : name);
+const pts = (path) => path.map((p) => p.join(",")).join(" ");
 
-function connectorGlyph(c) {
-  if (c.kind === "escalator") return c.direction === "up" ? "▲" : "▼";
-  return c.kind === "elevator" ? "⇅" : "⇄";
+function wrapLabel(name, width) {
+  const max = Math.max(4, Math.floor(width / (LABEL_UNITS * 0.58)));
+  const lines = [""];
+  for (const w of name.split(" ")) {
+    const cur = lines[lines.length - 1];
+    if (!cur) lines[lines.length - 1] = w;
+    else if ((cur + " " + w).length <= max) lines[lines.length - 1] = cur + " " + w;
+    else lines.push(w);
+  }
+  const out = lines.slice(0, 2).map((l) => (l.length > max ? `${l.slice(0, max - 1)}…` : l));
+  if (lines.length > 2) out[1] = `${out[1].slice(0, max - 1)}…`;
+  return out;
 }
 
-/** Draw one floor. opts: {legs, dimLegs, pins:[{floor,x,y,label}], targets:Set<placeId>, you:boolean} */
+function connectorGlyph(c, x, y) {
+  if (c.kind === "escalator" && c.direction === "up") return `M${x} ${y + 6}V${y - 6}M${x - 5} ${y - 1}L${x} ${y - 6}L${x + 5} ${y - 1}`;
+  if (c.kind === "escalator") return `M${x} ${y - 6}V${y + 6}M${x - 5} ${y + 1}L${x} ${y + 6}L${x + 5} ${y + 1}`;
+  if (c.kind === "elevator") return `M${x - 5} ${y - 2}L${x} ${y - 7}L${x + 5} ${y - 2}M${x - 5} ${y + 2}L${x} ${y + 7}L${x + 5} ${y + 2}`;
+  return `M${x - 6} ${y}H${x + 6}M${x + 1} ${y - 5}L${x + 6} ${y}L${x + 1} ${y + 5}`;
+}
+
+/**
+ * Draw one floor like an indoor mall map: building, walkways, storefronts, escalators, route, pins.
+ * opts: {route, otherRoutes, stops:[{floor,x,y,label,dest}], focus, focusLabel, candidates, hit, you}
+ */
 export function renderFloor(svgEl, floorId, opts = {}) {
   const { mall, index } = state;
   const floor = index.floors[floorId];
   const g = s("g");
-  g.append(s("polygon", { class: "m-outline", points: points(floor.outline) }));
+  g.append(s("rect", { class: "m-outside", x: -3000, y: -3000, width: floor.width + 6000, height: floor.height + 6000 }));
+  g.append(s("polygon", { class: "m-building", points: pts(floor.outline) }));
+  for (const [x, y, w, hh] of floor.walkways || []) g.append(s("rect", { class: "m-walk", x, y, width: w, height: hh, rx: 10 }));
+  for (const [x, y, w, hh] of floor.atria || []) {
+    g.append(s("rect", { class: "m-atrium-rail", x: x + 18, y: y + 18, width: w - 36, height: hh - 36, rx: 14 }));
+  }
+  for (const [x, y, w, hh] of floor.blanks || []) g.append(s("rect", { class: "m-unit", x, y, width: w, height: hh, rx: 3 }));
   for (const p of mall.places) {
     if (p.floor !== floorId) continue;
     const [x, y, w, hh] = p.rect;
-    const target = opts.targets && opts.targets.has(p.id) ? " target" : "";
-    g.append(s("rect", { class: `m-store ${CAT_CLASS[p.category] || "m-other"}${target}`, x, y, width: w, height: hh, rx: 4 }));
-    g.append(s("text", { class: "m-label", x: x + w / 2, y: y + hh / 2 }, p.category === "restroom" ? "CR" : shortName(p.name)));
+    const cls = `m-shop ${CAT_CLASS[p.category] || "m-other"}${opts.hit === p.id ? " hit" : ""}`;
+    g.append(s("rect", { class: cls, x, y, width: w, height: hh, rx: 3 }));
+    const lines = wrapLabel(p.name, w - 6);
+    const y0 = y + hh / 2 - ((lines.length - 1) * LABEL_UNITS * 1.15) / 2 + LABEL_UNITS * 0.35;
+    lines.forEach((line, i) => g.append(s("text", { class: "m-label", x: x + w / 2, y: y0 + i * LABEL_UNITS * 1.15 }, line)));
+  }
+  for (const route of opts.otherRoutes || []) {
+    if (route.floor === floorId && route.path.length > 1) g.append(s("polyline", { class: "m-route-other", points: pts(route.path) }));
+  }
+  if (opts.route && opts.route.floor === floorId && opts.route.path.length > 1) {
+    g.append(s("polyline", { class: "m-route-case", points: pts(opts.route.path) }));
+    g.append(s("polyline", { class: "m-route", points: pts(opts.route.path) }));
   }
   for (const c of mall.connectors) {
     for (const id of c.stops) {
       const n = index.nodes[id];
       if (n.floor !== floorId) continue;
-      g.append(s("rect", { class: "m-icon-bg", x: n.x - 11, y: n.y - 11, width: 22, height: 22, rx: 5 }));
-      g.append(s("text", { class: "m-icon", x: n.x, y: n.y + 1 }, connectorGlyph(c)));
+      if (opts.focus === id) g.append(s("circle", { class: "m-conn-focus", cx: n.x, cy: n.y, r: 16 }));
+      g.append(s("circle", { class: "m-conn", cx: n.x, cy: n.y, r: 12 }));
+      g.append(s("path", { class: "m-conn-glyph", d: connectorGlyph(c, n.x, n.y) }));
+      if (opts.focus === id && opts.focusLabel) g.append(s("text", { class: "m-conn-label", x: n.x, y: n.y - 24 }, opts.focusLabel));
     }
   }
-  for (const leg of opts.dimLegs || []) {
-    if (leg.floor === floorId && leg.path.length > 1) g.append(s("polyline", { class: "m-route-dim", points: points(leg.path) }));
-  }
-  for (const leg of opts.legs || []) {
-    if (leg.floor !== floorId || leg.path.length < 2) continue;
-    g.append(s("polyline", { class: "m-route-case", points: points(leg.path) }));
-    g.append(s("polyline", { class: "m-route", points: points(leg.path) }));
+  for (const c of opts.candidates || []) {
+    if (c.floor !== floorId) continue;
+    g.append(s("circle", { class: "m-cand", cx: c.x, cy: c.y, r: 15 }));
+    g.append(s("text", { class: "m-cand-text", x: c.x, y: c.y + 1 }, String(c.label)));
   }
   const merged = new Map();
-  for (const pin of opts.pins || []) {
-    if (pin.floor !== floorId) continue;
-    const key = `${pin.x},${pin.y}`;
+  for (const st of opts.stops || []) {
+    if (st.floor !== floorId) continue;
+    const key = `${st.x},${st.y}`;
     const prev = merged.get(key);
-    merged.set(key, prev ? { ...prev, label: `${prev.label},${pin.label}` } : { ...pin, label: String(pin.label) });
+    merged.set(key, prev ? { ...prev, label: `${prev.label},${st.label}`, dest: prev.dest || st.dest } : { ...st, label: String(st.label) });
   }
-  for (const pin of merged.values()) {
-    const r = pin.label.length > 2 ? 20 : 15;
-    g.append(s("circle", { class: "m-pin", cx: pin.x, cy: pin.y, r }));
-    g.append(s("text", { class: "m-pin-text", x: pin.x, y: pin.y + 1 }, pin.label));
+  for (const st of merged.values()) {
+    if (st.dest) {
+      g.append(s("path", { class: "m-dest", d: `M${st.x} ${st.y}c-6-9-14-14-14-22a14 14 0 0 1 28 0c0 8-8 13-14 22z` }));
+      g.append(s("text", { class: "m-stop-text", x: st.x, y: st.y - 22 }, st.label));
+    } else {
+      g.append(s("circle", { class: "m-stop", cx: st.x, cy: st.y, r: st.label.length > 2 ? 17 : 13 }));
+      g.append(s("text", { class: "m-stop-text", x: st.x, y: st.y + 1 }, st.label));
+    }
   }
   const you = opts.you === false ? null : atNode();
   if (you && you.floor === floorId) {
-    g.append(s("circle", { class: "m-you-halo", cx: you.x, cy: you.y, r: 14 }));
+    g.append(s("circle", { class: "m-you-halo", cx: you.x, cy: you.y, r: 26 }));
     g.append(s("circle", { class: "m-you", cx: you.x, cy: you.y, r: 10 }));
   }
   svgEl.replaceChildren(g);
 }
 
-/** Bounding box of points, padded and never smaller than minSize. */
-export function bbox(pts, pad = FIT_PAD, minSize = 260) {
-  const xs = pts.map((p) => p[0]);
-  const ys = pts.map((p) => p[1]);
+export function bbox(points, pad = 60, minSize = 240) {
+  const xs = points.map((p) => p[0]);
+  const ys = points.map((p) => p[1]);
   let [x0, x1, y0, y1] = [Math.min(...xs) - pad, Math.max(...xs) + pad, Math.min(...ys) - pad, Math.max(...ys) + pad];
   if (x1 - x0 < minSize) [x0, x1] = [(x0 + x1 - minSize) / 2, (x0 + x1 + minSize) / 2];
   if (y1 - y0 < minSize) [y0, y1] = [(y0 + y1 - minSize) / 2, (y0 + y1 + minSize) / 2];
   return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
 }
 
-export function pinForPlace(placeId, label) {
+/** The part of a floor people care about: walkways and storefronts, not back-of-house space. */
+function floorContentBox(floor) {
+  const rects = [...(floor.walkways || []), ...(floor.blanks || []),
+    ...state.mall.places.filter((p) => p.floor === floor.id).map((p) => p.rect)];
+  if (!rects.length) return { x: 0, y: 0, w: floor.width, h: floor.height };
+  const corners = rects.flatMap(([x, y, w, hh]) => [[x, y], [x + w, y + hh]]);
+  return bbox(corners, 30, 200);
+}
+
+/** Where a route to a store ends: its door on the walkway. */
+export function placePoint(placeId) {
   const p = state.index.places[placeId];
-  const [x, y, w, hh] = p.rect;
-  return { floor: p.floor, x: x + w / 2, y: y + hh / 2, label };
+  const door = state.index.nodes[p.node];
+  return { floor: p.floor, x: door.x, y: door.y };
 }
 
-export function pinForNode(nodeId, label) {
+export function nodePoint(nodeId) {
   const n = state.index.nodes[nodeId];
-  return { floor: n.floor, x: n.x, y: n.y, label };
+  return { floor: n.floor, x: n.x, y: n.y };
 }
 
-/** Full-screen map with steps, floor strip, pan and pinch-zoom. */
-export class MapView {
-  constructor() {
-    this.root = document.getElementById("mapview");
+function pathMeters(leg) {
+  const scale = state.index.floors[leg.floor].scale_m_per_px;
+  let d = 0;
+  for (let i = 1; i < leg.path.length; i++) d += Math.hypot(leg.path[i][0] - leg.path[i - 1][0], leg.path[i][1] - leg.path[i - 1][1]);
+  return Math.round((d * scale) / 5) * 5;
+}
+
+function connectorNodeAt(floorId, [x, y]) {
+  for (const c of state.mall.connectors) {
+    for (const id of c.stops) {
+      const n = state.index.nodes[id];
+      if (n.floor === floorId && Math.hypot(n.x - x, n.y - y) < 2) return id;
+    }
+  }
+  return null;
+}
+
+/** Turn API legs into navigation steps with explicit up/down guidance. */
+function buildSteps(legs, stops) {
+  const { floors } = state.index;
+  return legs.map((leg, i) => {
+    const meters = pathMeters(leg);
+    const stop = stops[leg.stop_index];
+    const c = leg.connector;
+    if (c && c.to_floor) {
+      const up = floors[c.to_floor].level > floors[leg.floor].level;
+      const kind = c.kind === "escalator" ? (up ? "up" : "down") : c.kind === "elevator" ? "elevator" : "bridge";
+      const to = floors[c.to_floor].name;
+      const primary = c.kind === "bridge" ? `Cross the ${c.name} to the ${to}`
+        : c.kind === "elevator" ? `Take the Elevator ${up ? "up" : "down"} to ${to}`
+          : `Take ${c.name} ${up ? "up" : "down"} to ${to}`;
+      return {
+        leg, kind, primary,
+        secondary: meters ? `Walk ${meters} m to ${c.name}` : `You're at ${c.name}`,
+        floorChange: `${floors[leg.floor].name} → ${to}`,
+        focus: leg.path.length ? connectorNodeAt(leg.floor, leg.path[leg.path.length - 1]) : null,
+        focusLabel: `${c.name} ${up ? "↑" : c.kind === "bridge" ? "→" : "↓"} ${c.to_floor}`,
+        target: c.to_floor,
+      };
+    }
+    const last = !legs[i + 1] || legs[i + 1].stop_index !== leg.stop_index;
+    const name = stop ? stop.name : "your destination";
+    const where = meters ? `${meters} m on ${floors[leg.floor].name}` : floors[leg.floor].name;
+    return { leg, kind: last ? "arrive" : "walk", primary: `Walk to ${name}`, secondary: [where, stop && stop.reason].filter(Boolean).join(" · ") };
+  });
+}
+
+/** Full-screen navigation: route steps, floor switcher, pan/zoom, browse and pick modes. */
+export class Navigator {
+  constructor({ onClose, onDirections }) {
+    this.view = document.getElementById("navView");
+    this.chat = document.getElementById("chatView");
     this.svg = document.getElementById("mapSvg");
-    this.stepEl = document.getElementById("mapStep");
-    this.instrEl = document.getElementById("mapInstruction");
-    this.strip = document.getElementById("floorStrip");
-    this.card = document.getElementById("mapCard");
-    this.view = { x: 0, y: 0, w: 1000, h: 800 };
+    this.top = document.getElementById("navTop");
+    this.floorsEl = document.getElementById("floors");
+    this.sheet = document.getElementById("navSheet");
+    this.onClose = onClose;
+    this.onDirections = onDirections;
+    this.camera = { x: 0, y: 0, w: 1000, h: 800 };
     this.pointers = new Map();
-    document.getElementById("mapBack").addEventListener("click", () => this.close());
+    this.reset("browse");
     this.bindGestures();
   }
 
-  /** opts: {legs, pins, title, pick:fn(nodeId)} */
-  open(opts = {}) {
-    this.pins = opts.pins || [];
+  reset(mode) {
+    Object.assign(this, { mode, steps: [], legs: [], stops: [], step: 0, preview: null, selected: null, summary: null });
+  }
+
+  /** opts: {legs, stops:[{floor,x,y,label,name,reason,dest}], summary:{finish}} */
+  route(opts) {
+    this.reset("route");
+    this.stops = opts.stops || [];
+    this.summary = opts.summary || null;
     this.legs = (opts.legs || []).map((leg, i, all) => {
-      const pin = this.pins[leg.stop_index];
-      const lastForStop = !all[i + 1] || all[i + 1].stop_index !== leg.stop_index;
-      return lastForStop && !leg.connector && pin && pin.floor === leg.floor
-        ? { ...leg, path: [...leg.path, [pin.x, pin.y]] } : leg;
+      const st = this.stops[leg.stop_index];
+      const last = !all[i + 1] || all[i + 1].stop_index !== leg.stop_index;
+      return last && !leg.connector && st && st.floor === leg.floor ? { ...leg, path: [...leg.path, [st.x, st.y]] } : leg;
     });
-    this.title = opts.title || "Mapa";
-    this.onPick = opts.pick || null;
-    this.step = 0;
-    this.preview = null;
-    this.root.hidden = false;
+    this.steps = buildSteps(this.legs, this.stops);
+    this.show(this.steps.length ? this.steps[0].leg.floor : this.homeFloor());
+  }
+
+  browse(floorId) {
+    this.reset("browse");
+    this.show(floorId || this.homeFloor());
+  }
+
+  pick(callback) {
+    this.reset("pick");
+    this.onPick = callback;
+    this.show(this.homeFloor());
+  }
+
+  homeFloor() {
     const you = atNode();
-    this.floor = this.legs.length ? this.legs[0].floor : (you ? you.floor : state.index.floorOrder[0]);
-    this.render(true);
+    if (you) return you.floor;
+    return state.index.floorOrder.includes("GF") ? "GF" : state.index.floorOrder[0];
+  }
+
+  show(floorId) {
+    this.floor = floorId;
+    const opening = this.view.hidden;
+    this.view.hidden = false;
+    this.draw();
+    this.fit(false);
+    if (opening) {
+      const anim = { duration: 280, easing: "cubic-bezier(.2,.8,.2,1)" };
+      this.view.animate([{ opacity: 0, transform: "scale(1.04)" }, { opacity: 1, transform: "none" }], anim);
+      this.chat.animate([{ opacity: 1 }, { opacity: 0, transform: "scale(.98)" }], anim).onfinish = () => { this.chat.hidden = true; };
+    }
   }
 
   close() {
-    this.root.hidden = true;
+    this.chat.hidden = false;
+    const anim = { duration: 240, easing: "cubic-bezier(.2,.8,.2,1)" };
+    this.chat.animate([{ opacity: 0, transform: "scale(.98)" }, { opacity: 1, transform: "none" }], anim);
+    this.view.animate([{ opacity: 1 }, { opacity: 0, transform: "scale(1.04)" }], anim).onfinish = () => { this.view.hidden = true; };
+    this.onClose?.();
   }
 
-  currentFloor() {
+  shownFloor() {
     return this.preview || this.floor;
   }
 
-  render(refit) {
-    const { index } = state;
-    const floorId = this.currentFloor();
-    const leg = this.legs[this.step];
-    renderFloor(this.svg, floorId, {
-      legs: leg && !this.preview ? [leg] : [],
-      dimLegs: this.legs.filter((l) => l !== leg || this.preview),
-      pins: this.pins,
+  draw() {
+    const step = this.steps[this.step];
+    renderFloor(this.svg, this.shownFloor(), {
+      route: step && !this.preview ? step.leg : null,
+      otherRoutes: this.legs.filter((l) => !step || l !== step.leg || this.preview),
+      stops: this.stops,
+      focus: step && !this.preview ? step.focus : null,
+      focusLabel: step ? step.focusLabel : null,
+      hit: this.selected,
     });
-    const floorName = index.floors[floorId].name;
-    if (this.onPick) {
-      this.stepEl.textContent = floorName;
-      this.instrEl.textContent = "Pindutin kung nasaan ka";
+    this.applyCamera();
+    this.drawTop(step);
+    this.drawFloors(step);
+    this.drawSheet(step);
+  }
+
+  drawTop(step) {
+    const { floors } = state.index;
+    let ic = "map";
+    let primary;
+    let secondary;
+    let chip = null;
+    if (this.mode === "pick") {
+      ic = "locate";
+      primary = "Tap where you are";
+      secondary = floors[this.shownFloor()].name;
+    } else if (this.mode === "browse" || !step) {
+      primary = floors[this.shownFloor()].name;
+      secondary = "Tap a store for directions";
     } else if (this.preview) {
-      this.stepEl.textContent = "Tinitingnan lang";
-      this.instrEl.textContent = floorName;
-    } else if (leg) {
-      this.stepEl.textContent = `Step ${this.step + 1} of ${this.legs.length}, ${floorName}`;
-      this.instrEl.textContent = leg.instruction;
+      primary = floors[this.preview].name;
+      secondary = "Previewing another floor";
     } else {
-      this.stepEl.textContent = this.title;
-      this.instrEl.textContent = floorName;
+      ic = step.kind === "arrive" ? "pin" : step.kind;
+      primary = step.primary;
+      secondary = step.secondary;
+      chip = step.floorChange ? h("div", { class: "floor-change" }, step.floorChange) : null;
     }
-    this.renderStrip();
-    this.renderCard();
-    if (refit) this.fit();
-    else this.applyView();
+    this.top.replaceChildren(
+      h("div", { class: `maneuver${ic === "pin" ? " arrive" : ""}` }, icon(ic, 28)),
+      h("div", { class: "nav-text" }, h("div", { class: "nav-primary" }, primary), h("div", { class: "nav-secondary" }, secondary), chip));
   }
 
-  renderStrip() {
-    const routeFloors = new Set(this.legs.map((l) => l.floor));
-    const current = this.currentFloor();
-    const buttons = [...state.index.floorOrder].reverse().map((fid) =>
+  drawFloors(step) {
+    const route = new Set(this.legs.map((l) => l.floor));
+    const current = this.shownFloor();
+    const target = step && !this.preview ? step.target : null;
+    this.floorsEl.replaceChildren(...[...state.index.floorOrder].reverse().map((fid) =>
       h("button", {
-        class: `floor-btn${routeFloors.has(fid) ? " on-route" : ""}`,
-        type: "button",
-        "aria-current": fid === current ? "true" : "false",
-        "aria-label": state.index.floors[fid].name,
-        onclick: () => {
-          this.preview = fid === this.floor ? null : fid;
-          this.render(true);
-        },
-      }, fid));
-    this.strip.replaceChildren(...buttons);
+        class: `floor-btn${route.has(fid) ? " on-route" : ""}${fid === target ? " target" : ""}`,
+        type: "button", "aria-current": fid === current ? "true" : "false", "aria-label": state.index.floors[fid].name,
+        onclick: () => this.switchFloor(fid),
+      }, fid)));
   }
 
-  renderCard() {
-    const leg = this.legs[this.step];
-    if (this.preview) {
-      this.card.replaceChildren(
-        h("span", { class: "grow" }, "Hindi ito ang kasalukuyang hakbang."),
-        h("button", { class: "primary", type: "button", onclick: () => { this.preview = null; this.render(true); } }, "Bumalik"));
+  drawSheet(step) {
+    const closeBtn = h("button", { class: "round", type: "button", "aria-label": "Close map", onclick: () => this.close() }, icon("close"));
+    const row = (...children) => this.sheet.replaceChildren(h("div", { class: "grabber" }), h("div", { class: "sheet-row" }, closeBtn, ...children));
+    if (this.mode === "pick") {
+      row(h("div", { class: "eta" }, h("b", {}, "Set your location"), h("div", {}, "Tap the walkway where you're standing")));
       return;
     }
-    if (!leg) {
-      this.card.replaceChildren();
+    if (this.mode === "browse" || !step) {
+      const p = this.selected && state.index.places[this.selected];
+      if (p) {
+        row(h("div", { class: "eta" }, h("b", {}, p.name), h("div", {}, `${CATEGORY_NAMES[p.category] || p.category} · ${state.index.floors[p.floor].name}`)),
+          h("button", { class: "next", type: "button", onclick: () => this.onDirections(p.id) }, "Directions"));
+      } else {
+        row(h("div", { class: "eta" }, h("b", {}, state.mall.mall.name), h("div", {}, "Tap a store to see directions")));
+      }
       return;
     }
-    const last = this.step === this.legs.length - 1;
-    const prev = this.step > 0
-      ? h("button", { class: "chip-s", type: "button", onclick: () => this.go(-1) }, "Prev")
-      : null;
-    const text = leg.connector ? leg.instruction : last ? "Nandiyan na ang destinasyon mo." : "Sundan ang dilaw na linya.";
-    const next = h("button", { class: "primary", type: "button", onclick: () => (last ? this.close() : this.go(1)) },
-      last ? "Done" : leg.connector ? "Next floor" : "Next");
-    this.card.replaceChildren(prev || "", h("span", { class: "grow" }, text), next);
+    const last = this.step === this.steps.length - 1;
+    const meters = this.steps.slice(this.step).reduce((sum, st) => sum + pathMeters(st.leg), 0);
+    const mins = Math.max(1, Math.round(meters / WALK_MPS / 60));
+    const progress = `Step ${this.step + 1} of ${this.steps.length}`;
+    const sub = this.summary ? `Done by ${this.summary.finish} · ${progress}` : progress;
+    const prev = h("button", { class: "round", type: "button", "aria-label": "Previous step", disabled: this.step === 0, onclick: () => this.go(-1) }, icon("back"));
+    const next = last
+      ? h("button", { class: "end", type: "button", onclick: () => this.close() }, "End")
+      : h("button", { class: "next", type: "button", onclick: () => this.go(1) }, step.leg.connector ? "I'm there" : "Next");
+    row(h("div", { class: "eta" }, h("b", {}, `${mins} min walk`), h("div", {}, sub)), prev, next);
   }
 
   go(delta) {
-    this.step = Math.max(0, Math.min(this.legs.length - 1, this.step + delta));
-    this.floor = this.legs[this.step].floor;
+    const from = this.shownFloor();
+    this.step = Math.max(0, Math.min(this.steps.length - 1, this.step + delta));
     this.preview = null;
-    this.render(true);
+    this.floor = this.steps[this.step].leg.floor;
+    this.transitionFloor(from, this.floor);
   }
 
-  fit() {
-    const floorId = this.currentFloor();
-    const leg = this.legs[this.step];
-    let pts = [];
-    if (leg && !this.preview && leg.floor === floorId) pts = [...leg.path];
-    pts.push(...this.pins.filter((p) => p.floor === floorId).map((p) => [p.x, p.y]));
-    const you = atNode();
-    if (!pts.length && you && you.floor === floorId) pts.push([you.x, you.y]);
-    const f = state.index.floors[floorId];
-    const box = pts.length ? bbox(pts) : { x: 0, y: 0, w: f.width, h: f.height };
-    this.setView(box);
+  switchFloor(fid) {
+    const from = this.shownFloor();
+    if (this.mode === "route") this.preview = fid === this.floor ? null : fid;
+    else this.floor = fid;
+    this.selected = null;
+    this.transitionFloor(from, this.shownFloor());
   }
 
-  setView(box) {
-    const rect = this.svg.getBoundingClientRect();
-    const aspect = rect.width && rect.height ? rect.width / rect.height : 0.7;
-    const strip = this.strip.getBoundingClientRect().width + 16;
-    const reserve = rect.width ? Math.min(0.4, strip / rect.width) : 0.2;
-    let { x, y, w, h: hh } = box;
-    w /= 1 - reserve; // keep the route clear of the floor buttons on the right
-    if (w / hh > aspect) {
-      const nh = w / aspect;
-      y -= (nh - hh) / 2;
-      hh = nh;
-    } else {
-      const nw = hh * aspect;
-      x -= (nw - w) / 2;
-      w = nw;
+  transitionFloor(from, to) {
+    this.draw();
+    this.fit(true);
+    if (from === to) return;
+    const dir = state.index.floors[to].level > state.index.floors[from].level ? -1 : 1;
+    this.svg.animate([{ opacity: 0, transform: `translateY(${dir * 40}px)` }, { opacity: 1, transform: "none" }],
+      { duration: 320, easing: "cubic-bezier(.2,.8,.2,1)" });
+  }
+
+  /** Frame the current step inside the area not covered by the floating panels. */
+  fit(animate) {
+    const floorId = this.shownFloor();
+    const step = this.steps[this.step];
+    const points = [];
+    if (step && !this.preview && step.leg.floor === floorId) points.push(...step.leg.path);
+    if (!points.length) {
+      for (const st of this.stops) if (st.floor === floorId) points.push([st.x, st.y]);
+      const you = atNode();
+      if (you && you.floor === floorId) points.push([you.x, you.y]);
     }
-    this.view = { x, y, w, h: hh };
-    this.applyView();
+    const f = state.index.floors[floorId];
+    const whole = this.mode !== "route" || !points.length;
+    const box = whole ? floorContentBox(f) : bbox(points, 90, 420);
+    this.setCamera(this.cameraFor(box), animate);
   }
 
-  applyView() {
-    const { x, y, w, h: hh } = this.view;
+  cameraFor(box) {
+    const r = this.svg.getBoundingClientRect();
+    const W = r.width || 360;
+    const H = r.height || 700;
+    const top = this.top.getBoundingClientRect().bottom - r.top + 12;
+    const bottom = r.bottom - this.sheet.getBoundingClientRect().top + 12;
+    const right = this.floorsEl.getBoundingClientRect().width + 24;
+    const inner = { x: 12, y: Math.max(top, 12), w: Math.max(80, W - right - 12), h: Math.max(80, H - top - bottom) };
+    const ppu = Math.min(MAX_PPU, inner.w / box.w, inner.h / box.h);
+    const cx = box.x + box.w / 2;
+    const cy = box.y + box.h / 2;
+    return { x: cx - (inner.x + inner.w / 2) / ppu, y: cy - (inner.y + inner.h / 2) / ppu, w: W / ppu, h: H / ppu };
+  }
+
+  setCamera(target, animate) {
+    cancelAnimationFrame(this.raf);
+    if (!animate || matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      this.camera = target;
+      this.applyCamera();
+      return;
+    }
+    const from = { ...this.camera };
+    const t0 = performance.now();
+    const tick = (now) => {
+      const t = Math.min(1, (now - t0) / TWEEN_MS);
+      const e = 1 - Math.pow(1 - t, 3);
+      this.camera = Object.fromEntries(["x", "y", "w", "h"].map((k) => [k, from[k] + (target[k] - from[k]) * e]));
+      this.applyCamera();
+      if (t < 1) this.raf = requestAnimationFrame(tick);
+    };
+    this.raf = requestAnimationFrame(tick);
+  }
+
+  applyCamera() {
+    const { x, y, w, h: hh } = this.camera;
     this.svg.setAttribute("viewBox", `${x} ${y} ${w} ${hh}`);
     const ppu = (this.svg.getBoundingClientRect().width || 360) / w;
-    this.svg.style.setProperty("--lbl", `${LABEL_PX / ppu}px`);
     this.svg.classList.toggle("zoom-low", ppu < LABEL_MIN_PPU);
   }
 
-  toSvg(clientX, clientY) {
-    const rect = this.svg.getBoundingClientRect();
-    return [this.view.x + ((clientX - rect.left) / rect.width) * this.view.w,
-      this.view.y + ((clientY - rect.top) / rect.height) * this.view.h];
+  toMap(clientX, clientY) {
+    const r = this.svg.getBoundingClientRect();
+    return [this.camera.x + ((clientX - r.left) / r.width) * this.camera.w, this.camera.y + ((clientY - r.top) / r.height) * this.camera.h];
   }
 
   zoomAt(factor, clientX, clientY) {
-    const floorW = state.index.floors[this.currentFloor()].width;
-    const newW = Math.min(floorW / MIN_ZOOM, Math.max(floorW / MAX_ZOOM, this.view.w / factor));
-    const k = newW / this.view.w;
-    const [px, py] = this.toSvg(clientX, clientY);
-    this.view = { x: px - (px - this.view.x) * k, y: py - (py - this.view.y) * k, w: this.view.w * k, h: this.view.h * k };
-    this.applyView();
+    const r = this.svg.getBoundingClientRect();
+    const ppu = r.width / this.camera.w;
+    const next = Math.min(MAX_PPU, Math.max(MIN_PPU, ppu * factor));
+    const k = ppu / next;
+    const [px, py] = this.toMap(clientX, clientY);
+    this.camera = { x: px - (px - this.camera.x) * k, y: py - (py - this.camera.y) * k, w: this.camera.w * k, h: this.camera.h * k };
+    this.applyCamera();
   }
 
   bindGestures() {
     const svg = this.svg;
-    let last = null;
+    let pinch = null;
     let moved = 0;
     let lastTap = 0;
     svg.addEventListener("pointerdown", (e) => {
+      cancelAnimationFrame(this.raf);
       svg.setPointerCapture(e.pointerId);
       this.pointers.set(e.pointerId, [e.clientX, e.clientY]);
       moved = 0;
-      last = null;
+      pinch = null;
     });
     svg.addEventListener("pointermove", (e) => {
       if (!this.pointers.has(e.pointerId)) return;
       const prev = this.pointers.get(e.pointerId);
       this.pointers.set(e.pointerId, [e.clientX, e.clientY]);
-      const rect = svg.getBoundingClientRect();
+      const r = svg.getBoundingClientRect();
       if (this.pointers.size === 1) {
         const dx = e.clientX - prev[0];
         const dy = e.clientY - prev[1];
         moved += Math.abs(dx) + Math.abs(dy);
-        this.view.x -= (dx / rect.width) * this.view.w;
-        this.view.y -= (dy / rect.height) * this.view.h;
-        this.applyView();
+        if (moved < 6) return;
+        this.camera.x -= (dx / r.width) * this.camera.w;
+        this.camera.y -= (dy / r.height) * this.camera.h;
+        this.applyCamera();
       } else if (this.pointers.size === 2) {
         const [a, b] = [...this.pointers.values()];
         const dist = Math.hypot(a[0] - b[0], a[1] - b[1]);
-        if (last) this.zoomAt(dist / last, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2);
-        last = dist;
+        if (pinch) this.zoomAt(dist / pinch, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2);
+        pinch = dist;
         moved += 10;
       }
     });
     const end = (e) => {
       this.pointers.delete(e.pointerId);
-      if (this.pointers.size < 2) last = null;
+      if (this.pointers.size < 2) pinch = null;
       if (e.type !== "pointerup" || moved > 8) return;
       const now = Date.now();
-      if (this.onPick) {
-        this.pick(e.clientX, e.clientY);
-      } else if (now - lastTap < 300) {
-        this.zoomAt(2, e.clientX, e.clientY);
-      }
+      if (now - lastTap < 280) this.zoomAt(2, e.clientX, e.clientY);
+      else this.tap(e.clientX, e.clientY);
       lastTap = now;
     };
     svg.addEventListener("pointerup", end);
     svg.addEventListener("pointercancel", end);
     svg.addEventListener("wheel", (e) => {
       e.preventDefault();
-      this.zoomAt(e.deltaY < 0 ? 1.2 : 1 / 1.2, e.clientX, e.clientY);
+      this.zoomAt(e.deltaY < 0 ? 1.15 : 1 / 1.15, e.clientX, e.clientY);
     }, { passive: false });
   }
 
-  pick(clientX, clientY) {
-    const [x, y] = this.toSvg(clientX, clientY);
-    const floorId = this.currentFloor();
-    let best = null;
-    for (const n of state.mall.nodes) {
-      if (n.floor !== floorId) continue;
-      const d = Math.hypot(n.x - x, n.y - y);
-      if (!best || d < best.d) best = { id: n.id, d };
+  tap(clientX, clientY) {
+    const [x, y] = this.toMap(clientX, clientY);
+    const floorId = this.shownFloor();
+    if (this.mode === "pick") {
+      let best = null;
+      for (const n of state.mall.nodes) {
+        if (n.floor !== floorId) continue;
+        const d = Math.hypot(n.x - x, n.y - y);
+        if (!best || d < best.d) best = { id: n.id, d };
+      }
+      if (best) {
+        const cb = this.onPick;
+        this.close();
+        cb(best.id);
+      }
+      return;
     }
-    if (best) {
-      const cb = this.onPick;
-      this.onPick = null;
-      this.close();
-      cb(best.id);
-    }
+    if (this.mode !== "browse") return;
+    const hit = state.mall.places.find((p) => p.floor === floorId && x >= p.rect[0] && x <= p.rect[0] + p.rect[2]
+      && y >= p.rect[1] && y <= p.rect[1] + p.rect[3]);
+    this.selected = hit ? hit.id : null;
+    this.draw();
   }
+}
+
+/** Static mini map for chat cards. */
+export function miniMap(floorId, candidates, placeIds = []) {
+  const svgEl = s("svg", { class: "mini-map", role: "img", "aria-label": `Map of ${state.index.floors[floorId].name}` });
+  renderFloor(svgEl, floorId, { candidates, you: false });
+  const points = candidates.filter((c) => c.floor === floorId).map((c) => [c.x, c.y]);
+  for (const pid of placeIds) {
+    const p = state.index.places[pid];
+    if (p && p.floor === floorId) points.push([p.rect[0] + p.rect[2] / 2, p.rect[1] + p.rect[3] / 2]);
+  }
+  const box = bbox(points, 70, 360);
+  svgEl.setAttribute("viewBox", `${box.x} ${box.y} ${box.w} ${box.h}`);
+  svgEl.setAttribute("preserveAspectRatio", "xMidYMid slice");
+  return svgEl;
 }

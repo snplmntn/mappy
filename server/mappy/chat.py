@@ -24,7 +24,7 @@ SCORE_BAND = 0.06
 LLM_TIMEOUT_S = 8.5
 # Minimum fused search score that counts as "found", per embedder (calibrated on the eval set).
 MIN_SCORE = {"hash-256": 0.35, "multilingual-e5-small": 0.60}
-HELP = "Sabihin mo lang ang kailangan mo — hal. “papaayos ng phone, tapos kain”."
+HELP = "Tell me what you need to do. For example: “fix my phone, eat, then buy a gift”."
 
 
 class Extractor(Protocol):
@@ -128,9 +128,9 @@ class ChatService:
             cat = req.category or self.search.alias_category(req.query)
             ids = self.search.by_category(cat) if cat and self.search.by_category(cat) else self._matches(req.query, None)
             if not ids:
-                return _text(f"Pasensya, wala akong nahanap para sa “{req.query}”.", trip)
+                return _text(f"I couldn't find “{req.query}” in this mall.", trip)
             result = self._places_result(req.query, ids[:5], start, router)
-            return {"reply": f"Eto ang mga pwede para sa “{req.query}”:", "result": result,
+            return {"reply": f"Here's what I found for “{req.query}”:", "result": result,
                     "trip": trip.model_dump(by_alias=True)}
 
         if x.intent == "plan" and x.errands:
@@ -145,13 +145,13 @@ class ChatService:
                     t.errands.append(made)
                     added += 1
             if not added:
-                return _text(f"Pasensya, wala akong nahanap para sa “{', '.join(missing)}”.", trip)
+                return _text(f"I couldn't find “{', '.join(missing)}” in this mall.", trip)
             payload = self._plan_payload(t, start, now_min, [])
-            reply = f"Ayos! {len(payload['plan']['stops'])} stops, tapos ka by {payload['plan']['finish_at']}."
+            reply = f"Here's your plan: {len(payload['plan']['stops'])} stops, done by {payload['plan']['finish_at']}."
             if missing:
-                reply += f" Hindi ko nahanap: {', '.join(missing)}."
+                reply += f" I couldn't find: {', '.join(missing)}."
             if capped:
-                reply += f" Hanggang {MAX_ERRANDS} lang muna."
+                reply += f" I planned the first {MAX_ERRANDS}; add the rest after."
             return {"reply": reply, "result": payload, "trip": t.model_dump(by_alias=True)}
 
         if x.intent == "edit" and x.edits:
@@ -159,14 +159,14 @@ class ChatService:
             if question:
                 return _text(question, trip)
             payload = self._plan_payload(t, start, now_min, changes)
-            return {"reply": "Updated! " + "; ".join(changes), "result": payload, "trip": t.model_dump(by_alias=True)}
+            return {"reply": "Updated your plan.", "result": payload, "trip": t.model_dump(by_alias=True)}
 
         if x.intent == "locate" and x.landmarks:
             cands, ask = locate(self.mall, self.search, x.landmarks, x.floor)
             if not cands:
-                return _text("Hindi kita mahanap. Anong store ang pinakamalapit sa'yo?", trip)
-            reply = {None: "Ito ba ang lugar? Pindutin ang tamang pin.", "floor": "Anong floor?",
-                     "more_landmarks": "May iba pang nakikitang store?"}[ask]
+                return _text("I couldn't place you. Which store is closest to you?", trip)
+            reply = {None: "Is this where you are? Tap the right spot.", "floor": "Which floor are you on?",
+                     "more_landmarks": "Can you name another store you can see?"}[ask]
             return {"reply": reply, "result": {"type": "locate", "candidates": [c.model_dump() for c in cands],
                                                "ask": ask}, "trip": trip.model_dump(by_alias=True)}
 

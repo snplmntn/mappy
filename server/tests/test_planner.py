@@ -72,7 +72,7 @@ def test_user_duration_in_reason(mall):
     t.errands[0].duration_min = 30
     t.errands[0].duration_source = "user"
     stops = plan_trip(t, "GF-c1", NOW, Router(mall), mall).stops
-    assert "(sabi mo)" in next(s for s in stops if s.kind == "drop").reason
+    assert "(you said)" in next(s for s in stops if s.kind == "drop").reason
 
 
 def test_deadline_warning(mall):

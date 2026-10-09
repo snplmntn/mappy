@@ -62,7 +62,7 @@ def test_locate(mall, search):
 
 def test_steer_without_plan_asks(mall, search):
     out = run(svc(mall, search).chat("30 mins lang", AT, "14:00", Trip()))
-    assert out["result"]["type"] == "text" and "Wala ka pang plano" in out["reply"]
+    assert out["result"]["type"] == "text" and "don't have a trip yet" in out["reply"]
 
 
 def test_greeting_other(mall, search):
@@ -73,7 +73,7 @@ def test_greeting_other(mall, search):
 def test_chat_unknown_store_says_not_found(mall, search):
     x = Extraction(intent="find", source="llm", errands=[ErrandReq(query="Zzyzx Emporium")])
     out = run(svc(mall, search, FixedLLM(x)).chat("saan ang Zzyzx Emporium sa mall na ito", None, "14:00", Trip()))
-    assert out["result"]["type"] == "text" and "wala akong nahanap" in out["reply"].lower()
+    assert out["result"]["type"] == "text" and "couldn't find" in out["reply"].lower()
 
 
 def test_chat_caps_errands_at_five(mall, search):
@@ -102,7 +102,7 @@ def test_start_node_defaults_to_first_anchor(mall, search):
 
 def test_fallback_six_errands_says_capped(mall, search):
     out = run(svc(mall, search).chat("kape, kain, damit, regalo, cellphone, sapatos", AT, "14:00", Trip()))
-    assert len(out["trip"]["errands"]) <= 5 and "Hanggang 5" in out["reply"]
+    assert len(out["trip"]["errands"]) <= 5 and "first 5" in out["reply"]
 
 
 def test_kain_muna_then_kape_muna_does_not_crash(mall, search):

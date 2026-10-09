@@ -1,17 +1,16 @@
 import { h, nowHHMM } from "./util.js";
 import { atLabel, atNode, indexMall, pushMessage, resetTrip, state, subscribe, update } from "./state.js";
 import { getJSON, OfflineError, post } from "./api.js";
-import { renderChat } from "./chat.js";
-import { MapView, pinForNode, pinForPlace } from "./map.js";
+import { renderThread } from "./chat.js";
+import { icon } from "./icons.js";
+import { Navigator, nodePoint, placePoint } from "./map.js";
 
-const OFFLINE = "Hindi ma-reach ang Mappy server. Naka-connect ka ba sa Wi-Fi na “mappy”, naka-airplane mode at naka-on ang Wi-Fi?";
-const SERVER_ERROR = "May problema sa server. Subukan ulit.";
-const WELCOME = "Hi! Ano ang gagawin mo sa mall? Halimbawa: “papaayos ko phone ko, kakain, tapos bibili ng regalo”.";
-const FRIEND_PREFILL = "Sabi ng kaibigan ko, nasa tabi siya ng ";
-const CHIPS = [["Kain", "kain"], ["CR", "CR"], ["ATM", "ATM"], ["Phone repair", "phone repair"], ["Pharmacy", "pharmacy"]];
+const OFFLINE = "Can't reach Mappy. Make sure you're on the “mappy” Wi-Fi with airplane mode on and Wi-Fi on.";
+const SERVER_ERROR = "Something went wrong on the Mappy server. Try again.";
 
 const input = document.getElementById("input");
-let map;
+const sendBtn = document.getElementById("send");
+let nav;
 
 function botError(err) {
   pushMessage({ role: "bot", text: err instanceof OfflineError ? OFFLINE : SERVER_ERROR });
@@ -41,6 +40,13 @@ const actions = {
     });
   },
 
+  prefill(text, mode = "normal") {
+    update({ mode });
+    input.value = text;
+    autosize();
+    input.focus();
+  },
+
   applyEdits(edits) {
     return withBusy(async () => {
       const res = await post("/api/plan", { at: state.at, now: nowHHMM(), trip: state.trip, edits });
@@ -49,146 +55,127 @@ const actions = {
         return;
       }
       update({ trip: res.trip });
-      const text = res.changes.length ? `Updated! ${res.changes.join("; ")}` : "Updated!";
-      pushMessage({ role: "bot", text, result: { type: "plan", plan: res.plan, changes: res.changes } });
+      pushMessage({ role: "bot", text: "Updated your plan.", result: { type: "plan", plan: res.plan, changes: res.changes } });
     });
   },
 
-  routeToPlace(placeId) {
-    const place = state.index.places[placeId];
-    return this.route({ place: placeId }, pinForPlace(placeId, "★"), place.name);
+  navigateToPlace(placeId) {
+    const p = state.index.places[placeId];
+    return this.navigate({ place: placeId }, { ...placePoint(placeId), label: "", name: p.name, dest: true });
   },
 
-  routeToNode(nodeId) {
+  navigateToNode(nodeId) {
     update({ mode: "normal" });
-    return this.route({ node: nodeId }, pinForNode(nodeId, "★"), "Meet-up");
+    return this.navigate({ node: nodeId }, { ...nodePoint(nodeId), label: "", name: "your friend", dest: true });
   },
 
-  route(to, pin, title) {
+  navigate(to, stop) {
     return withBusy(async () => {
       const res = await post("/api/route", { at: state.at, to, elevator_only: state.trip.constraints.elevator_only });
-      if (res.walk_min === null) {
-        pushMessage({ role: "bot", text: "Hindi ko mahanap ang daan papunta diyan." });
-      } else if (!res.legs.length) {
-        pushMessage({ role: "bot", text: "Nandito ka na mismo." });
-      } else {
-        map.open({ legs: res.legs, pins: [pin], title });
-      }
+      if (res.walk_min === null) pushMessage({ role: "bot", text: "I can't find a way there from where you are." });
+      else if (!res.legs.length) pushMessage({ role: "bot", text: "You're already there." });
+      else nav.route({ legs: res.legs, stops: [stop] });
     });
   },
 
-  openPlan(plan) {
-    map.open({ legs: plan.legs, pins: plan.stops.map((st, i) => pinForPlace(st.place, i + 1)), title: "Your trip" });
+  startPlan(plan) {
+    const stops = plan.stops.map((st, i) => ({
+      ...placePoint(st.place), label: i + 1, name: state.index.places[st.place].name, reason: st.reason,
+      dest: i === plan.stops.length - 1,
+    }));
+    nav.route({ legs: plan.legs, stops, summary: { finish: plan.finish_at } });
   },
 
   setAt(at) {
     update({ at, mode: "normal" });
-    pushMessage({ role: "bot", text: `Sige, nandito ka: ${atLabel()}.` });
+    pushMessage({ role: "bot", text: `Got it. You're at ${atLabel()}.` });
   },
 
   relocate(text, floor) {
     return withBusy(async () => {
       const res = await post("/api/locate", { text, floor });
-      pushMessage({ role: "bot", text: `Sa ${state.index.floors[floor].name}:`, result: { type: "locate", ...res }, query: text });
+      const msg = res.candidates.length ? `On the ${state.index.floors[floor].name}:` : `I couldn't find that on the ${state.index.floors[floor].name}.`;
+      pushMessage({ role: "bot", text: msg, result: { type: "locate", ...res }, query: text });
     });
   },
 };
 
-function renderChips() {
-  const chips = CHIPS.map(([label, msg]) =>
-    h("button", { class: "chip", type: "button", role: "listitem", onclick: () => actions.send(msg) }, label));
-  chips.push(h("button", {
-    class: "chip", type: "button", role: "listitem",
-    onclick: () => {
-      update({ mode: "friend" });
-      input.value = FRIEND_PREFILL;
-      input.focus();
-    },
-  }, "Find friend"));
-  if (state.trip.errands.length) {
-    chips.unshift(h("button", {
-      class: "chip", type: "button", role: "listitem",
-      onclick: () => {
-        resetTrip();
-        pushMessage({ role: "bot", text: "Bagong plano. Ano ang gagawin mo?" });
-      },
-    }, "Bagong plano"));
-  }
-  document.getElementById("chips").replaceChildren(...chips);
+function autosize() {
+  input.style.height = "auto";
+  input.style.height = `${Math.min(input.scrollHeight, 120)}px`;
+  sendBtn.disabled = !input.value.trim() || state.busy;
 }
 
-function closeSheet() {
-  document.getElementById("sheet").hidden = true;
+function closeModal() {
+  document.getElementById("modal").hidden = true;
 }
 
-function openSheet() {
-  const sheet = document.getElementById("sheet");
-  const anchors = Object.values(state.index.anchors).map((a) =>
-    h("button", { type: "button", onclick: () => { closeSheet(); actions.setAt({ anchor: a.id }); } }, a.label));
+function openLocation() {
+  const modal = document.getElementById("modal");
+  const row = (title, sub, onclick) => h("button", { class: "row", type: "button", onclick },
+    h("div", { class: "row-main" }, h("div", { class: "row-title" }, title), sub ? h("div", { class: "row-sub" }, sub) : null),
+    h("span", { class: "chev" }, icon("chevron")));
+  const anchors = Object.values(state.index.anchors).map((a) => row(a.label, null, () => { closeModal(); actions.setAt({ anchor: a.id }); }));
   const here = state.at ? (state.at.anchor || `node:${state.at.node}`) : null;
   const share = here
-    ? [h("p", {}, "Ipa-scan sa kasama mo para makita niya kung nasaan ka:"),
-      h("img", { class: "qr", alt: "QR code ng puwesto mo", src: `/api/qr?data=${encodeURIComponent(`${location.origin}/?at=${here}`)}` })]
+    ? [h("h2", {}, "Share your spot"), h("p", {}, "Let a friend scan this to see where you are."),
+      h("img", { class: "qr", alt: "QR code for your location", src: `/api/qr?data=${encodeURIComponent(`${location.origin}/?at=${here}`)}` })]
     : [];
-  const body = h("div", { class: "sheet-body" },
-    h("h2", { id: "sheetTitle" }, "Nasaan ka?"),
-    h("p", {}, "I-scan gamit ang camera ang location QR na malapit sa'yo, o pumili dito."),
-    h("div", { class: "sheet-actions" },
-      h("button", {
-        type: "button",
-        onclick: () => { closeSheet(); input.value = "Nasa tabi ako ng "; input.focus(); },
-      }, "Sabihin ang nakikita mong store"),
-      h("button", {
-        type: "button",
-        onclick: () => { closeSheet(); map.open({ pick: (node) => actions.setAt({ node }) }); },
-      }, "Pindutin sa mapa"),
-      ...anchors),
-    ...share,
-    h("div", { class: "sheet-actions" }, h("button", { type: "button", onclick: closeSheet }, "Isara")));
-  sheet.replaceChildren(body);
-  sheet.hidden = false;
+  modal.replaceChildren(h("div", { class: "modal-body" },
+    h("div", { class: "grabber" }),
+    h("h2", {}, "Where are you?"),
+    h("p", {}, "Scan a Mappy location code with your camera, or choose below."),
+    h("div", { class: "list" },
+      row("Describe what you see", "e.g. “next to Starbucks, across from H&M”", () => { closeModal(); actions.prefill("I'm next to "); }),
+      row("Tap on the map", "Pick your spot on the floor plan", () => { closeModal(); nav.pick((node) => actions.setAt({ node })); })),
+    h("div", { class: "list" }, anchors),
+    ...share));
+  modal.hidden = false;
+  modal.onclick = (e) => { if (e.target === modal) closeModal(); };
 }
 
 function render() {
-  document.getElementById("hereLabel").textContent = atLabel();
-  document.getElementById("send").disabled = state.busy;
-  renderChips();
-  renderChat(actions);
+  document.getElementById("placeText").textContent = atLabel();
+  renderThread(actions);
+  autosize();
 }
 
 function readAtParam() {
   const raw = new URLSearchParams(location.search).get("at");
   if (!raw) return;
   const at = raw.startsWith("node:") ? { node: raw.slice(5) } : { anchor: raw };
-  if ((at.anchor && state.index.anchors[at.anchor]) || (at.node && state.index.nodes[at.node])) {
-    update({ at });
-  }
+  if ((at.anchor && state.index.anchors[at.anchor]) || (at.node && state.index.nodes[at.node])) update({ at });
   history.replaceState(null, "", location.pathname);
 }
 
-async function checkHealth() {
-  try {
-    const health = await getJSON("/api/health", 4000);
-    document.getElementById("aiBadge").classList.toggle("ok", Boolean(health.llm_ok));
-  } catch {
-    /* badge stays grey */
-  }
-}
-
 async function boot() {
+  document.getElementById("mapBtn").append(icon("map"));
+  document.getElementById("newBtn").append(icon("compose"));
+  sendBtn.append(icon("send", 18));
   try {
     const mall = await getJSON("/api/mall");
     update({ mall, index: indexMall(mall) });
-  } catch (err) {
-    document.getElementById("chat").replaceChildren(h("div", { class: "bubble" }, OFFLINE));
+  } catch {
+    document.getElementById("thread").replaceChildren(h("div", { class: "empty" }, h("h1", {}, "Can't reach Mappy"), h("p", {}, OFFLINE)));
     return;
   }
   if (state.at && !atNode()) update({ at: null });
   readAtParam();
-  document.getElementById("dataNote").textContent = state.mall.mall.note || "";
-  map = new MapView();
-  document.getElementById("here").addEventListener("click", openSheet);
-  document.getElementById("mapBtn").addEventListener("click", () => map.open());
+  document.getElementById("fineprint").textContent = state.mall.mall.note || "";
+  nav = new Navigator({ onClose: render, onDirections: (pid) => actions.navigateToPlace(pid) });
+  document.getElementById("placePill").addEventListener("click", openLocation);
+  document.getElementById("mapBtn").addEventListener("click", () => nav.browse());
+  document.getElementById("newBtn").addEventListener("click", () => {
+    resetTrip();
+    update({ messages: [], mode: "normal" });
+  });
+  input.addEventListener("input", autosize);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      document.getElementById("composer").requestSubmit();
+    }
+  });
   document.getElementById("composer").addEventListener("submit", (e) => {
     e.preventDefault();
     const text = input.value;
@@ -197,9 +184,7 @@ async function boot() {
   });
   subscribe(render);
   render();
-  if (!state.messages.length) pushMessage({ role: "bot", text: WELCOME });
-  if (!state.at) openSheet();
-  checkHealth();
+  if (!state.at) openLocation();
 }
 
 boot();
