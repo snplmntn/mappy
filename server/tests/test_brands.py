@@ -141,3 +141,8 @@ def test_trait_phrases_read_as_english():
 def test_milk_tea_brands_are_food():
     assert {b.category for b in BRANDS if "milk tea" in b.traits} == {"food"}
     assert brand_in("inasal").name == "Mang Inasal"
+
+
+@pytest.mark.parametrize("text", ["watch", "watches"])
+def test_a_plain_word_is_not_a_misspelt_brand(text):
+    assert brand_in(text) is None

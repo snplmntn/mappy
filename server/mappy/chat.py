@@ -3,10 +3,12 @@ Every path ends in deterministic code (search, trip edits, planner, locator)."""
 
 import asyncio
 import math
+from functools import partial
 from dataclasses import dataclass, field
 from typing import NamedTuple, Protocol
 
 import httpx
+from rapidfuzz import fuzz
 
 from .brands import brand_in, is_store_of, trait_phrase, traits_of
 from .learn import Picks
@@ -16,11 +18,10 @@ from .mall import Mall
 from .models import Edit, Errand, ErrandReq, Extraction, Trip, hhmm_to_min
 from .planner import plan_trip
 from .router import Router
-from .rules import parse
-from .search import CATEGORY_LABELS, Search, places_label
-from .trip import apply_edits, new_errand_id
+from .rules import FRIEND_RE, PLAN_SEPARATORS, parse
+from .search import CATEGORY_LABELS, Search, categories_in, places_label
+from .trip import MAX_ERRANDS, apply_edits, duplicate_of, new_errand_id
 
-MAX_ERRANDS = 5
 CANDIDATES = 3
 FIND_RESULTS = 5
 MAX_REPLY_TRAITS = 2  # traits named in the "also do ..." sentence
@@ -33,6 +34,8 @@ MIN_SCORE = {"hash-256": 0.35, "multilingual-e5-small": 0.60}
 HELP = "Tell me what you need to do. For example: “fix my phone, eat, then buy a gift”."
 TRY_INSTEAD = "Try a store name, or a type like “food”, “ATM” or “phone repair”."
 NOTHING_CHANGED = "I didn't catch what to change. Try “30 mins lang” or “skip food”."
+WHERE_AM_I = "Scan the location code nearest you, or tell me a store you can see, like “nasa tabi ako ng Starbucks”."
+LANDMARK_MIN = 80  # how closely an LLM landmark must appear in the message, so it can't invent one
 
 
 class Extractor(Protocol):
@@ -63,8 +66,30 @@ def _not_found(queries: list[str]) -> str:
 
 
 def _dead_end(x: Extraction, out: dict) -> bool:
-    """A search, plan or locate that ended in plain text found nothing."""
-    return x.intent in ("find", "plan", "locate") and out["result"]["type"] == "text"
+    """A search, plan or locate that ended in plain text found nothing ("where am I" has nothing to find)."""
+    asked = x.intent in ("find", "plan") or (x.intent == "locate" and bool(x.landmarks))
+    return asked and out["result"]["type"] == "text"
+
+
+FRIEND_ASKS = {None: "Is this where your friend is? Tap the right spot.", "floor": "Which floor is your friend on?",
+               "more_landmarks": "Can you name another store your friend can see?"}
+
+
+def _for_friend(out: dict) -> dict:
+    """A spot someone else described is a place to walk to, not where the shopper is."""
+    result = out["result"]
+    if result["type"] != "locate":
+        return out
+    return {**out, "reply": FRIEND_ASKS[result["ask"]], "result": {**result, "friend": True}}
+
+
+def _stops(n: int) -> str:
+    return f"{n} stop" if n == 1 else f"{n} stops"
+
+
+def _clauses(message: str) -> int:
+    """How many parts a message lists ("ayos phone, tapos kain" is two)."""
+    return sum(1 for c in PLAN_SEPARATORS.split(message) if c.strip(" .!?"))
 
 
 def _label(category: str) -> str:
@@ -112,11 +137,7 @@ class ChatService:
     def _min_score(self) -> float:
         return MIN_SCORE.get(self.search.embedder.model_id, 0.5)
 
-    def _matches(self, query: str, category: str | None) -> list[str]:
-        if category and self.search.by_category(category):
-            hits = [pid for pid, _ in self.search.search(query, category, k=len(self.mall.places))
-                    if self.mall.places[pid].category == category]
-            return hits[:CANDIDATES]
+    def _matches(self, query: str) -> list[str]:
         hits = self.search.search(query, k=8)
         if not hits or hits[0][1] < self._min_score():
             return []
@@ -136,7 +157,7 @@ class ChatService:
             return cat
         if not req.category or brand_in(req.query):  # a known brand resolves by name or swaps, see _resolve
             return None
-        hits = self._matches(req.query, None)
+        hits = self._matches(req.query)
         return req.category if hits and self.mall.places[hits[0]].category == req.category else None
 
     def _errand(self, new_id: str, query: str, ids: list[str]) -> Errand:
@@ -146,7 +167,20 @@ class ChatService:
                       category=first.category, candidates=ids, duration_min=duration,
                       duration_source="store" if first.service else "default", **{"async": is_async})
 
-    def _resolve(self, query: str, category: str | None) -> tuple[list[str], StandIn | None]:
+    def _word_scores(self, query: str, category: str) -> dict[str, int]:
+        """How many of the request's own words beyond its category each place of it matches."""
+        words = self.search.specific_words(query, category)
+        return {pid: self.search.word_score(pid, words) for pid in self.search.by_category(category)}
+
+    def _nearest(self, query: str, category: str, start: str, router: Router) -> list[str]:
+        """A category's places for a request: those matching more of its own words first ("korean" in
+        "korean food"), then the shortest walk from where the shopper is."""
+        scores = self._word_scores(query, category)
+        walks = {pid: self._walk_min(start, pid, router) for pid in scores}
+        return sorted(scores, key=lambda pid: (-scores[pid], walks[pid] is None, walks[pid] or 0))
+
+    def _resolve(self, query: str, category: str | None, start: str,
+                 router: Router) -> tuple[list[str], StandIn | None]:
         """Places for a store request: a known brand that is here, then same-kind stand-ins for a known
         brand that isn't (before search, so "coffee bean" isn't quietly answered by a "coffee" tag),
         then a search hit, then the LLM's category guess."""
@@ -157,34 +191,63 @@ class ChatService:
         if brand and self.search.by_category(brand.category):
             return (self.search.alternatives(brand.category, brand.traits),
                     StandIn(brand.name, brand.category, brand.traits, swapped=True))
-        if hits := self._matches(query, None):
+        if hits := self._matches(query):
             return hits, None
         if category and self.search.by_category(category):
-            return self._matches(query, category), StandIn(query, category)
+            return self._nearest(query, category, start, router), StandIn(query, category)
         return [], None
 
-    def _errand_or_alternative(self, query: str, category: str | None,
-                               new_id: str) -> tuple[Errand | None, StandIn | None]:
-        """The errand for a request, and what it stands in for when a missing brand was swapped."""
+    def _errand_or_alternative(self, query: str, category: str | None, new_id: str, start: str,
+                               router: Router) -> tuple[Errand | None, StandIn | None]:
+        """The errand for a request, and what it stands in for when it isn't here: a missing brand, or a
+        thing the shopper named that only the LLM's category guess matched ("dentist" -> pharmacies)."""
         if cat := self._own_category(query):  # a category word in the user's own text beats the LLM's guess
-            ids, stand_in = self._matches(query, cat), None
+            ids, stand_in = self._nearest(query, cat, start, router), None
         else:
-            ids, stand_in = self._resolve(query, category)
+            ids, stand_in = self._resolve(query, category, start, router)
         if not ids:
             return None, None
-        return self._errand(new_id, query, ids[:CANDIDATES]), stand_in if stand_in and stand_in.swapped else None
+        said = stand_in and (stand_in.swapped or stand_in.category not in categories_in(query))
+        return self._errand(new_id, query, ids[:CANDIDATES]), stand_in if said else None
 
-    def make_errand(self, query: str, category: str | None, new_id: str) -> Errand | None:
-        return self._errand_or_alternative(query, category, new_id)[0]
+    def make_errand(self, query: str, category: str | None, new_id: str, start: str,
+                    router: Router) -> Errand | None:
+        return self._errand_or_alternative(query, category, new_id, start, router)[0]
+
+    def _apply(self, trip: Trip, edits: list[Edit], now_min: int, start: str) -> tuple[Trip, list[str], str | None]:
+        """Apply edits; something just dropped off is picked up from the shop the plan dropped it at."""
+        make = partial(self.make_errand, start=start, router=self._router(trip))
+        t, changes, question = apply_edits(trip, edits, now_min, make, self._name, self._floor)
+        was_todo = {e.id for e in trip.errands if e.status == "todo"}
+        dropped = [e for e in t.errands if e.status == "dropped" and not e.chosen and e.id in was_todo]
+        if dropped and not question:
+            plan = plan_trip(trip, start, now_min, self._router(trip), self.mall)
+            drops = {st.errand: st.place for st in plan.stops if st.kind == "drop"}
+            for e in dropped:
+                e.chosen = drops.get(e.id)
+        return t, changes, question
 
     async def _ask_llm(self, message: str, trip: Trip) -> Extraction | None:
         if self.llm is None:
             return None
         try:
             summary = trip_summary(trip, self._name)
-            return await asyncio.wait_for(self.llm.extract(message, trip, summary), LLM_TIMEOUT_S)
+            x = await asyncio.wait_for(self.llm.extract(message, trip, summary), LLM_TIMEOUT_S)
         except (LLMBusy, LLMError, asyncio.TimeoutError, httpx.HTTPError):
             return None
+        return self._grounded(message, x)
+
+    @staticmethod
+    def _grounded(message: str, x: Extraction) -> Extraction:
+        """Keep the LLM to what the message says: a one-part message is one search, not a plan of
+        made-up errands, and a landmark must be one the shopper actually named."""
+        if x.intent == "plan" and x.errands and _clauses(message) < 2:
+            return x.model_copy(update={"intent": "find", "errands": x.errands[:1]})
+        if x.intent == "locate":
+            m = message.lower()
+            named = [lm for lm in x.landmarks if fuzz.partial_ratio(lm.lower(), m) >= LANDMARK_MIN]
+            return x.model_copy(update={"landmarks": named})
+        return x
 
     async def _extract(self, message: str, trip: Trip) -> Extraction:
         x = parse(message, trip, self.search)
@@ -269,11 +332,12 @@ class ChatService:
             reply += f" {rows[0]['name']} is {rows[0]['walk_min']} min away."
         return reply
 
-    def _nudge(self, rows: list[dict], start: str, router: Router, exclude: tuple[str, ...]) -> Nudge | None:
+    def _nudge(self, query: str, rows: list[dict], start: str, router: Router,
+               exclude: tuple[str, ...]) -> Nudge | None:
         """A same-kind store at least NUDGE_MIN minutes nearer than the store the shopper named (best
-        trait match first)."""
+        trait match first). Only for a store named outright: "ramen" isn't asking for Kyu Kyu Ramen."""
         top = rows[0]
-        if top["walk_min"] is None:
+        if top["walk_min"] is None or top["name"] not in self.search.names_in(query):
             return None
         traits = traits_of(top["name"]) or self.search.distinctive_tags(top["id"])
         pid = next((pid for pid in self.search.alternatives(top["category"], traits, exclude)
@@ -295,11 +359,13 @@ class ChatService:
         out = self._respond(x, at, now, trip, prev)
         if x.source == "rules" and _dead_end(x, out):
             # The rules were sure but found nothing, so let the LLM read it before giving up.
-            # Keep the rules' plain "couldn't find" unless the LLM gets somewhere.
+            # Keep the rules' plain "couldn't find" unless the LLM finds something to show.
             if (retry := await self._ask_llm(message, trip)) is not None:
                 retry_out = self._respond(retry, at, now, trip, prev)
-                if not _dead_end(retry, retry_out):
+                if retry_out["result"]["type"] != "text":
                     x, out = retry, retry_out
+        if FRIEND_RE.search(message):
+            out = _for_friend(out)
         out["meta"] = {"engine": x.source, "intent": x.intent}  # which engine understood it, for the receipt line
         return out
 
@@ -313,19 +379,20 @@ class ChatService:
 
         if x.intent == "find" and x.errands:
             req = x.errands[0]
+            scores = None
             if (cat := self._find_category(req)) and self.search.by_category(cat):
-                ids, alt = self.search.by_category(cat), None
+                ids, alt, scores = self.search.by_category(cat), None, self._word_scores(req.query, cat)
             else:
-                ids, alt = self._resolve(req.query, req.category)
+                ids, alt = self._resolve(req.query, req.category, start, router)
             if alt:
                 result = self._alternatives_result(alt, start, router)
                 return {"reply": self._alternatives_reply(alt, result["places"]), "result": result,
                         "trip": trip.model_dump(by_alias=True)}
             if not ids:
                 return _text(_not_found([req.query]), trip)
-            result = self._places_result(req.query, ids, start, router, category=cat)
+            result = self._places_result(req.query, ids, start, router, scores, category=cat)
             reply = f"Here's what I found for “{req.query}”:"
-            if cat is None and (nudge := self._nudge(result["places"], start, router, tuple(ids))):
+            if cat is None and (nudge := self._nudge(req.query, result["places"], start, router, tuple(ids))):
                 result["places"].append({**nudge.row, "nudge": True})
                 result["shown"].append(nudge.row["id"])
                 reply += f" {nudge.sentence}"
@@ -333,40 +400,59 @@ class ChatService:
                     "trip": trip.model_dump(by_alias=True)}
 
         if x.intent == "plan" and x.errands:
+            # A new list adds to the trip: a stop already planned isn't added twice, and the
+            # whole trip keeps to MAX_ERRANDS.
             t = trip.model_copy(deep=True)
-            capped = len(x.errands) > MAX_ERRANDS
-            missing, swapped, added = [], {}, 0
-            for req in x.errands[:MAX_ERRANDS]:
-                made, stand_in = self._errand_or_alternative(req.query, req.category, new_errand_id(t))
+            capped = False
+            missing, already, swapped, added = [], [], {}, 0
+            for req in x.errands:
+                active = [e for e in t.errands if e.status != "done"]
+                if len(active) >= MAX_ERRANDS:
+                    capped = True
+                    break
+                made, stand_in = self._errand_or_alternative(req.query, req.category, new_errand_id(t), start, router)
                 if made is None:
                     missing.append(req.query)
+                    continue
+                if dup := duplicate_of(made, t):
+                    if set(made.candidates) < set(dup.candidates):  # "zara and h&m": the one named wins
+                        dup.candidates, dup.query = made.candidates, made.query
+                    already.append(made.label)
                     continue
                 t.errands.append(made)
                 added += 1
                 if stand_in:
                     swapped[stand_in.name] = stand_in.category  # one sentence per missing brand
-            if not added:
+            if not added and not already and not capped:
                 return _text(_not_found(missing), trip)
             payload = self._plan_payload(t, start, now_min, [])
-            reply = f"Here's your plan: {len(payload['plan']['stops'])} stops, done by {payload['plan']['finish_at']}."
+            reply = f"Here's your plan: {_stops(len(payload['plan']['stops']))}, done by {payload['plan']['finish_at']}."
             for name, cat in swapped.items():
                 reply += f" No {name} here, so I added other {places_label(cat)} instead."
+            if already:
+                names = list(dict.fromkeys(already))
+                reply += f" {', '.join(names)} {'is' if len(names) == 1 else 'are'} already in your plan."
             if missing:
                 reply += f" I couldn't find: {', '.join(missing)}."
             if capped:
-                reply += f" I planned the first {MAX_ERRANDS}; add the rest after."
+                reply += f" Your plan has {MAX_ERRANDS} errands; finish one before adding more."
             return {"reply": reply, "result": payload, "trip": t.model_dump(by_alias=True)}
 
         if x.intent == "edit" and x.edits:
-            t, changes, question = apply_edits(trip, x.edits, now_min, self.make_errand, self._name, self._floor)
+            t, changes, question = self._apply(trip, x.edits, now_min, start)
             if question:
                 return _text(question, trip)
             if not changes:
                 return _text(NOTHING_CHANGED, trip)
+            if not t.errands:  # a deadline or elevators-only said before there is any trip
+                return _text(f"Got it: {'; '.join(changes)}. What do you need to do?", t)
             payload = self._plan_payload(t, start, now_min, changes)
             return {"reply": "Updated your plan.", "result": payload, "trip": t.model_dump(by_alias=True)}
 
-        if x.intent == "locate" and x.landmarks:
+        if x.intent == "locate" and not x.landmarks:
+            return _text(WHERE_AM_I, trip)
+
+        if x.intent == "locate":
             cands, ask = locate(self.mall, self.search, x.landmarks, x.floor)
             if not cands:
                 return _text("I couldn't place you. Which store is closest to you?", trip)
@@ -381,7 +467,7 @@ class ChatService:
         now_min = hhmm_to_min(now)
         changes: list[str] = []
         if edits:
-            trip, changes, question = apply_edits(trip, edits, now_min, self.make_errand, self._name, self._floor)
+            trip, changes, question = self._apply(trip, edits, now_min, self.start_node(at))
             if question:
                 return {"plan": None, "trip": trip.model_dump(by_alias=True), "changes": [], "question": question}
         plan = plan_trip(trip, self.start_node(at), now_min, self._router(trip), self.mall)

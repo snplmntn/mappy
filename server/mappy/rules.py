@@ -3,8 +3,9 @@ descriptions without calling the LLM, which is slow on a CPU-only laptop."""
 
 import re
 
+from .brands import brand_in
 from .models import Edit, ErrandReq, Extraction, Trip
-from .search import CATEGORY_LABELS, Search
+from .search import CATEGORY_LABELS, REPAIR_WORDS, Search, categories_in
 
 SEPARATORS = re.compile(r",|;|\btapos\b(?!\s+na\b)|\band\b|\bthen\b|\bsaka\b|\bpati\b|\bpagkatapos\b", re.I)
 # Tagalog "at" (and) is too ambiguous to split on in general, but fine when every part names a category.
@@ -15,12 +16,18 @@ QUESTION_WORDS = re.compile(r"^(?:where can i (?:find|get|buy)|where can i|where
                             r"saan (?:ako )?pwede|saan|nasaan|asan|san|may|gusto ko(?:ng)?|kailangan ko(?:ng)?|"
                             r"need ko|hanap(?: ako)?|naghahanap ako|i want(?: to)?|i need(?: to)?|looking for)"
                             r"\s+(?:ang|ng|ba|po|yung|the)?\s*", re.I)
-OTHER_RE = re.compile(r"^\s*(?:hi|hello|hey|yo|salamat|thanks?|thank you|ty|ok(?:ay)?|sige|"
+OTHER_RE = re.compile(r"^\s*(?:hi|hello|hey|yo|help|tulong|salamat|thanks?|thank you|ty|ok(?:ay)?|sige|"
                       r"good (?:morning|afternoon|evening)|anong oras|what time)\b", re.I)
 # "Show me more" of the last list, only when the whole message is the cue ("more coffee" is a find);
 # trailing particles ("iba pa po", "meron pa ba") are still just the cue.
 MORE_RE = re.compile(r"^\s*(?:iba pa|iba pang|yung iba|meron pa|may iba pa|ano pa|"
                      r"show more|more|others?|something else|next)\b(?:\s+(?:po|ba|naman|nga))*[\s?!.]*$", re.I)
+# Particles after the thing asked for: "may starbucks ba dito" asks for "starbucks".
+TRAILING_RE = re.compile(r"(?:\s+(?:ba|po|dito|rito|here|meron|nga|naman))+\s*$", re.I)
+WHERE_AM_I_RE = re.compile(r"^\s*(?:(?:nasaan|nasan|asan|saan)\s+(?:na\s+)?ako(?:\s+(?:ngayon|ba|po))*|"
+                           r"where am i(?:\s+now)?)[\s?!.]*$", re.I)
+# Someone else is the one at the spot being described ("my friend is near Gong Cha").
+FRIEND_RE = re.compile(r"\b(?:friend|friends|kaibigan|tropa|barkada|kasama ko|si [a-z]+ (?:ay )?nasa)\b", re.I)
 NUM_WORDS = {"isa": 1, "isang": 1, "dalawa": 2, "dalawang": 2, "tatlo": 3, "tatlong": 3}
 UNIT_AHEAD = r"(?!\s*(?:mins?\b|minutes?|minutos?|oras|hrs?\b|hours?))"
 
@@ -96,7 +103,8 @@ def _mention(clause: str, trip: Trip) -> str | None:
         for name in names:
             if any(w in words for w in re.findall(r"[\w&]+", name.lower()) if len(w) >= 4):
                 return e.label
-    return None
+    cats = categories_in(clause)  # "tapos na ako kumain" is the food stop
+    return next((e.label for e in trip.errands if e.status != "done" and e.category in cats), None)
 
 
 def _clause_edits(clause: str, trip: Trip) -> list[Edit]:
@@ -112,7 +120,8 @@ def _clause_edits(clause: str, trip: Trip) -> list[Edit]:
     if not edits and (mins := parse_minutes(clause)):
         edits.append(Edit(op="set_duration", errand=ref, minutes=mins))
     if not has_trip:
-        pass
+        if m := REMOVE_RE.search(clause):  # so "skip food" with no trip says there is no trip
+            edits.append(Edit(op="remove", errand=m.group(1).strip(" .!?")))
     elif m := ADD_RE.search(clause):
         edits.append(Edit(op="add", query=m.group(1).strip(" .!?")))
     elif m := REMOVE_RE.search(clause):
@@ -142,18 +151,38 @@ def _steering(message: str, trip: Trip) -> Extraction | None:
     return Extraction(intent="edit", edits=edits) if edits else None
 
 
+CARRY_MAX_WORDS = 2  # "sapatos ko" after "papaayos ko phone ko at" is repaired too
+
+
+def _chunk_errand(chunk: str, repairing: bool, search: Search) -> ErrandReq | None:
+    """The errand a plan part names by category; a bare object after a repair ("... at sapatos ko") is
+    repaired, and its query says so, so it isn't read back as shopping for shoes."""
+    words = set(re.findall(r"[\w&]+", chunk.lower()))
+    if repairing and not words & REPAIR_WORDS and len(words) <= CARRY_MAX_WORDS:
+        query = f"{chunk} repair"
+        cats = categories_in(query)
+        if len(cats) == 1 and (cat := next(iter(cats))).endswith("_repair"):
+            return ErrandReq(query=query, category=cat)
+    cat = search.alias_category(chunk)
+    return ErrandReq(query=chunk, category=cat) if cat else None
+
+
 def _category_plan(message: str, search: Search) -> Extraction | None:
-    """A multi-errand message where every part names one clear category ("cr muna tapos kape") needs no LLM."""
+    """A multi-errand message where every part names one clear category or store ("cr muna tapos kape",
+    "uniqlo and starbucks") needs no LLM."""
     chunks = [c.strip(" .!?") for c in PLAN_SEPARATORS.split(message)]
     chunks = [c for c in chunks if c]
     if len(chunks) < 2:
         return None
+    repairing = bool(set(re.findall(r"[\w&]+", message.lower())) & REPAIR_WORDS)
     errands: dict[str, ErrandReq] = {}
     for chunk in chunks:
-        cat = search.alias_category(chunk)
-        if cat is None:
+        if req := _chunk_errand(chunk, repairing, search):
+            errands.setdefault(req.category, req)  # "notebook at ballpen" is one stop
+        elif search.names_in(chunk) or brand_in(chunk):
+            errands.setdefault(chunk.lower(), ErrandReq(query=chunk))
+        else:
             return None
-        errands.setdefault(cat, ErrandReq(query=chunk, category=cat))  # "notebook at ballpen" is one stop
     if len(errands) < 2:
         return None
     return Extraction(intent="plan", errands=list(errands.values()))
@@ -166,7 +195,9 @@ def parse(message: str, trip: Trip, search: Search) -> Extraction | None:
         names = search.names_in(msg)
         if names:
             return Extraction(intent="locate", landmarks=names, floor=floor_hint(msg))
-    if OTHER_RE.search(msg):
+    if WHERE_AM_I_RE.search(msg):
+        return Extraction(intent="locate")
+    if OTHER_RE.search(msg) or not re.search(r"\w", msg):  # a greeting, or only punctuation
         return Extraction(intent="other")
     if MORE_RE.search(msg):
         return Extraction(intent="more")
@@ -177,7 +208,7 @@ def parse(message: str, trip: Trip, search: Search) -> Extraction | None:
             return plan
         if SEPARATORS.search(msg):
             return None
-    query = QUESTION_WORDS.sub("", msg).strip(" ?!.") or msg
+    query = TRAILING_RE.sub("", QUESTION_WORDS.sub("", msg).strip(" ?!.")) or msg
     asked = query != msg.strip(" ?!.")
     if cat := search.alias_category(query):
         return Extraction(intent="find", errands=[ErrandReq(query=query, category=cat)])
