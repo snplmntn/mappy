@@ -9,7 +9,10 @@ from .search import CATEGORY_LABELS, Search
 SEPARATORS = re.compile(r",|;|\btapos\b(?!\s+na\b)|\band\b|\bthen\b|\bsaka\b|\bpati\b|\bpagkatapos\b", re.I)
 LOCATE_CUES = ("nasa ", "andito", "nandito", "i'm at", "im at", "i am at", "katapat", "tabi ng",
                "beside", "near ", "kita ko", "i see", "harap ng", "tapat ng", "nandyan", "andyan")
-QUESTION_WORDS = re.compile(r"^(saan|nasaan|san|where(?: is)?|asan|may)\s+(?:ang|ng|ba|po|yung|the)?\s*", re.I)
+QUESTION_WORDS = re.compile(r"^(?:where can i|where do i|where is|where's|where|saan (?:ako )?pwede|saan|nasaan|"
+                            r"asan|san|may)\s+(?:ang|ng|ba|po|yung|the)?\s*", re.I)
+OTHER_RE = re.compile(r"^\s*(?:hi|hello|hey|yo|salamat|thanks?|thank you|ty|ok(?:ay)?|sige|"
+                      r"good (?:morning|afternoon|evening)|anong oras|what time)\b", re.I)
 NUM_WORDS = {"isa": 1, "isang": 1, "dalawa": 2, "dalawang": 2, "tatlo": 3, "tatlong": 3}
 UNIT_AHEAD = r"(?!\s*(?:mins?\b|minutes?|minutos?|oras|hrs?\b|hours?))"
 
@@ -20,6 +23,8 @@ READY_RE = re.compile(r"\bready\b\s*(?:na\s+)?(?:daw\s+)?(?:by|ng|sa|at|mga|ng m
 LEAVE_RE = re.compile(r"\b(?:aalis|umalis|uuwi|umuwi|leave|alis|uwi)\b(.*)", re.I)
 REMOVE_RE = re.compile(r"\b(?:wag na|huwag na|skip|cancel|tanggalin|tanggal|ayoko na ng|ayaw ko na ng)\s+"
                        r"(?:(?:yung|ang|sa|ng)\s+)?(.+)", re.I)
+ADD_RE = re.compile(r"\b(?:dagdag(?:an)?|isama|pasama|isali|add|samahan)\b(?:\s+(?:mo|na|rin|din|yung|ang|ng|sa|pa))*"
+                    r"\s+(.+)", re.I)
 FIRST_RE = re.compile(r"(?:^|\s)([\w&' ]+?)\s+(?:muna|first)\b", re.I)
 DROPPED_RE = re.compile(r"\b(naiwan|iniwan|na-?drop|dinrop|binigay|na-?iwan|dropped off|drop off na)\b", re.I)
 DONE_RE = re.compile(r"\b(nakuha ko na|kinuha ko na|tapos na|done na|picked up)\b", re.I)
@@ -88,6 +93,7 @@ def _mention(clause: str, trip: Trip) -> str | None:
 
 def _clause_edits(clause: str, trip: Trip) -> list[Edit]:
     edits: list[Edit] = []
+    has_trip = bool(trip.errands)
     ref = _mention(clause, trip)
     if m := READY_RE.search(clause):
         if t := parse_time(m.group(1)):
@@ -97,7 +103,11 @@ def _clause_edits(clause: str, trip: Trip) -> list[Edit]:
             edits.append(Edit(op="deadline", time=t))
     if not edits and (mins := parse_minutes(clause)):
         edits.append(Edit(op="set_duration", errand=ref, minutes=mins))
-    if m := REMOVE_RE.search(clause):
+    if not has_trip:
+        pass
+    elif m := ADD_RE.search(clause):
+        edits.append(Edit(op="add", query=m.group(1).strip(" .!?")))
+    elif m := REMOVE_RE.search(clause):
         edits.append(Edit(op="remove", errand=m.group(1).strip(" .!?")))
     elif m := FIRST_RE.search(clause):
         target = re.sub(r"^(?:mag|yung|ang)\s+", "", m.group(1).strip(), flags=re.I)
@@ -131,13 +141,16 @@ def parse(message: str, trip: Trip, search: Search) -> Extraction | None:
         names = search.names_in(msg)
         if names:
             return Extraction(intent="locate", landmarks=names, floor=floor_hint(msg))
+    if OTHER_RE.search(msg):
+        return Extraction(intent="other")
     if steer := _steering(msg, trip):
         return steer
     if SEPARATORS.search(msg):
         return None
     query = QUESTION_WORDS.sub("", msg).strip(" ?!.") or msg
+    asked = query != msg.strip(" ?!.")
     if cat := search.alias_category(query):
         return Extraction(intent="find", errands=[ErrandReq(query=query, category=cat)])
-    if len(query.split()) <= SHORT_FIND_MAX_WORDS:
+    if asked or len(query.split()) <= SHORT_FIND_MAX_WORDS:
         return Extraction(intent="find", errands=[ErrandReq(query=query)])
     return None

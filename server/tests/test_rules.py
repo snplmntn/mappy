@@ -97,3 +97,25 @@ def test_multi_errand_goes_to_llm(search):
 def test_steering_without_trip_is_edit_so_chat_can_ask(search):
     x = parse("30 mins lang", Trip(), search)
     assert x.intent == "edit" and x.edits[0].op == "set_duration"
+
+
+def test_muna_without_trip_is_not_edit(search):
+    x = parse("withdraw muna ako sa atm then kape", Trip(), search)
+    assert x is None or x.intent != "edit"
+
+
+def test_add_errand(search):
+    for msg in ("dagdag mo yung pharmacy", "pasama na rin ng ATM", "isama mo ang regalo"):
+        x = parse(msg, trip(), search)
+        assert x.intent == "edit" and x.edits[0].op == "add", msg
+    assert parse("pasama na rin ng ATM", trip(), search).edits[0].query == "ATM"
+
+
+def test_greetings_are_other(search):
+    for msg in ("salamat po!", "hello", "hi", "thank you", "anong oras kayo nagsasara"):
+        assert parse(msg, Trip(), search).intent == "other", msg
+
+
+def test_question_is_find(search):
+    x = parse("where can I fix my cracked phone screen", Trip(), search)
+    assert x.intent == "find" and "phone" in x.errands[0].query

@@ -1,0 +1,50 @@
+{"msg": "papaayos ko screen ng phone ko, kakain, tapos bibili ng regalo kay mama", "trip": null, "expect": {"intent": "plan", "categories": ["phone_repair", "food", "gift"]}}
+{"msg": "sira cellfone ko tapos gutom na ko", "trip": null, "expect": {"intent": "plan", "categories": ["phone_repair", "food"]}}
+{"msg": "need ko magpa-repair ng sapatos and bumili ng damit", "trip": null, "expect": {"intent": "plan", "categories": ["shoe_repair", "clothing"]}}
+{"msg": "withdraw muna ako sa atm then kape", "trip": null, "expect": {"intent": "plan", "categories": ["atm", "cafe"]}}
+{"msg": "bibili ako ng gamot tapos grocery", "trip": null, "expect": {"intent": "plan", "categories": ["pharmacy", "grocery"]}}
+{"msg": "I need to fix my phone battery, grab lunch, and buy new shoes", "trip": null, "expect": {"intent": "plan", "categories": ["phone_repair", "food", "shoes"]}}
+{"msg": "magpapadala ng pera, tapos kakain ng ramen", "trip": null, "expect": {"intent": "plan", "categories": ["remittance", "food"]}}
+{"msg": "cr muna tapos milk tea", "trip": null, "expect": {"intent": "plan", "categories": ["restroom", "food"]}}
+{"msg": "ipaayos yung basag na screen, bili ng charger, tapos merienda", "trip": null, "expect": {"intent": "plan", "categories": ["phone_repair", "electronics", "food"]}}
+{"msg": "hanap ako ng pasalubong at kape", "trip": null, "expect": {"intent": "plan", "categories": ["gift", "cafe"]}}
+{"msg": "gusto ko kumain ng sizzling tapos bumili ng relo", "trip": null, "expect": {"intent": "plan", "categories": ["food", "accessories"]}}
+{"msg": "papalitan ko battery ng phone, tapos titingin ng laptop", "trip": null, "expect": {"intent": "plan", "categories": ["phone_repair", "electronics"]}}
+{"msg": "deposit sa bdo then grocery shopping", "trip": null, "expect": {"intent": "plan", "categories": ["bank", "grocery"]}}
+{"msg": "kain tayo then laro sa arcade or games", "trip": null, "expect": {"intent": "plan", "categories": ["food", "gaming"]}}
+{"msg": "bili ng notebook at ballpen tapos kape", "trip": null, "expect": {"intent": "plan", "categories": ["books_stationery", "cafe"]}}
+{"msg": "skincare tapos damit pang-office", "trip": null, "expect": {"intent": "plan", "categories": ["beauty", "clothing"]}}
+{"msg": "phone repair, food, gift", "trip": null, "expect": {"intent": "plan", "categories": ["phone_repair", "food", "gift"]}}
+{"msg": "ayusin ang sira kong takong ng sapatos tapos kain", "trip": null, "expect": {"intent": "plan", "categories": ["shoe_repair", "food"]}}
+{"msg": "lunch muna bago mag-shopping ng damit", "trip": null, "expect": {"intent": "plan", "categories": ["food", "clothing"]}}
+{"msg": "kailangan ko ng gamot sa ubo at pagkain", "trip": null, "expect": {"intent": "plan", "categories": ["pharmacy", "food"]}}
+{"msg": "sabi ng technician 30 mins lang", "trip": "std", "expect": {"intent": "edit", "ops": ["set_duration"]}}
+{"msg": "sabi ng technician 1 oras daw, tapos kailangan ko umalis ng 5", "trip": "std", "expect": {"intent": "edit", "ops": ["set_duration", "deadline"]}}
+{"msg": "ready daw by 4pm", "trip": "std", "expect": {"intent": "edit", "ops": ["set_ready_at"]}}
+{"msg": "gutom na ko, kain muna", "trip": "std", "expect": {"intent": "edit", "ops": ["order"]}}
+{"msg": "wag na yung damit", "trip": "std", "expect": {"intent": "edit", "ops": ["remove"]}}
+{"msg": "naiwan ko na yung phone sa repair", "trip": "std", "expect": {"intent": "edit", "ops": ["status"]}}
+{"msg": "may kasama akong naka-wheelchair", "trip": "std", "expect": {"intent": "edit", "ops": ["elevator_only"]}}
+{"msg": "dagdag mo yung pharmacy", "trip": "std", "expect": {"intent": "edit", "ops": ["add"]}}
+{"msg": "the guy said it will take two hours", "trip": "std", "expect": {"intent": "edit", "ops": ["set_duration"]}}
+{"msg": "uuwi na ako ng 6 so bilisan natin", "trip": "std", "expect": {"intent": "edit", "ops": ["deadline"]}}
+{"msg": "nakuha ko na yung phone", "trip": "std", "expect": {"intent": "edit", "ops": ["status"]}}
+{"msg": "pasama na rin ng ATM", "trip": "std", "expect": {"intent": "edit", "ops": ["add"]}}
+{"msg": "nasa tabi ako ng Starbucks, katapat ng H&M", "trip": null, "expect": {"intent": "locate", "landmarks": ["Starbucks", "H&M"]}}
+{"msg": "andito ako sa harap ng Uniqlo", "trip": null, "expect": {"intent": "locate", "landmarks": ["Uniqlo"]}}
+{"msg": "kita ko yung Goldilocks tsaka Mary Grace", "trip": null, "expect": {"intent": "locate", "landmarks": ["Goldilocks", "Mary Grace"]}}
+{"msg": "I'm near ASUS and Techno on the 4th floor", "trip": null, "expect": {"intent": "locate", "landmarks": ["ASUS", "Techno"]}}
+{"msg": "sabi ni ate nasa tapat daw siya ng Kultura", "trip": null, "expect": {"intent": "locate", "landmarks": ["Kultura"]}}
+{"msg": "nandito ako malapit sa La Botica at BDO", "trip": null, "expect": {"intent": "locate", "landmarks": ["La Botica", "BDO"]}}
+{"msg": "nasa may escalator ako, kita ko Miniso", "trip": null, "expect": {"intent": "locate", "landmarks": ["Miniso"]}}
+{"msg": "beside Fuel Burgers, across Gong Cha", "trip": null, "expect": {"intent": "locate", "landmarks": ["Fuel Burgers", "Gong Cha"]}}
+{"msg": "saan ang CR", "trip": null, "expect": {"intent": "find", "categories": ["restroom"]}}
+{"msg": "may atm ba dito", "trip": null, "expect": {"intent": "find", "categories": ["atm"]}}
+{"msg": "where can I fix my cracked phone screen", "trip": null, "expect": {"intent": "find", "categories": ["phone_repair"]}}
+{"msg": "saan pwede magpaayos ng sapatos", "trip": null, "expect": {"intent": "find", "categories": ["shoe_repair"]}}
+{"msg": "botika", "trip": null, "expect": {"intent": "find", "categories": ["pharmacy"]}}
+{"msg": "gusto ko ng milk tea", "trip": null, "expect": {"intent": "find", "categories": ["food"]}}
+{"msg": "salamat po!", "trip": null, "expect": {"intent": "other"}}
+{"msg": "hello", "trip": null, "expect": {"intent": "other"}}
+{"msg": "anong oras kayo nagsasara", "trip": null, "expect": {"intent": "other"}}
+{"msg": "ang init dito grabe", "trip": null, "expect": {"intent": "other"}}
