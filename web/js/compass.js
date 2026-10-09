@@ -16,7 +16,7 @@ let vec = null;
 export const norm = (deg) => ((deg % 360) + 360) % 360;
 
 /** Signed smallest turn from a to b, in (-180, 180]. */
-export const turn = (a, b) => {
+const turn = (a, b) => {
   const d = norm(b - a);
   return d > 180 ? d - 360 : d;
 };

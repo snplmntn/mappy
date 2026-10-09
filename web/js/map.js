@@ -1,7 +1,7 @@
 import { h, s } from "./util.js";
 import { atNode, state } from "./state.js";
 import { icon } from "./icons.js";
-import { compassHeading, compassProblem, compassReport, norm, onHeading, startCompass, turn } from "./compass.js";
+import { compassHeading, compassProblem, compassReport, norm, onHeading, startCompass } from "./compass.js";
 
 const CAT_CLASS = {
   food: "m-food", cafe: "m-food",
@@ -26,8 +26,9 @@ const TWEEN_MS = 420;
 const WALK_MPS = 1.2;
 const NO_COMPASS_MS = 3000;
 const HTTPS_PORT = 8443; // the server's default MAPPY_HTTPS_PORT
-const TURN_LOOKAHEAD_M = 8;
 const FOLLOW_SPAN = 420;
+const BEAM_R = 90;
+const BEAM_HALF = (35 * Math.PI) / 180;
 
 const pts = (path) => path.map((p) => p.join(",")).join(" ");
 
@@ -128,7 +129,14 @@ export function renderFloor(svgEl, floorId, opts = {}) {
   }
   const you = opts.you === false ? null : atNode();
   if (you && you.floor === floorId) {
-    if (opts.cone) g.append(s("path", { class: "m-you-cone", d: `M${you.x} ${you.y}l-22-58a62 62 0 0 1 44 0z`, visibility: "hidden" }));
+    if (opts.cone) {
+      g.append(s("defs", {}, s("radialGradient", { id: "you-beam", gradientUnits: "userSpaceOnUse", cx: you.x, cy: you.y, r: BEAM_R },
+        s("stop", { offset: "0.15", class: "beam-near" }), s("stop", { offset: "1", class: "beam-far" }))));
+      const dx = BEAM_R * Math.sin(BEAM_HALF);
+      const dy = BEAM_R * Math.cos(BEAM_HALF);
+      g.append(s("path", { class: "m-you-cone", fill: "url(#you-beam)", visibility: "hidden",
+        d: `M${you.x} ${you.y}l${-dx} ${-dy}a${BEAM_R} ${BEAM_R} 0 0 1 ${2 * dx} 0z` }));
+    }
     g.append(s("circle", { class: "m-you-halo", cx: you.x, cy: you.y, r: 26 }));
     g.append(s("circle", { class: "m-you", cx: you.x, cy: you.y, r: 10 }));
   }
@@ -216,26 +224,6 @@ function rotate([x, y], deg, [cx, cy]) {
   const c = Math.cos(r);
   const sn = Math.sin(r);
   return [cx + (x - cx) * c - (y - cy) * sn, cy + (x - cx) * sn + (y - cy) * c];
-}
-
-/** Map bearing (degrees clockwise from map-up) from a to b. */
-const mapBearing = (a, b) => norm((Math.atan2(b[0] - a[0], a[1] - b[1]) * 180) / Math.PI);
-
-/** Where a walking leg first heads: the path point a few metres out, so tiny first segments don't mislead. */
-function legHeading(leg) {
-  const scale = state.index.floors[leg.floor].scale_m_per_px;
-  const [start] = leg.path;
-  const ahead = leg.path.find((p) => Math.hypot(p[0] - start[0], p[1] - start[1]) * scale >= TURN_LOOKAHEAD_M) || leg.path[leg.path.length - 1];
-  return ahead === start ? null : mapBearing(start, ahead);
-}
-
-function turnText(deg) {
-  const a = Math.abs(deg);
-  const side = deg < 0 ? "left" : "right";
-  if (a < 25) return "Straight ahead";
-  if (a < 70) return `Bear ${side}`;
-  if (a < 135) return `Turn ${side}`;
-  return "Turn around";
 }
 
 /** Turn API legs into navigation steps with explicit up/down guidance. */
@@ -373,6 +361,7 @@ export class Navigator {
     this.drawTop(step);
     this.drawFloors(step);
     this.drawSheet(step);
+    this.applyHeading();
   }
 
   drawTop(step) {
@@ -397,13 +386,9 @@ export class Navigator {
       secondary = step.secondary;
       chip = step.floorChange ? h("div", { class: "floor-change" }, step.floorChange) : null;
     }
-    const bearing = this.mode === "route" && step && !this.preview && step.leg.path.length > 1 ? legHeading(step.leg) : null;
-    this.turnChip = bearing === null ? null
-      : h("div", { class: "turn-chip", hidden: true, "data-bearing": bearing }, icon("walk", 16), h("span"));
     this.top.replaceChildren(
       h("div", { class: `maneuver${ic === "pin" ? " arrive" : ""}` }, icon(ic, 28)),
-      h("div", { class: "nav-text" }, h("div", { class: "nav-primary" }, primary), h("div", { class: "nav-secondary" }, secondary), chip, this.turnChip));
-    this.applyHeading();
+      h("div", { class: "nav-text" }, h("div", { class: "nav-primary" }, primary), h("div", { class: "nav-secondary" }, secondary), chip));
   }
 
   drawFloors(step) {
@@ -619,7 +604,7 @@ export class Navigator {
     }
   }
 
-  /** Apply the latest compass reading: heading cone, heading-up rotation, compass needle, turn hint. */
+  /** Apply the latest compass reading: heading cone, heading-up rotation, compass needle. */
   applyHeading() {
     const north = state.index.floors[this.shownFloor()].north_deg || 0;
     const compass = compassHeading();
@@ -643,15 +628,6 @@ export class Navigator {
     this.compassBtn.setAttribute("aria-pressed", String(this.follow));
     this.compassBtn.setAttribute("aria-label", this.follow ? "Stop turning the map with you" : "Turn the map with you");
     this.compassBtn.firstElementChild.style.transform = `rotate(${-north - this.rotation}deg)`;
-    const chip = this.turnChip;
-    if (chip) {
-      chip.hidden = heading === null;
-      if (heading !== null) {
-        const rel = turn(heading, Number(chip.dataset.bearing));
-        chip.firstElementChild.style.transform = `rotate(${rel}deg)`;
-        chip.lastElementChild.textContent = turnText(rel);
-      }
-    }
   }
 
   zoomAt(factor, clientX, clientY) {
