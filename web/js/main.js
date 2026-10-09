@@ -299,7 +299,6 @@ async function boot() {
   document.getElementById("newBtn").addEventListener("click", () => {
     resetTrip();
     update({ messages: [], lastPlaces: null, mode: "normal" });
-    toast("New trip");
   });
   input.addEventListener("input", autosize);
   input.addEventListener("keydown", (e) => {
