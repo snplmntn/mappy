@@ -64,6 +64,8 @@ The terminal prints the app URL and a QR code. Open `http://<laptop-ip>:8000/pri
 3. Judges: scan the Wi-Fi QR → **airplane mode on, then Wi-Fi on** → scan a location card.
 4. Android hotspots may change subnet per session. Re-open `/print` after the hotspot is up; it always uses the current IP.
 5. Mirror one phone to the projector with `scrcpy` over USB.
+6. Open `http://localhost:8000/edge` on the laptop, next to the mirrored phone. It shows every phone's request live: which engine answered (rules, cache, local LLM or fallback), how long it took, CPU, memory, the model's RAM, and whether the laptop can reach the internet.
+7. Send one message that needs the LLM before going on stage. The first LLM call after startup is slow (about 7 s measured); warm calls take about 0.3 s.
 
 ## How it works
 
