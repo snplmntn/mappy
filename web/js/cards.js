@@ -59,9 +59,9 @@ function planCard(result, latest, actions) {
       const status = stop.kind === "drop" ? ["dropped", "Dropped off"] : stop.kind === "pick" ? ["done", "Picked up"] : ["done", "Done"];
       const controls = stop.kind === "pick" ? h("div", { class: "stop-actions" }) : durationControl(errand, actions);
       controls.append(h("button", {
-        class: busyClass("pill", `status:${errand.id}`), type: "button",
+        class: busyClass("pill stop-complete", `status:${errand.id}`), type: "button",
         onclick: () => actions.applyEdits([{ op: "status", errand: errand.id, status: status[0] }], `status:${errand.id}`),
-      }, status[1]));
+      }, icon("check", 14), status[1]));
       extra.push(controls);
     }
     return h("li", { class: `stop ${stop.kind}` },
@@ -84,7 +84,7 @@ function planCard(result, latest, actions) {
       h("label", { class: "switch-row" }, h("span", {}, "Elevators only"), elevator),
       h("button", { class: "primary", type: "button", onclick: () => actions.startPlan(plan) }, icon("walk"), "Start navigation")));
   }
-  return h("div", { class: `card${latest ? "" : " stale"}` }, children);
+  return h("div", { class: `card plan-card${latest ? "" : " stale"}` }, children);
 }
 
 function locateCard(result, latest, actions, text) {

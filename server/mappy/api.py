@@ -231,11 +231,12 @@ def create_app(settings: Settings | None = None, embedder=None, llm=None) -> Fas
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#f7f4e9">
-<title>Mappy &middot; QR codes</title><link rel="stylesheet" href="/css/print.css"></head>
-<body>
+<title>Mappy &middot; QR codes</title><link rel="stylesheet" href="/css/print.css"><link rel="stylesheet" href="/css/minimal.css"><script src="/js/theme.js"></script></head>
+<body class="minimal-print">
 <header class="topbar"><a class="brand" href="/" aria-label="Mappy home"><span class="brand-symbol" aria-hidden="true">m</span>mappy<span class="brand-period">.</span></a>
 <div class="header-actions"><a class="button back" href="/"><span data-icon="back"></span>Back to app</a>
-<button class="button print-button" id="printButton" type="button"><span data-icon="print"></span>Print codes</button></div></header>
+<button class="button print-button" id="printButton" type="button"><span data-icon="print"></span>Print codes</button>
+<button class="theme-toggle" data-theme-toggle type="button" aria-label="Switch color theme"></button></div></header>
 <main>
 <div class="page-heading"><span class="eyebrow">{html.escape(mall.name)} / QUICK START</span>
 <h1>Scan. Connect.<br><span>You're on your way.</span></h1>

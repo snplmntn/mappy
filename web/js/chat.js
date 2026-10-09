@@ -1,6 +1,5 @@
-import { h, s } from "./util.js";
-import { state, atNode } from "./state.js";
-import { renderFloor, bbox } from "./map.js";
+import { h } from "./util.js";
+import { state } from "./state.js";
 import { icon } from "./icons.js";
 import { renderResult } from "./cards.js";
 
@@ -33,31 +32,20 @@ function latestIndex(type) {
 }
 
 function emptyState(actions) {
-  const floorId = atNode()?.floor || (state.index.floors.GF ? "GF" : state.index.floorOrder[0]);
-  const floor = state.index.floors[floorId];
-  const box = bbox(floor.outline, 18);
-  const preview = s("svg", { class: "welcome-map", viewBox: `${box.x} ${box.y} ${box.w} ${box.h}`, "aria-hidden": "true" });
-  renderFloor(preview, floorId);
   return h("div", { class: "empty" },
-    h("div", { class: "welcome-heading" },
-      h("div", { class: "eyebrow" }, icon("sparkle"), "YOUR MALL COMPANION"),
-      h("h1", {}, "Where would you", h("br"), h("span", {}, "like to go?")),
-      h("p", {}, "Find a store, plan your errands, or meet a friend. Start here.")),
-    h("div", { class: "welcome-grid" }, h("div", { class: "quick-tasks" },
-    h("div", { class: "section-label" }, "What brings you here?", h("span", {}, "Choose a starting point")),
+    h("h1", {}, "How can I help you today?"),
+    h("p", {}, "Find a store, plan your stops, or meet a friend."),
     h("div", { class: "suggestions" }, SUGGESTIONS.map((sg) =>
-      h("button", { class: "suggestion", type: "button", onclick: () => (sg.send ? actions.send(sg.send) : actions.prefill(sg.prefill, "friend")) },
-        h("span", { class: "task-icon" }, icon(sg.icon)),
-        h("span", { class: "suggestion-copy" }, h("b", {}, sg.title), h("span", {}, sg.hint)), icon("arrow"))))),
-    h("button", { class: "map-preview", type: "button", onclick: actions.browse, "aria-label": `Explore ${state.mall.mall.name} map` },
-      h("div", { class: "preview-heading" }, h("span", {}, icon("layers"), floor.name), h("span", { class: "preview-open" }, icon("arrow"))),
-      preview,
-      h("div", { class: "preview-caption" }, h("div", {}, h("span", { class: "eyebrow" }, "EXPLORE THE MALL"), h("b", {}, state.mall.mall.name)), h("span", {}, "Open map", icon("arrow"))))),
-    h("div", { class: "welcome-note" }, icon("shield"), "Your plans stay here.", h("span", {}, "Built to work without internet.")));
+      h("button", { class: "suggestion", type: "button", title: sg.hint,
+        onclick: () => (sg.send ? actions.send(sg.send) : actions.prefill(sg.prefill, "friend")) },
+        icon(sg.icon), h("span", {}, sg.title)))),
+    h("button", { class: "browse-link", type: "button", onclick: actions.browse },
+      icon("map"), `Explore ${state.mall.mall.name}`, icon("chevron")));
 }
 
 export function renderThread(actions) {
   const thread = document.getElementById("thread");
+  document.getElementById("chatView").classList.toggle("is-empty", !state.messages.length && !state.busy);
   if (!state.messages.length && !state.busy) {
     thread.replaceChildren(emptyState(actions));
     thread.style.display = "flex";
