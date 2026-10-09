@@ -1,8 +1,8 @@
-import { h, nowHHMM } from "./util.js";
+import { h, nowHHMM, store } from "./util.js";
 import { atLabel, atNode, dropIfStale, indexMall, pushMessage, resetTrip, savedInfo, state, subscribe, update } from "./state.js";
-import { ApiError, getJSON, OfflineError, post, SERVER_ERROR, TimeoutError } from "./api.js";
+import { ApiError, CancelledError, getJSON, OfflineError, post, SERVER_ERROR, TimeoutError } from "./api.js";
 import { renderThread } from "./chat.js";
-import { icon } from "./icons.js";
+import { categoryIcon, icon } from "./icons.js";
 import { Navigator, nodePoint, placePoint } from "./map.js";
 
 const OFFLINE = "Can't reach Mappy. Make sure you're on the “mappy” Wi-Fi with airplane mode on and Wi-Fi on.";
@@ -22,21 +22,33 @@ function errorText(err) {
   return SERVER_ERROR;
 }
 
-function botError(err) {
-  pushMessage({ role: "bot", text: errorText(err) });
-}
+/** The in-flight chat request, so the send button can stop it. */
+let inflight = null;
 
-/** Run an async action while the control that started it shows a spinner (state.pending = its key). */
-async function withBusy(fn, pending = "send") {
+/**
+ * Run an async action while the control that started it shows a spinner (state.pending = its key).
+ * `retry` is the message to resend from the error's "Try again" chip.
+ */
+async function withBusy(fn, pending = "send", retry = null) {
   if (state.busy) return;
   update({ busy: true, pending });
   try {
     await fn();
   } catch (err) {
-    botError(err);
+    if (!(err instanceof CancelledError)) pushMessage({ role: "bot", text: errorText(err), ...(retry && { retry }) });
   } finally {
+    inflight = null;
     update({ busy: false, pending: null });
   }
+}
+
+const RECENT_KEY = "mappy.recentSpots";
+const atKey = (at) => (at ? at.anchor || `node:${at.node}` : null);
+
+/** The last few spots the shopper set, newest first, so switching back is one tap. */
+function rememberSpot(at) {
+  const recent = store.get(RECENT_KEY, []).filter((r) => r.key !== atKey(at));
+  store.set(RECENT_KEY, [{ key: atKey(at), at, label: atLabel() }, ...recent].slice(0, 4));
 }
 
 let toastTimer;
@@ -56,16 +68,45 @@ function toast(text) {
 
 const actions = {
   browse() { nav.browse(); },
-  send(text) {
+  /** Ask Mappy. `echo: false` resends without repeating the shopper's bubble (retry, new location). */
+  send(text, { echo = true, prefix = "" } = {}) {
     text = text.trim();
     if (!text || state.busy) return;
-    pushMessage({ role: "user", text });
+    if (echo) pushMessage({ role: "user", text });
+    const { signal } = (inflight = new AbortController());
     return withBusy(async () => {
-      const res = await post("/api/chat", { message: text, at: state.at, now: nowHHMM(), trip: state.trip, prev: state.lastPlaces });
+      const res = await post("/api/chat", { message: text, at: state.at, now: nowHHMM(), trip: state.trip, prev: state.lastPlaces }, { signal });
       update({ trip: res.trip, ...(res.result?.type === "places" && { lastPlaces: res.result }) });
-      pushMessage({ role: "bot", text: res.reply, result: res.result, query: text, meta: res.meta });
-    });
+      pushMessage({ role: "bot", text: prefix + res.reply, result: res.result, query: text, meta: res.meta });
+    }, "send", text);
   },
+
+  stop() {
+    inflight?.abort();
+  },
+
+  /** Drop a failed answer and ask the same thing again. */
+  retry(index) {
+    const msg = state.messages[index];
+    update({ messages: state.messages.filter((_, i) => i !== index) });
+    return this.send(msg.retry, { echo: false });
+  },
+
+  /** The shopper picked their spot after an answer that assumed the entrance: redo it from there. */
+  locateAndRedo(at, msg) {
+    this.setAt(at, { confirm: "none" });
+    const prefix = `From ${atLabel()}: `;
+    if (msg.result?.type === "plan") {
+      return withBusy(async () => {
+        const res = await post("/api/plan", { at: state.at, now: nowHHMM(), trip: state.trip, edits: [] });
+        update({ trip: res.trip });
+        pushMessage({ role: "bot", text: `${prefix}here's your updated plan.`, result: { type: "plan", plan: res.plan, changes: [] } });
+      }, "edit");
+    }
+    return this.send(msg.query, { echo: false, prefix });
+  },
+
+  openLocation() { openLocation(); },
 
   prefill(text, mode = "normal") {
     update({ mode });
@@ -119,10 +160,12 @@ const actions = {
     nav.route({ legs: plan.legs, stops, summary: { finish: plan.finish_at } });
   },
 
-  setAt(at, { quiet = false } = {}) {
+  /** `confirm`: "chat" replies in the thread, "toast" when the thread is hidden (full-screen map), "none" when the caller says it. */
+  setAt(at, { confirm = "chat" } = {}) {
     update({ at, mode: "normal" });
-    toast(`Location set: ${atLabel()}`);
-    if (!quiet) pushMessage({ role: "bot", text: `Got it. You're at ${atLabel()}.` });
+    rememberSpot(at);
+    if (confirm === "toast") toast(`You're at ${atLabel()}`);
+    if (confirm === "chat") pushMessage({ role: "bot", text: `Got it. You're at ${atLabel()}.` });
   },
 
   relocate(text, floor) {
@@ -175,9 +218,14 @@ function autosize() {
   input.style.height = "auto";
   input.style.height = `${Math.min(input.scrollHeight, 120)}px`;
   micBtn.hidden = Boolean(input.value.trim()) && !listening;
+  // While Mappy thinks, the send button becomes a stop button, like ChatGPT.
   const sending = state.busy && state.pending === "send";
-  sendBtn.classList.toggle("loading", sending);
-  sendBtn.disabled = sending || !input.value.trim() || state.busy;
+  if (sendBtn.classList.contains("stop") !== sending) {
+    sendBtn.classList.toggle("stop", sending);
+    sendBtn.replaceChildren(icon(sending ? "stop" : "send", 18));
+    sendBtn.setAttribute("aria-label", sending ? "Stop answering" : "Send");
+  }
+  sendBtn.disabled = !sending && (!input.value.trim() || state.busy);
 }
 
 let modalTrigger;
@@ -187,39 +235,78 @@ function closeModal() {
   modalTrigger?.focus();
 }
 
+const MAX_SEARCH_RESULTS = 8;
+
+/** Stores whose name matches what the shopper typed, names that start with it first. */
+function searchPlaces(query) {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  return Object.values(state.index.places)
+    .filter((p) => p.name.toLowerCase().includes(q))
+    .sort((a, b) => Number(!a.name.toLowerCase().startsWith(q)) - Number(!b.name.toLowerCase().startsWith(q)) || a.name.localeCompare(b.name))
+    .slice(0, MAX_SEARCH_RESULTS);
+}
+
 function openLocation() {
   const modal = document.getElementById("modal");
   modalTrigger = document.activeElement;
-  const row = (title, sub, onclick) => h("button", { class: "row", type: "button", onclick },
-    h("span", { class: "row-icon" }, icon("pin")),
+  const here = atKey(state.at);
+  const choose = (at) => { closeModal(); actions.setAt(at); };
+  const row = ({ badge, title, sub, current, onclick }) => h("button", { class: "row", type: "button", onclick, ...(current && { "aria-current": "true" }) },
+    h("span", { class: "row-icon" }, badge),
     h("div", { class: "row-main" }, h("div", { class: "row-title" }, title), sub ? h("div", { class: "row-sub" }, sub) : null),
-    h("span", { class: "chev" }, icon("chevron")));
-  const anchors = Object.values(state.index.anchors).map((a) => row(a.label, null, () => { closeModal(); actions.setAt({ anchor: a.id }); }));
-  const here = state.at ? (state.at.anchor || `node:${state.at.node}`) : null;
+    h("span", { class: "chev" }, icon(current ? "check" : "chevron")));
+  const floorBadge = (floorId) => h("span", { class: "floor-badge" }, floorId);
+  const section = (title, rows) => (rows.length ? [h("h3", { class: "sheet-label" }, title), h("div", { class: "list" }, rows)] : []);
+
+  const recent = store.get(RECENT_KEY, [])
+    .filter((r) => r.key !== here && ((r.at.anchor && state.index.anchors[r.at.anchor]) || (r.at.node && state.index.nodes[r.at.node])))
+    .slice(0, 3)
+    .map((r) => row({ badge: icon("clock"), title: r.label, onclick: () => choose(r.at) }));
+  const spots = Object.values(state.index.anchors).map((a) => row({
+    badge: floorBadge(a.floor), title: a.label, current: here === a.id, onclick: () => choose({ anchor: a.id }),
+  }));
+  const other = [
+    row({ badge: icon("compose"), title: "Describe what you see", sub: "e.g. “next to Starbucks, across from H&M”", onclick: () => { closeModal(); actions.prefill("I'm next to "); } }),
+    row({ badge: icon("map"), title: "Tap on the map", sub: "Pick your spot on the floor plan", onclick: () => { closeModal(); nav.pick((node) => actions.setAt({ node })); } }),
+  ];
   const share = here
-    ? [h("h2", {}, "Share your spot"), h("p", {}, "Let a friend scan this to see where you are."),
-      h("img", { class: "qr", alt: "QR code for your location", src: `/api/qr?data=${encodeURIComponent(`${location.origin}/?at=${here}`)}` })]
-    : [];
+    ? h("details", { class: "share" }, h("summary", {}, icon("friend"), "Share your spot with a friend"),
+      h("img", { class: "qr", alt: "QR code for your location", src: `/api/qr?data=${encodeURIComponent(`${location.origin}/?at=${here}`)}` }))
+    : null;
+
+  const browse = h("div", {}, ...section("Recent", recent), ...section("Popular spots", spots), ...section("Other ways", other), share);
+  const results = h("div", {});
+  const search = h("input", {
+    type: "search", placeholder: "Search a store you're next to", "aria-label": "Search a store you're next to", enterkeyhint: "search",
+    oninput: () => {
+      const found = searchPlaces(search.value);
+      browse.hidden = Boolean(search.value.trim());
+      results.replaceChildren(...(search.value.trim()
+        ? found.length
+          ? section("Stores", found.map((p) => row({ badge: categoryIcon(p.category), title: p.name, sub: state.index.floors[p.floor].name, onclick: () => choose({ node: p.node }) })))
+          : [h("p", { class: "sheet-empty" }, `No store called “${search.value.trim()}”. Try describing what you see instead.`)]
+        : []));
+    },
+  });
+
   modal.replaceChildren(h("div", { class: "modal-body" },
     h("div", { class: "grabber" }),
-    h("button", { class: "icon-btn modal-close", type: "button", "aria-label": "Close location dialog", onclick: closeModal }, icon("close")),
-    h("div", { class: "modal-emblem" }, icon("locate")),
-    h("h2", { id: "locationTitle" }, "Where are you?"),
-    h("p", {}, "Scan a Mappy location code with your camera, or choose below."),
-    h("div", { class: "list" },
-      row("Describe what you see", "e.g. “next to Starbucks, across from H&M”", () => { closeModal(); actions.prefill("I'm next to "); }),
-      row("Tap on the map", "Pick your spot on the floor plan", () => { closeModal(); nav.pick((node) => actions.setAt({ node })); })),
-    h("div", { class: "list" }, anchors),
-    ...share));
+    h("div", { class: "sheet-head" },
+      h("h2", { id: "locationTitle" }, "Where are you?"),
+      h("button", { class: "icon-btn modal-close", type: "button", "aria-label": "Close location dialog", onclick: closeModal }, icon("close"))),
+    h("label", { class: "sheet-search" }, icon("search", 18), search),
+    results, browse));
   modal.hidden = false;
   modal.setAttribute("aria-labelledby", "locationTitle");
   document.getElementById("chatView").inert = true;
-  modal.querySelector("button").focus();
+  // On phones, opening the keyboard would hide the list; let them tap the search box themselves.
+  (matchMedia("(pointer: coarse)").matches ? modal.querySelector(".modal-close") : search).focus();
   modal.onkeydown = (e) => {
     if (e.key === "Escape") closeModal();
     if (e.key === "Tab") {
-      const buttons = [...modal.querySelectorAll("button")];
-      const first = buttons[0], last = buttons[buttons.length - 1];
+      const focusable = [...modal.querySelectorAll("button, input, summary")].filter((el) => el.offsetParent);
+      const first = focusable[0], last = focusable[focusable.length - 1];
       if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
       else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
     }
@@ -229,7 +316,7 @@ function openLocation() {
 
 /** Keep the spot in the address too, so a reload finds it even where the browser drops saved data. */
 function syncAtParam() {
-  const at = state.at ? (state.at.anchor || `node:${state.at.node}`) : null;
+  const at = atKey(state.at);
   const params = new URLSearchParams(location.search);
   if (params.get("at") === at) return;
   if (at) params.set("at", at);
@@ -241,7 +328,9 @@ function syncAtParam() {
 function render() {
   syncAtParam();
   document.getElementById("placeText").textContent = atLabel();
-  document.getElementById("newBtn").disabled = state.busy;
+  const newBtn = document.getElementById("newBtn");
+  newBtn.disabled = state.busy;
+  newBtn.hidden = !state.messages.length; // nothing to start over from yet
   renderThread(actions);
   autosize();
 }
@@ -274,6 +363,7 @@ async function boot() {
   document.getElementById("mapBtn").append(icon("map"), h("span", {}, "Map"));
   document.getElementById("newBtn").append(icon("compose"), h("span", {}, "New trip"));
   document.getElementById("locationIcon").append(icon("pin"));
+  document.getElementById("placePill").append(h("span", { class: "place-chev", "aria-hidden": "true" }, icon("chevron", 16)));
   document.getElementById("composerIcon").append(icon("sparkle"));
   sendBtn.append(icon("send", 18));
   micBtn.append(icon("mic"));
@@ -292,7 +382,7 @@ async function boot() {
   nav = new Navigator({
     onClose: render,
     onDirections: (pid) => actions.navigateToPlace(pid),
-    onSetLocation: (nodeId) => actions.setAt({ node: nodeId }, { quiet: true }),
+    onSetLocation: (nodeId) => actions.setAt({ node: nodeId }, { confirm: "toast" }),
   });
   document.getElementById("placePill").addEventListener("click", openLocation);
   document.getElementById("mapBtn").addEventListener("click", () => nav.browse());
@@ -309,6 +399,7 @@ async function boot() {
   });
   document.getElementById("composer").addEventListener("submit", (e) => {
     e.preventDefault();
+    if (e.submitter === sendBtn && sendBtn.classList.contains("stop")) return actions.stop();
     if (state.busy || !input.value.trim()) return;
     const text = input.value;
     input.value = "";

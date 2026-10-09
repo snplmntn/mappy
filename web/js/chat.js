@@ -31,9 +31,14 @@ function latestIndex(type) {
   return -1;
 }
 
+/** The wordmark from the QR sheet: the "m" tile starts "appy". */
+function wordmark() {
+  return h("span", { class: "wordmark" }, h("span", { class: "brand-symbol", "aria-hidden": "true" }, "m"), h("span", { class: "sr-only" }, "M"), "appy");
+}
+
 function emptyState(actions) {
   return h("div", { class: "empty" },
-    h("h1", {}, "How can I help you today?"),
+    h("h1", {}, "How can ", wordmark(), " help you today?"),
     h("p", {}, "Find a store, plan your stops, or meet a friend."),
     h("div", { class: "suggestions" }, SUGGESTIONS.map((sg) =>
       h("button", { class: "suggestion", type: "button", title: sg.hint,
@@ -41,6 +46,32 @@ function emptyState(actions) {
         icon(sg.icon), h("span", {}, sg.title)))),
     h("button", { class: "browse-link", type: "button", onclick: actions.browse },
       icon("map"), `Explore ${state.mall.mall.name}`, icon("chevron")));
+}
+
+function chip(label, onclick, iconName = null) {
+  return h("button", { class: "chip", type: "button", disabled: state.busy, onclick }, iconName ? icon(iconName, 16) : null, label);
+}
+
+/** Answers measured from the entrance (no spot set yet): ask where the shopper is, then redo the answer. */
+function locationNudge(msg, actions) {
+  return h("div", { class: "nudge" },
+    h("p", {}, icon("pin", 16), "Walking times are from the main entrance. Where are you?"),
+    h("div", { class: "chips" },
+      Object.values(state.index.anchors).map((a) => chip(a.label, () => actions.locateAndRedo({ anchor: a.id }, msg))),
+      chip("Somewhere else…", () => actions.openLocation(), "search")));
+}
+
+/** ChatGPT-style next steps under the newest answer. */
+function followUps(msg, i, actions) {
+  if (msg.retry) return [chip("Try again", () => actions.retry(i), "refresh")];
+  const r = msg.result;
+  if (r?.type === "places" && r.places.length) {
+    const top = r.places.find((p) => state.index.places[p.id]);
+    const more = Object.values(state.index.places).filter((p) => p.category === r.category).length > (r.shown || r.places).length;
+    return [top && chip(`Take me to ${top.name}`, () => actions.navigateToPlace(top.id), "arrow"), more && chip("Show more", () => actions.send("Show more"))];
+  }
+  if (r?.type === "plan" && r.plan?.stops.length) return [chip("Add lunch", () => actions.send("Add lunch")), chip("Add coffee", () => actions.send("Add coffee"))];
+  return [];
 }
 
 export function renderThread(actions) {
@@ -57,7 +88,12 @@ export function renderThread(actions) {
   const nodes = state.messages.map((m, i) => {
     if (m.role === "user") return h("div", { class: "msg-user" }, m.text);
     const latest = i === latestPlan || i === latestLocate;
-    return h("div", { class: "msg-bot" }, m.text ? h("p", {}, m.text) : null, renderResult(m.result, { latest, actions, text: m.query }), receipt(m.meta));
+    const newest = i === state.messages.length - 1 && !state.busy;
+    const measured = ["places", "plan"].includes(m.result?.type);
+    const next = newest ? followUps(m, i, actions).filter(Boolean) : [];
+    return h("div", { class: "msg-bot" }, m.text ? h("p", {}, m.text) : null, renderResult(m.result, { latest, actions, text: m.query }), receipt(m.meta),
+      next.length ? h("div", { class: "chips" }, next) : null,
+      newest && measured && !state.at ? locationNudge(m, actions) : null);
   });
   if (state.busy) nodes.push(h("div", { class: "msg-bot" }, h("div", { class: "typing", "aria-label": "Thinking" }, h("i"), h("i"), h("i"))));
   thread.replaceChildren(h("div", { class: "thread-inner" }, nodes));

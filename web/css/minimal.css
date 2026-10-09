@@ -159,3 +159,79 @@ svg.icon {stroke-width:1.7}
  .minimal-app .plan-card .card-foot {flex-direction:column;align-items:stretch;padding:12px}
  .minimal-app .plan-card .switch-row {justify-content:space-between;min-height:44px}
 }
+
+/* ---------- Chat polish: Inter, the QR sheet's wordmark, chips, location sheet ---------- */
+@font-face {font-family:"Inter";src:url("/fonts/inter-latin-var.woff2") format("woff2");font-weight:100 900;font-display:swap}
+.minimal-app {--ink-mark:#191919;--mark-yellow:#e5f75d;--mark-period:#4933b8;font-family:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-feature-settings:"cv11","ss01";-webkit-font-smoothing:antialiased}
+:root[data-theme="dark"] .minimal-app {--mark-period:#b3a1ff}
+.minimal-app button,.minimal-app input,.minimal-app textarea {font-family:inherit}
+.sr-only {position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* Wordmark: tilted yellow "m" tile, as on the QR sheet. */
+.minimal-app .brand {font-family:inherit;font-size:25px;font-weight:800;letter-spacing:-1.2px;gap:0}
+.minimal-app .brand-symbol {width:28px;height:30px;margin-right:3px;padding:0 0 3px;border:2px solid var(--ink-mark);border-radius:4px;background:var(--mark-yellow);color:var(--ink-mark);box-shadow:2px 2px 0 var(--ink-mark);transform:rotate(-7deg);font-size:22px;font-weight:800}
+.minimal-app .brand-period {color:var(--mark-period)}
+.minimal-app .empty h1 > .wordmark {display:inline-flex;align-items:baseline;white-space:nowrap;color:inherit}
+.minimal-app .wordmark .brand-symbol {display:inline-grid;align-self:center;width:1.04em;height:1.04em;margin:0 .08em 0 .06em;padding-bottom:.17em;font-size:.8em;border-radius:5px;line-height:1;transform:rotate(-7deg) translateY(.1em)}
+
+/* Header: quiet text buttons, a location pill that looks tappable. */
+.minimal-app .topbar > .icon-btn {font-weight:500;color:var(--text-2)}
+.minimal-app .topbar > .icon-btn:hover {color:var(--text)}
+.minimal-app .place-pill {flex:0 1 auto;max-width:100%;gap:6px;height:36px;min-height:36px;padding:0 10px 0 10px;border-radius:18px;background:var(--bubble)}
+.minimal-app .place-pill:hover {background:var(--line)}
+.minimal-app .place-text {font-size:13px;font-weight:500}
+.minimal-app .location-icon {display:grid;color:var(--text)}
+.minimal-app .location-icon .icon {width:16px;height:16px}
+.minimal-app .place-chev {display:grid;color:var(--text-2)}
+.minimal-app .place-chev .icon {transform:rotate(90deg)}
+@media(max-width:700px){.minimal-app .topbar .place-pill {min-height:36px;margin:6px 0 2px}}
+
+/* Empty state */
+.minimal-app .empty h1 {font-family:inherit;font-weight:750;letter-spacing:-.035em;text-wrap:balance}
+.minimal-app .topbar .theme-toggle {background:transparent;color:var(--text-2)}
+.minimal-app .topbar .theme-toggle:hover {background:var(--bubble);color:var(--text)}
+.minimal-app .empty p {letter-spacing:-.005em}
+.minimal-app .suggestion span {font-weight:500}
+
+/* Conversation */
+.minimal-app .msg-bot {line-height:1.6;letter-spacing:-.006em}
+.minimal-app .msg-user {letter-spacing:-.006em}
+.minimal-app .row-title {font-weight:600;letter-spacing:-.01em}
+.minimal-app .receipt {font-size:11.5px;opacity:.85}
+.minimal-app .chips {display:flex;gap:8px;margin:14px calc(-1 * var(--workspace-gutter)) 0;padding:0 var(--workspace-gutter);overflow-x:auto;scrollbar-width:none}
+.minimal-app .chips::-webkit-scrollbar {display:none}
+.minimal-app .chip {display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 14px;border:1px solid var(--line);border-radius:19px;background:var(--surface);font-size:14px;font-weight:500;white-space:nowrap;transition:background 150ms}
+.minimal-app .chip:hover {background:var(--bubble)}
+.minimal-app .chip:disabled {opacity:.5;cursor:default}
+.minimal-app .chip .icon {color:var(--text-2)}
+@media(pointer:coarse){.minimal-app .chip {min-height:44px}}
+.minimal-app .nudge {margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.minimal-app .nudge > p {display:flex;align-items:center;gap:6px;margin:0;font-size:14px;color:var(--text-2)}
+.minimal-app .nudge .chips {margin-top:10px}
+
+/* Composer: lifted white field in light mode, like ChatGPT. */
+.minimal-app .composer {background:var(--surface);border-color:var(--line);box-shadow:0 1px 2px #0000000a,0 6px 20px #0000000d}
+.minimal-app .composer:focus-within {border-color:#cfcfcf}
+:root[data-theme="dark"] .minimal-app .composer {background:var(--bubble);border-color:transparent;box-shadow:none}
+.minimal-app .send.stop {background:var(--button);color:var(--button-text)}
+.minimal-app .send.stop .icon {fill:currentColor}
+
+/* Location sheet */
+.minimal-app .modal-body {padding:8px 20px 20px}
+.minimal-app .sheet-head {display:flex;align-items:center;justify-content:space-between;margin:4px 0 12px}
+.minimal-app .sheet-head h2 {margin:0;font-weight:750;letter-spacing:-.03em}
+.minimal-app .sheet-head .modal-close {position:static}
+.minimal-app .sheet-search {display:flex;align-items:center;gap:8px;height:46px;padding:0 14px;margin-bottom:6px;border-radius:14px;background:var(--bubble);color:var(--text-2)}
+.minimal-app .sheet-search input {flex:1;min-width:0;border:0;outline:0;background:transparent;font-size:16px;color:var(--text)}
+.minimal-app .sheet-search input::-webkit-search-cancel-button {display:none}
+.minimal-app .sheet-search:focus-within {box-shadow:0 0 0 2px var(--line)}
+.minimal-app .sheet-label {margin:18px 4px 8px;font-size:13px;font-weight:600;color:var(--text-2);letter-spacing:0}
+.minimal-app .sheet-empty {margin:18px 4px;font-size:14px;color:var(--text-2)}
+.minimal-app .modal-body .list {margin-bottom:0}
+.minimal-app .row .floor-badge {font-size:12px;font-weight:700;color:var(--text);letter-spacing:-.02em}
+.minimal-app .row[aria-current="true"] .chev {color:var(--green)}
+.minimal-app .row[aria-current="true"] .row-title::after {content:" · You're here";font-weight:400;color:var(--text-2);font-size:14px}
+.minimal-app .share {margin-top:18px}
+.minimal-app .share summary {display:flex;align-items:center;gap:8px;min-height:44px;padding:0 4px;font-size:14px;font-weight:500;color:var(--text-2);cursor:pointer;list-style:none}
+.minimal-app .share summary::-webkit-details-marker {display:none}
+.minimal-app .share .qr {margin-top:8px}
