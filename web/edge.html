@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mappy · Edge Box</title>
+  <link rel="icon" href="data:,">
+  <style>
+    :root {
+      --bg: #0e0f12;
+      --panel: #17191e;
+      --line: #262931;
+      --text: #f2f3f5;
+      --text-2: #9a9faa;
+      --green: #34c759;
+      --amber: #ffb340;
+      --blue: #0a84ff;
+      --purple: #bf5af2;
+      --gray: #8e8e93;
+      color-scheme: dark;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .wrap { display: grid; grid-template-rows: auto auto 1fr; gap: 20px; height: 100vh; padding: 28px; }
+    header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    h1 { margin: 0; font-size: 34px; letter-spacing: -0.02em; }
+    header p { margin: 2px 0 0; color: var(--text-2); font-size: 18px; }
+    .net { margin-left: auto; display: flex; align-items: center; gap: 10px; padding: 10px 18px; border-radius: 999px;
+      background: var(--panel); border: 1px solid var(--line); font-size: 20px; font-weight: 600; }
+    .net i { width: 12px; height: 12px; border-radius: 50%; background: var(--gray); }
+    .net.off i { background: var(--green); box-shadow: 0 0 12px var(--green); }
+    .net.on i { background: var(--amber); }
+    .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
+    .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; }
+    .tile b { display: block; font-size: 34px; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+    .tile span { color: var(--text-2); font-size: 15px; }
+    .tile small { display: block; color: var(--text-2); font-size: 13px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .feed { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+    .feed h2 { margin: 0; padding: 14px 18px; font-size: 15px; color: var(--text-2); font-weight: 600; border-bottom: 1px solid var(--line); }
+    ol { list-style: none; margin: 0; padding: 0; overflow: auto; }
+    li { display: grid; grid-template-columns: 84px 92px 1fr auto auto; gap: 14px; align-items: center; padding: 12px 18px; border-bottom: 1px solid var(--line); font-size: 19px; }
+    li.new { animation: flash 1.6s ease-out; }
+    @keyframes flash { from { background: rgba(10, 132, 255, 0.22); } to { background: transparent; } }
+    .when, .ms { color: var(--text-2); font-variant-numeric: tabular-nums; font-size: 16px; }
+    .ms { text-align: right; min-width: 72px; }
+    .who { font-weight: 600; }
+    .msg { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pill { font-size: 14px; font-weight: 600; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+    .pill.llm { background: rgba(191, 90, 242, 0.18); color: var(--purple); }
+    .pill.rules { background: rgba(52, 199, 89, 0.16); color: var(--green); }
+    .pill.cache { background: rgba(10, 132, 255, 0.18); color: var(--blue); }
+    .pill.fallback { background: rgba(255, 179, 64, 0.18); color: var(--amber); }
+    .empty { padding: 28px 18px; color: var(--text-2); font-size: 18px; }
+    .down { color: var(--amber); }
+    @media (max-width: 760px) {
+      .wrap { padding: 16px; height: auto; min-height: 100vh; }
+      h1 { font-size: 26px; }
+      .net { margin-left: 0; }
+      li { grid-template-columns: 1fr auto; font-size: 16px; }
+      .when, .msg { grid-column: 1 / -1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Mappy Edge Box</h1>
+        <p id="sub">Every answer below is computed on this laptop.</p>
+      </div>
+      <div id="net" class="net"><i></i><span>Checking internet…</span></div>
+    </header>
+    <section class="tiles">
+      <div class="tile"><span>Phones connected</span><b id="phones">–</b><small>last 15 minutes</small></div>
+      <div class="tile"><span>Requests served</span><b id="requests">–</b><small id="split">&nbsp;</small></div>
+      <div class="tile"><span>Answered without the LLM</span><b id="nollm">–</b><small>rules and cache first, LLM when needed</small></div>
+      <div class="tile"><span>LLM median time</span><b id="llmms">–</b><small id="model">&nbsp;</small></div>
+      <div class="tile"><span>CPU</span><b id="cpu">–</b><small id="cpuname">&nbsp;</small></div>
+      <div class="tile"><span>Memory</span><b id="mem">–</b><small id="memsub">&nbsp;</small></div>
+    </section>
+    <section class="feed">
+      <h2>Live requests from phones</h2>
+      <ol id="feed"><li class="empty">Waiting for the first phone. Scan the QR code to join.</li></ol>
+    </section>
+  </div>
+  <script>
+    const ENGINE = { llm: "Local LLM", rules: "Rules · no AI", cache: "Cached", fallback: "Fallback" };
+    const $ = (id) => document.getElementById(id);
+    const dash = (v, unit = "") => (v === null || v === undefined ? "–" : `${v}${unit}`);
+    const secs = (ms) => (ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(1)} s`);
+    const clock = (t) => new Date(t * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+    let lastTop = null;
+
+    function el(tag, cls, text) {
+      const e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (text !== undefined) e.textContent = text;
+      return e;
+    }
+
+    function row(e, isNew) {
+      const li = el("li", isNew ? "new" : "");
+      li.append(el("span", "when", clock(e.at)), el("span", "who", e.phone), el("span", "msg", `“${e.message}”`),
+        el("span", `pill ${e.engine}`, ENGINE[e.engine] || e.engine), el("span", "ms", secs(e.ms)));
+      return li;
+    }
+
+    function render(d) {
+      const net = $("net");
+      net.className = `net ${d.internet === false ? "off" : d.internet ? "on" : ""}`;
+      net.querySelector("span").textContent =
+        d.internet === false ? "No internet · fully offline" : d.internet ? "Internet reachable" : "Checking internet…";
+      $("sub").textContent = "Every answer below is computed on this laptop.";
+      $("sub").classList.remove("down");
+
+      $("phones").textContent = d.phones;
+      $("requests").textContent = d.requests;
+      const s = d.served;
+      $("split").textContent = `${s.llm} LLM · ${s.rules} rules · ${s.cache} cached · ${s.fallback} fallback`;
+      $("nollm").textContent = dash(d.without_llm_pct, "%");
+      $("llmms").textContent = d.llm_median_ms === null ? "–" : secs(d.llm_median_ms);
+      $("model").textContent = `${d.model}${d.model_mb ? ` · ${(d.model_mb / 1024).toFixed(1)} GB in RAM` : ""}`;
+      $("cpu").textContent = dash(d.machine.cpu_pct, "%");
+      $("cpuname").textContent = d.machine.cpu;
+      const m = d.machine.memory;
+      $("mem").textContent = m ? `${m.used_pct}%` : "–";
+      $("memsub").textContent = m ? `of ${m.total_gb} GB · embeddings: ${d.embed_model}` : `embeddings: ${d.embed_model}`;
+
+      if (!d.events.length) return;
+      const top = `${d.events[0].at}|${d.events[0].phone}`;
+      const fresh = lastTop === null ? 0 : d.events.findIndex((e) => `${e.at}|${e.phone}` === lastTop);
+      lastTop = top;
+      $("feed").replaceChildren(...d.events.map((e, i) => row(e, fresh === -1 ? i < 3 : i < fresh)));
+    }
+
+    async function poll() {
+      try {
+        const res = await fetch("/api/edge", { cache: "no-store" });
+        render(await res.json());
+      } catch {
+        $("sub").textContent = "The Mappy server isn't answering. Is it running?";
+        $("sub").classList.add("down");
+      }
+      setTimeout(poll, 1000);
+    }
+    poll();
+  </script>
+</body>
+</html>

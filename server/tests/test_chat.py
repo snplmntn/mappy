@@ -34,6 +34,7 @@ def test_chip_cr(mall, search):
     out = run(svc(mall, search).chat("CR", AT, "14:00", Trip()))
     assert out["result"]["type"] == "places" and out["result"]["places"][0]["id"] == "cr-gf"
     assert out["result"]["places"][0]["floor_name"] == "Ground Floor"
+    assert out["meta"] == {"engine": "rules", "intent": "find"}
 
 
 def test_plan_via_llm_then_steer(mall, search):

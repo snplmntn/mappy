@@ -3,6 +3,7 @@
 import html
 import io
 import logging
+import time
 import traceback
 from datetime import datetime
 from pathlib import Path
@@ -11,12 +12,13 @@ from typing import Annotated
 import segno
 from fastapi import FastAPI, Query, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import HTMLResponse, JSONResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from .chat import ChatService
 from .config import Settings, lan_ip
+from .edge import CpuMeter, EdgeMonitor, Probe, cpu_name, internet_reachable, memory
 from .embed import E5Embedder, HashEmbedder
 from .llm import LLMClient
 from .locator import locate
@@ -109,6 +111,10 @@ def _qr_svg_file(data: str, scale: int = 6) -> bytes:
     return buf.getvalue()
 
 
+async def _none() -> None:
+    return None
+
+
 def create_app(settings: Settings | None = None, embedder=None, llm=None) -> FastAPI:
     settings = settings or Settings()
     mall = load_mall(settings.mall_path)
@@ -119,6 +125,9 @@ def create_app(settings: Settings | None = None, embedder=None, llm=None) -> Fas
                            model=settings.llm_model, threads=settings.llm_threads)
     svc = ChatService(mall=mall, search=search, router=Router(mall), router_elev=Router(mall, True), llm=llm)
     app = FastAPI(title="Mappy", docs_url=None, redoc_url=None)
+    edge, cpu, cpu_label = EdgeMonitor(), CpuMeter(), cpu_name()
+    online = Probe(internet_reachable)
+    model_mb = Probe(lambda: llm.loaded_mb() if hasattr(llm, "loaded_mb") else _none())
 
     @app.exception_handler(RequestValidationError)
     async def bad_request(request: Request, exc: RequestValidationError):
@@ -134,14 +143,32 @@ def create_app(settings: Settings | None = None, embedder=None, llm=None) -> Fas
 
     @app.get("/api/mall")
     def get_mall(request: Request):
+        edge.seen(request.client.host if request.client else None)
         etag = f'"{mall.hash}"'
         if request.headers.get("if-none-match") == etag:
             return Response(status_code=304)
         return JSONResponse({**mall.raw, "version": mall.hash}, headers={"ETag": etag, "Cache-Control": "no-cache"})
 
     @app.post("/api/chat")
-    async def chat(req: ChatReq):
-        return await svc.chat(req.message, req.at, req.now, req.trip)
+    async def chat(req: ChatReq, request: Request):
+        started = time.perf_counter()
+        out = await svc.chat(req.message, req.at, req.now, req.trip)
+        ms = round((time.perf_counter() - started) * 1000)
+        out["meta"] |= {"ms": ms, "model": settings.llm_model}
+        edge.record(request.client.host if request.client else None, req.message,
+                    out["meta"]["engine"], out["meta"]["intent"], ms)
+        return out
+
+    @app.get("/api/edge")
+    async def edge_stats():
+        """Everything the projector dashboard shows. All of it is measured on this machine."""
+        return {**edge.stats(), "machine": {"cpu": cpu_label, "cpu_pct": cpu.read(), "memory": memory()},
+                "model": settings.llm_model, "model_mb": await model_mb.get(),
+                "embed_model": embedder.model_id, "internet": await online.get()}
+
+    @app.get("/edge")
+    def edge_page():
+        return FileResponse(settings.web_dir / "edge.html", headers={"Cache-Control": "no-cache"})
 
     @app.post("/api/plan")
     def plan(req: PlanReq):

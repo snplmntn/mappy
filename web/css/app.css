@@ -113,6 +113,7 @@ svg.icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-w
 .msg-user { align-self: flex-end; max-width: 85%; background: var(--bubble); padding: 10px 16px; border-radius: 20px; white-space: pre-wrap; }
 .msg-bot { align-self: stretch; }
 .msg-bot > p { margin: 0; }
+.msg-bot > .receipt { margin-top: 6px; font-size: 12px; color: var(--text-2); }
 .typing { display: flex; gap: 5px; padding: 8px 0; }
 .typing i { width: 8px; height: 8px; border-radius: 50%; background: var(--text-2); animation: blink 1.2s infinite both; }
 .typing i:nth-child(2) { animation-delay: 0.15s; }

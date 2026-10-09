@@ -133,10 +133,15 @@ class ChatService:
         return {"type": "plan", "plan": plan.model_dump(), "changes": changes}
 
     async def chat(self, message: str, at: dict | None, now: str, trip: Trip) -> dict:
+        x = await self._extract(message, trip)
+        out = self._respond(x, at, now, trip)
+        out["meta"] = {"engine": x.source, "intent": x.intent}  # which engine understood it, for the receipt line
+        return out
+
+    def _respond(self, x: Extraction, at: dict | None, now: str, trip: Trip) -> dict:
         now_min = hhmm_to_min(now)
         start = self.start_node(at)
         router = self._router(trip)
-        x = await self._extract(message, trip)
 
         if x.intent == "find" and x.errands:
             req = x.errands[0]

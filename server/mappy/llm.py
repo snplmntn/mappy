@@ -143,11 +143,21 @@ class LLMClient:
         except httpx.HTTPError:
             return False
 
+    async def loaded_mb(self) -> int | None:
+        """RAM held by the loaded model, as Ollama reports it. None if the model isn't loaded."""
+        try:
+            r = await self._http.get(f"{self.base_url}/api/ps", timeout=2)
+            models = r.json().get("models") or []
+        except (httpx.HTTPError, ValueError):
+            return None
+        sizes = [m.get("size", 0) for m in models if m.get("name", "").startswith(self.model)]
+        return round(sizes[0] / 2**20) if sizes else None
+
     async def extract(self, message: str, trip: Trip, summary: str = "") -> Extraction:
         key = (message.strip().lower(), summary)
         if key in self._cache:
             self._cache.move_to_end(key)
-            return self._cache[key]
+            return self._cache[key].model_copy(update={"source": "cache"})
         if self._lock.locked():
             raise LLMBusy()
         async with self._lock:

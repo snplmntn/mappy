@@ -10,6 +10,22 @@ const SUGGESTIONS = [
   { title: "Find my friend", hint: "Describe what they can see", prefill: "My friend is next to " },
 ];
 
+function seconds(ms) {
+  return ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(1)} s`;
+}
+
+/** One quiet line saying who understood the message and how fast, all on the local server. */
+function receipt(meta) {
+  if (!meta || typeof meta.ms !== "number") return null;
+  const label = {
+    llm: `Local AI · ${meta.model} · ${seconds(meta.ms)} · nothing sent online`,
+    cache: `Local AI · remembered answer · ${seconds(meta.ms)}`,
+    rules: `Instant match · ${seconds(meta.ms)} · no AI needed`,
+    fallback: `Quick parser · AI was busy · ${seconds(meta.ms)}`,
+  }[meta.engine];
+  return label ? h("p", { class: "receipt" }, label) : null;
+}
+
 function latestIndex(type) {
   for (let i = state.messages.length - 1; i >= 0; i--) if (state.messages[i].result?.type === type) return i;
   return -1;
@@ -37,7 +53,7 @@ export function renderThread(actions) {
   const nodes = state.messages.map((m, i) => {
     if (m.role === "user") return h("div", { class: "msg-user" }, m.text);
     const latest = i === latestPlan || i === latestLocate;
-    return h("div", { class: "msg-bot" }, m.text ? h("p", {}, m.text) : null, renderResult(m.result, { latest, actions, text: m.query }));
+    return h("div", { class: "msg-bot" }, m.text ? h("p", {}, m.text) : null, renderResult(m.result, { latest, actions, text: m.query }), receipt(m.meta));
   });
   if (state.busy) nodes.push(h("div", { class: "msg-bot" }, h("div", { class: "typing", "aria-label": "Thinking" }, h("i"), h("i"), h("i"))));
   thread.replaceChildren(h("div", { class: "thread-inner" }, nodes));
