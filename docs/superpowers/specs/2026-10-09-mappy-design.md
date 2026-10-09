@@ -75,7 +75,7 @@ The map is a **reconstruction**: real store names (from public listings) on a la
                                     +-------------------+--------------------+
                                                         | localhost
                                     +-------------------v--------------------+
-                                    | llama-server (llama.cpp, CPU build)    |
+                                    | Ollama (signed; CPU, num_thread=4)     |
                                     |  Qwen3-1.7B Q4_K_M, ctx 2048, 1 slot   |
                                     +----------------------------------------+
 ```
@@ -86,7 +86,7 @@ The map is a **reconstruction**: real store names (from public listings) on a la
 |---|---|---|---|---|
 | LLM | `Qwen3-1.7B-Q4_K_M.gguf` | 1.11 GB | huggingface.co/unsloth/Qwen3-1.7B-GGUF | Apache 2.0 |
 | Embeddings | `onnx/model.onnx` + `onnx/tokenizer.json`, quantized locally to int8 for AVX2 (~120 MB) | 470 MB download | huggingface.co/intfloat/multilingual-e5-small | MIT |
-| Runtime | `llama-<build>-bin-win-cpu-x64.zip`, one pinned build | < 100 MB | github.com/ggml-org/llama.cpp/releases | MIT |
+| Runtime | Ollama 0.40.1 (`winget install Ollama.Ollama`), model `qwen3:1.7b` (Q4_K_M) | 1.4 GB | ollama.com | MIT / Apache 2.0 |
 
 - The shipped `model_qint8_avx512_vnni.onnx` is **not** used, because 12th-gen i3 parts have no AVX-512.
 - `tools/setup.ps1` downloads everything into `models/` (gitignored), verifies SHA-256 hashes, quantizes the embedding model and writes `.env`.
@@ -184,7 +184,9 @@ All JSON. Base path `/api`. Static `web/dist` is served at `/`.
 |---|---|---|---|
 | GET | `/api/mall` | - | `mall.json` (with ETag; the phone caches it in memory) |
 | POST | `/api/chat` | `{ message, at?, now, trip? }` | `{ reply, result, trip }` (see below) |
-| POST | `/api/plan` | `{ from, now, trip }` | `Plan` |
+| POST | `/api/plan` | `{ at, now, trip, edits? }` | `{ plan, trip, changes, question? }` (taps and chat share one path) |
+| POST | `/api/route` | `{ at, to: {place}|{node}, elevator_only? }` | `{ legs, walk_min }` (single place, find-a-friend) |
+| GET | `/api/qr?data=` | - | SVG QR (share-my-spot) |
 | POST | `/api/locate` | `{ text, floor? }` | `{ candidates[], ask? }` |
 | GET | `/api/health` | - | `{ ok, model, embed_model, llm_ok }` |
 | GET | `/print` | - | Printable page: Wi-Fi QR + app QR + all anchor QRs, built from the **current** server IP |
@@ -232,10 +234,10 @@ type Candidate = { node: string, floor: string, x: number, y: number, score: num
 
 ### 6.1 `ai`: local models
 - **Rules first.** Before any LLM call, a rule layer handles quick chips, single-intent searches ("phone repair", "CR"), and common steering phrases: durations (`30 min`, `1 oras`, `isang oras`), `wag na X`, `X muna`, `ready by 4`, `aalis ako ng 6`. If the rules fully resolve the message, the LLM is never called (target: under 300 ms on the i3). The LLM handles multi-errand sentences, landmark descriptions, and anything the rules can't resolve.
-- **LLM:** Qwen3-1.7B Q4_K_M served by `llama-server` on localhost (`LLM_BASE_URL`), CPU build.
+- **LLM:** Qwen3-1.7B Q4_K_M served by **Ollama** on localhost (`MAPPY_LLM_URL`), CPU only. Ollama replaced llama-server because Windows Smart App Control blocks the unsigned llama-server.exe; Ollama is signed.
   - Settings: thinking disabled; `--ctx-size 2048`; 1 parallel slot; `--threads` = number of physical cores; model kept loaded.
-  - The system prompt (instructions + 4 short few-shot examples) is a **fixed prefix** so llama.cpp's prompt cache reuses it. Only the trip summary and the message are processed per request.
-  - Output is constrained by a JSON schema (llama.cpp grammar) with short keys, so a small model can't emit invalid JSON and generates fewer tokens.
+  - The system prompt (instructions + 4 short few-shot examples) is a **fixed prefix** so the runtime's prompt cache reuses it (measured: 437 of ~470 prompt tokens cached). Only the trip summary and the message are processed per request.
+  - Output is constrained by a JSON schema (Ollama `format`) with short keys, so a small model can't emit invalid JSON and generates fewer tokens.
   - When the slot is busy, a request does **not** queue. It goes straight to the fallback.
   - Identical messages are cached in memory (LRU), which covers repeated demo-script lines.
 - **Embeddings:** multilingual-e5-small, int8 ONNX, run **in-process** with onnxruntime. Place vectors are precomputed at startup and cached to disk, keyed by the hash of `mall.json`. A query embedding takes about 20–50 ms on CPU.
@@ -292,7 +294,7 @@ Score = 0.7 x cosine(query, place text) + 0.3 x fuzzy name match, plus a bonus w
    - `chosen` fixes the candidate place.
    - A deadline is soft: it adds +100 per minute late, and a `warnings` entry suggests what to drop.
 
-**Acceptance example (unit test):** errands = phone repair (45, async), food (30), clothing (25), each with one candidate. Expected order: drop repair -> food -> clothing -> pick repair, with idle ~ 0 when walking is short. No hardcoded rule produces this. Second case, using the same test map with the repair stall placed on a different floor from food and clothing: at 5 min the plan must pick up before leaving the repair floor (drop -> pick -> food -> clothing), because walking back costs more than the short wait.
+**Acceptance example (unit test):** errands = phone repair (45, async), food (30), clothing (25), each with one candidate. Expected order: drop repair -> food -> clothing -> pick repair, with idle = 0. No hardcoded rule produces this. Second case, same test map with the repair stall across an 8-minute bridge: at 5 min the plan changes so that drop and pick are back to back (wait at the stall instead of walking back).
 
 ### 6.5 `locator`
 1. Resolve each landmark to **all** matching place instances (search, name-weighted).
@@ -405,7 +407,7 @@ Unit tests (pytest) for pure logic only:
 
 ## 14. Disclosures (for submission)
 - **Models:** Qwen3-1.7B (Unsloth Q4_K_M GGUF, Apache 2.0); intfloat/multilingual-e5-small (MIT), quantized by us.
-- **Runtime:** llama.cpp (llama-server, CPU build), onnxruntime.
+- **Runtime:** Ollama (CPU), onnxruntime.
 - **Frameworks:** FastAPI etc.
 - **Map data:** OpenStreetMap building outlines (c OpenStreetMap contributors, ODbL); store names from public listings.
 - **Layout:** our own reconstruction.
