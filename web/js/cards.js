@@ -10,7 +10,10 @@ const DURATIONS = [15, 30, 45, 60, 90];
 
 function placesCard(result, actions) {
   return h("div", { class: "card" }, result.places.map((p) =>
-    h("button", { class: busyClass("row", `nav:${p.id}`), type: "button", onclick: () => actions.navigateToPlace(p.id) },
+    h("button", { class: busyClass("row", `nav:${p.id}`), type: "button", onclick: () => {
+      if (result.alternatives_for) actions.pickAlternative(result.alternatives_for, p.id);
+      return actions.navigateToPlace(p.id);
+    } },
       h("span", { class: "row-icon" }, categoryIcon(p.category)),
       h("div", { class: "row-main" },
         h("div", { class: "row-title" }, p.name, p.fictional ? h("span", { class: "tag" }, "demo") : null),

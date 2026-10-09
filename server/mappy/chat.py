@@ -3,12 +3,13 @@ Every path ends in deterministic code (search, trip edits, planner, locator)."""
 
 import asyncio
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Protocol
 
 import httpx
 
 from .brands import brand_in, is_store_of, traits_of
+from .learn import Picks
 from .llm import LLMBusy, LLMError, fallback_extract, trip_summary
 from .locator import locate
 from .mall import Mall
@@ -81,6 +82,7 @@ class ChatService:
     router: Router
     router_elev: Router
     llm: Extractor | None
+    picks: Picks = field(default_factory=lambda: Picks(None))  # what shoppers tapped for a missing brand
 
     def _router(self, trip: Trip) -> Router:
         return self.router_elev if trip.constraints.elevator_only else self.router
@@ -213,7 +215,12 @@ class ChatService:
         return ids, {pid: self.search.trait_score(pid, traits) for pid in ids}
 
     def _alternatives_result(self, alt: StandIn, start: str, router: Router, exclude: tuple[str, ...] = ()) -> dict:
+        """Same-kind places for a missing store: what shoppers here picked instead first (most picked
+        first), then the rest by trait match."""
         ids, scores = self._ranked(alt.category, alt.traits, exclude)
+        learned = [pid for pid in self.picks.ranked(alt.name) if pid in ids]
+        lead = max(scores.values(), default=0) + len(learned)
+        scores |= {pid: lead - i for i, pid in enumerate(learned)}
         result = self._places_result(alt.name, ids, start, router, scores, alt.category)
         return {**result, "alternatives_for": alt.name}
 
@@ -240,6 +247,8 @@ class ChatService:
 
     def _alternatives_reply(self, alt: StandIn, rows: list[dict]) -> str:
         reply = f"No {alt.name} in this mall, but here are other {_label(alt.category)} places."
+        if (top := self.picks.top(alt.name)) and (row := next((r for r in rows if r["id"] == top), None)):
+            reply = f"Shoppers here usually pick {row['name']} instead of {alt.name}. {reply}"
         matched = [(r, m) for r in rows if (m := self.search.matched_traits(r["id"], alt.traits))]
         if matched:
             shown = matched[:MAX_REPLY_NAMES]

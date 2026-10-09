@@ -20,6 +20,7 @@ from .chat import ChatService
 from .config import Settings, lan_ip
 from .edge import CpuMeter, EdgeMonitor, Probe, cpu_name, internet_reachable, memory
 from .embed import E5Embedder, HashEmbedder
+from .learn import Picks
 from .llm import LLMClient
 from .locator import locate
 from .mall import load_mall
@@ -59,6 +60,11 @@ class ClientErrorReq(BaseModel):
     message: str = Field(max_length=2000)
     stack: str = Field(default="", max_length=8000)
     ua: str = Field(default="", max_length=400)
+
+
+class PickReq(BaseModel):
+    asked: str = Field(min_length=1, max_length=80)  # the missing store the alternatives were for
+    place: str
 
 
 class LocateReq(BaseModel):
@@ -125,7 +131,8 @@ def create_app(settings: Settings | None = None, embedder=None, llm=None) -> Fas
     search = Search(mall, embedder, settings.cache_dir)
     llm = llm or LLMClient(settings.llm_base_url, sorted(mall.category_defaults),
                            model=settings.llm_model, threads=settings.llm_threads)
-    svc = ChatService(mall=mall, search=search, router=Router(mall), router_elev=Router(mall, True), llm=llm)
+    svc = ChatService(mall=mall, search=search, router=Router(mall), router_elev=Router(mall, True), llm=llm,
+                      picks=Picks(settings.cache_dir / "picks.json"))
     app = FastAPI(title="Mappy", docs_url=None, redoc_url=None)
     edge, cpu, cpu_label = EdgeMonitor(), CpuMeter(), cpu_name()
     online = Probe(internet_reachable)
@@ -179,6 +186,14 @@ def create_app(settings: Settings | None = None, embedder=None, llm=None) -> Fas
     @app.post("/api/route")
     def route(req: RouteReq):
         return svc.route(req.at, req.to, req.elevator_only)
+
+    @app.post("/api/pick")
+    def pick(req: PickReq):
+        """A shopper tapped a stand-in for a missing store; later shoppers see it first."""
+        if req.place not in mall.places:
+            return _error(404, "That place isn't in this mall.")
+        svc.picks.record(req.asked, req.place)
+        return {"ok": True}
 
     @app.post("/api/locate")
     def do_locate(req: LocateReq):

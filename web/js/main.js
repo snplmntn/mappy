@@ -86,6 +86,11 @@ const actions = {
     }, pending);
   },
 
+  /** Teach the laptop which stand-in shoppers pick for a missing store. Never blocks navigation. */
+  pickAlternative(asked, place) {
+    post("/api/pick", { asked, place }).catch(() => {});
+  },
+
   navigateToPlace(placeId) {
     const p = state.index.places[placeId];
     return this.navigate({ place: placeId }, { ...placePoint(placeId), label: "", name: p.name, dest: true }, `nav:${placeId}`);

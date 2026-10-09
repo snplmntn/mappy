@@ -1,6 +1,7 @@
 import asyncio
 
 from mappy.chat import ChatService
+from mappy.learn import Picks
 from mappy.llm import LLMBusy
 from mappy.models import Edit, ErrandReq, Extraction, Trip
 from mappy.router import Router
@@ -188,6 +189,24 @@ def test_missing_brand_lists_same_kind(mall, search):
     assert out["reply"].startswith("No McDonald's in this mall, but here are other food places.")
     assert out["reply"].endswith(" min away.")
     assert out["meta"]["engine"] == "rules"
+
+
+def test_learned_pick_leads_the_alternatives(mall, search):
+    s = svc(mall, search)
+    s.picks = Picks(None)
+    s.picks.record("McDonald's", "foodcourt-2f")
+    out = run(s.chat("mcdo", AT, "14:00", Trip()))
+    assert out["result"]["places"][0]["id"] == "foodcourt-2f"
+    assert out["reply"].startswith("Shoppers here usually pick Food Court instead of McDonald's. "
+                                   "No McDonald's in this mall")
+
+
+def test_learned_pick_no_longer_in_mall_is_skipped(mall, search):
+    s = svc(mall, search)
+    s.picks.record("McDonald's", "gone-store")
+    out = run(s.chat("mcdo", AT, "14:00", Trip()))
+    assert out["reply"].startswith("No McDonald's in this mall")
+    assert "gone-store" not in [p["id"] for p in out["result"]["places"]]
 
 
 def test_missing_clothing_brand_lists_clothes(mall, search):
