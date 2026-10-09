@@ -1,4 +1,4 @@
-# Eval results (2026-10-09 17:32)
+# Eval results (2026-10-09 17:41)
 
 - Model: `qwen3:1.7b` via Ollama, `num_thread=4`, CPU only. Mall: `mall.json`. Mode: rules first, then LLM.
 - Messages: 50. Handled by rules: 28. LLM fallbacks: 0.
@@ -6,8 +6,8 @@
 - Category F1 (find/plan): 0.79
 - Edit ops exact: 100% (12/12)
 - Landmarks found: 100% (8/8)
-- Latency all messages: median 0 ms, p95 325 ms
-- Latency LLM calls: median 266 ms, p95 330 ms
+- Latency all messages: median 0.3 ms, p95 326 ms
+- Latency LLM calls: median 269.6 ms, p95 329 ms
 
 | ok | source | message | intent | detail |
 |---|---|---|---|---|

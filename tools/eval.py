@@ -100,7 +100,7 @@ async def run(args) -> str:
         if not v:
             return "n/a"
         s = sorted(v)
-        return f"median {1000 * statistics.median(s):.0f} ms, p95 {1000 * s[int(0.95 * (len(s) - 1))]:.0f} ms"
+        return f"median {1000 * statistics.median(s):.1f} ms, p95 {1000 * s[int(0.95 * (len(s) - 1))]:.0f} ms"
 
     summary = [
         f"# Eval results ({time.strftime('%Y-%m-%d %H:%M')})",
