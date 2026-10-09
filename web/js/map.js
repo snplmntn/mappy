@@ -294,7 +294,7 @@ export class Navigator {
     this.draw();
     this.fit(false);
     if (opening) {
-      const anim = { duration: 280, easing: "cubic-bezier(.2,.8,.2,1)" };
+      const anim = { duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 280, easing: "cubic-bezier(.2,.8,.2,1)" };
       this.view.animate([{ opacity: 0, transform: "scale(1.04)" }, { opacity: 1, transform: "none" }], anim);
       this.chat.animate([{ opacity: 1 }, { opacity: 0, transform: "scale(.98)" }], anim).onfinish = () => { this.chat.hidden = true; };
     }
@@ -302,7 +302,7 @@ export class Navigator {
 
   close() {
     this.chat.hidden = false;
-    const anim = { duration: 240, easing: "cubic-bezier(.2,.8,.2,1)" };
+    const anim = { duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 240, easing: "cubic-bezier(.2,.8,.2,1)" };
     this.chat.animate([{ opacity: 0, transform: "scale(.98)" }, { opacity: 1, transform: "none" }], anim);
     this.view.animate([{ opacity: 1 }, { opacity: 0, transform: "scale(1.04)" }], anim).onfinish = () => { this.view.hidden = true; };
     this.onClose?.();
@@ -427,7 +427,7 @@ export class Navigator {
     if (from === to) return;
     const dir = state.index.floors[to].level > state.index.floors[from].level ? -1 : 1;
     this.svg.animate([{ opacity: 0, transform: `translateY(${dir * 40}px)` }, { opacity: 1, transform: "none" }],
-      { duration: 320, easing: "cubic-bezier(.2,.8,.2,1)" });
+      { duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 320, easing: "cubic-bezier(.2,.8,.2,1)" });
   }
 
   /** Frame the current step inside the area not covered by the floating panels. */
