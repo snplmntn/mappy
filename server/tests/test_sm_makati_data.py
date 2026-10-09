@@ -13,7 +13,8 @@ def test_valid_and_connected():
     anchor = m.anchors["gf-mrt-entrance"].node
     assert [p.id for p in m.places.values() if r.seconds(anchor, p.node) is None] == []
     assert any(p.category == "phone_repair" and p.floor == "2F" for p in m.places.values())
-    assert sum(1 for c in m.connectors if c.kind == "escalator") == 4
+    assert sum(1 for c in m.connectors if c.kind == "escalator" and c.name.startswith("Escalator")) == 4
+    assert {m.nodes[s].floor for c in m.connectors if c.name == "Travelator" for s in c.stops} == {"LG", "GF"}
 
 
 def test_elevator_only_reaches_everything():

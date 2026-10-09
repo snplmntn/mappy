@@ -184,6 +184,12 @@ MAIN_FLOORS = [("LG", "Lower Ground", -1), ("GF", "Ground Floor", 0), ("2F", "2n
 MAIN = dict(depth=110, corridor=56, unit_len=96)       # ~16 m deep stores, ~8 m walkways, ~10 m frontages
 ANNEX = dict(depth=62, corridor=40, unit_len=80)
 CROSSES = [(0.26, 58, "atrium"), (0.5, 26, "lift"), (0.74, 58, "atrium")]
+# Main floors loop around one long central void (seen in the 2026 walk-through). Lower Ground sits under it.
+VOID = dict(frac=0.62, width=110)              # ~60% of the core's length, ~16 m across
+VOID_BANKS = (0.3, 0.72)                       # escalator banks A and B, as fractions along the void
+VOID_TRAVELATOR = 0.1                          # travelators between GF and the LG supermarket entrance
+ESCALATOR_FLOORS = {"GF", "2F", "3F", "4F", "5F"}
+TRAVELATOR_FLOORS = {"LG", "GF"}
 MITRE = dict(join_style="mitre", mitre_limit=3.0)
 NODE_STEP = 30
 # Stores that span several storefronts, and where they go.
@@ -251,7 +257,7 @@ class Plan:
     """A floor laid out from the building outline: storefronts along every exterior wall, a walkway loop
     following the outline, and (if there is room) a core with cross walkways, atria and island stores."""
 
-    def __init__(self, fid, outline, depth, corridor, unit_len, crosses=(), entrances=()):
+    def __init__(self, fid, outline, depth, corridor, unit_len, crosses=(), entrances=(), void=None):
         self.fid = fid
         self.B = B = Polygon(outline).buffer(0)
         self.corridor = corridor
@@ -262,8 +268,33 @@ class Plan:
         walk = ring_out if self.core is None else ring_out.difference(self.core)
         # Cross walkways through the core: atria with escalators, and a lift lobby.
         self.crosses = []
+        self.void = None
         islands = []
-        if self.core is not None:
+        if self.core is not None and void is not None:
+            # A long void down the middle with a balcony walkway around it, joined to the outer walkway
+            # at both ends and both sides. The core left over becomes four blocks of stores.
+            minx, miny, maxx, maxy = self.core.bounds
+            cx, cy = self.core.centroid.x, self.core.centroid.y
+            half_len, half_w = void["frac"] * (maxy - miny) / 2, void["width"] / 2
+            self.void = box(cx - half_w, cy - half_len, cx + half_w, cy + half_len).buffer(-12).buffer(12)
+            self.void_open = void.get("open", False)
+            balcony = self.void.buffer(corridor, **MITRE)
+            self.balcony_line = self.void.buffer(corridor / 2, **MITRE).exterior
+            center = largest(ring_out.buffer(-corridor / 2, **MITRE))
+            self.links = []
+            for sx, sy, dx, dy in ((cx, cy - half_len - corridor / 2, 0, -1), (cx, cy + half_len + corridor / 2, 0, 1),
+                                   (cx - half_w - corridor / 2, cy, -1, 0), (cx + half_w + corridor / 2, cy, 1, 0)):
+                hit = LineString([(sx, sy), (sx + dx * 2000, sy + dy * 2000)]).intersection(center.exterior)
+                end = nearest_points(hit, Point(sx, sy))[0]
+                self.links.append(LineString([(sx, sy), (end.x, end.y)]))
+            bands = unary_union([ln.buffer(corridor / 2, cap_style="flat") for ln in self.links])
+            walk = walk.union(balcony.union(bands).intersection(ring_out))
+            if not self.void_open:
+                walk = walk.difference(self.void)
+            rest = self.core.difference(balcony).difference(bands)
+            islands = [g for g in getattr(rest, "geoms", [rest]) if g.geom_type == "Polygon" and g.area > 2500]
+            self.center_line = center.exterior
+        elif self.core is not None:
             minx, miny, maxx, maxy = self.core.bounds
             center = largest(ring_out.buffer(-corridor / 2, **MITRE))
             for frac, half, kind in crosses:
@@ -325,6 +356,8 @@ class Plan:
         minx, miny, maxx, maxy = isl.bounds
         cols = max(1, round((maxx - minx) / unit_len))
         rows = 2 if maxy - miny > 110 else 1
+        if self.void is not None:
+            return self._block_units(isl, k, unit_len)
         out = []
         for c in range(cols):
             x0 = minx + c * (maxx - minx) / cols
@@ -337,6 +370,29 @@ class Plan:
                     continue
                 door_y = y0 if r == 0 else y1
                 door = nearest_points(piece.exterior, Point((x0 + x1) / 2, door_y))[0]
+                out.append(Unit(piece, (door.x, door.y), "island", c * rows + r, island=k))
+        return out
+
+    def _block_units(self, isl, k, unit_len):
+        """Grid storefronts in a block between walkways. Each opens onto the walkway it shares the longest
+        edge with; cells that touch no walkway stay unnamed storefront."""
+        minx, miny, maxx, maxy = isl.bounds
+        cols = max(1, round((maxx - minx) / unit_len))
+        rows = max(1, round((maxy - miny) / unit_len))
+        edge_zone = self.walk.buffer(2)
+        out = []
+        for c in range(cols):
+            for r in range(rows):
+                x0, x1 = minx + c * (maxx - minx) / cols, minx + (c + 1) * (maxx - minx) / cols
+                y0, y1 = miny + r * (maxy - miny) / rows, miny + (r + 1) * (maxy - miny) / rows
+                piece = largest(isl.intersection(box(x0, y0, x1, y1)))
+                if piece is None or piece.area < 2500 or piece.buffer(-18).is_empty:  # no slivers in the blocks
+                    continue
+                front = piece.exterior.intersection(edge_zone)
+                parts = [g for g in getattr(front, "geoms", [front]) if g.geom_type == "LineString" and g.length > 20]
+                if not parts:
+                    continue
+                door = max(parts, key=lambda g: g.length).interpolate(0.5, normalized=True)
                 out.append(Unit(piece, (door.x, door.y), "island", c * rows + r, island=k))
         return out
 
@@ -389,6 +445,32 @@ def build_graph(plan: Plan) -> tuple[Graph, list[str], dict]:
         g.link(ring[-1], ring[0])
     walk_nodes += ring
     special = {}
+    if plan.void is not None:
+        balcony = [g.add(f"b{i}", (p.x, p.y)) for i, p in enumerate(sample(plan.balcony_line, NODE_STEP))]
+        for a, b in zip(balcony, balcony[1:] + balcony[:1]):
+            g.link(a, b)
+        for k, line in enumerate(plan.links):
+            ids = [g.add(f"x{k}-{j}", (p.x, p.y)) for j, p in enumerate(sample(line, NODE_STEP))]
+            for a, b in zip(ids, ids[1:]):
+                g.link(a, b)
+            g.link(ids[0], g.nearest(g.nodes[ids[0]], balcony))
+            g.link(ids[-1], g.nearest(g.nodes[ids[-1]], ring))
+            walk_nodes += ids
+        walk_nodes += balcony
+        # Escalators, travelators and the glass elevator stand in the void, stepping off onto the balcony.
+        minx, miny, maxx, maxy = plan.void.bounds
+        cx = (minx + maxx) / 2
+
+        def at(name, dx, frac):
+            n = g.add(name, (cx + dx, miny + frac * (maxy - miny)))
+            g.link(n, g.nearest(g.nodes[n], balcony))
+            return n
+
+        if plan.fid in ESCALATOR_FLOORS:
+            special["banks"] = [(at(f"esc{k}-up", -22, f), at(f"esc{k}-dn", 22, f)) for k, f in enumerate(VOID_BANKS)]
+        special["lift"] = at("lift", 0, 0.5)
+        if plan.fid in TRAVELATOR_FLOORS:
+            special["trav"] = (at("trav-up", -22, VOID_TRAVELATOR), at("trav-dn", 22, VOID_TRAVELATOR))
     for k, c in enumerate(plan.crosses):
         pts = sample(c["line"], NODE_STEP)
         ids = [g.add(f"x{k}-{j}", (p.x, p.y)) for j, p in enumerate(pts)]
@@ -489,20 +571,25 @@ def build() -> dict:
     far_end = (main_poly.centroid.x * 2 - annex_dir_px[0], main_poly.centroid.y * 2 - annex_dir_px[1])
     for fid, name, level in MAIN_FLOORS:
         entrances = [("main", far_end), ("annex", annex_dir_px)] if fid == "GF" else []
-        plans[fid] = Plan(fid, main_px, crosses=CROSSES, entrances=entrances, **MAIN)
+        plans[fid] = Plan(fid, main_px, entrances=entrances, void=dict(VOID, open=fid == "LG"), **MAIN)
     annex_poly = Polygon(annex_px)
     plans["AX"] = Plan("AX", annex_px, entrances=[("main", (annex_poly.centroid.x, 0))], **ANNEX)
     for fid, plan in plans.items():
         graphs[fid], _, specials[fid] = build_graph(plan)
 
-    # Vertical connectors: escalators in both atria (up and down), one elevator.
+    # Vertical connectors in the void: escalator banks A and B (GF up), travelators to LG, one glass elevator.
     order = [f for f, _, _ in MAIN_FLOORS]
-    atria = {fid: specials[fid]["atria"] for fid in order}
+    esc = [f for f in order if f in ESCALATOR_FLOORS]
     for idx, letter in ((0, "A"), (1, "B")):
         connectors.append({"id": f"esc-{letter.lower()}-up", "name": f"Escalator {letter}", "kind": "escalator",
-                           "direction": "up", "stops": [atria[f][idx][1] for f in order]})
+                           "direction": "up", "stops": [specials[f]["banks"][idx][0] for f in esc]})
         connectors.append({"id": f"esc-{letter.lower()}-down", "name": f"Escalator {letter}", "kind": "escalator",
-                           "direction": "down", "stops": [atria[f][idx][2] for f in reversed(order)]})
+                           "direction": "down", "stops": [specials[f]["banks"][idx][1] for f in reversed(esc)]})
+    trav = [f for f in order if f in TRAVELATOR_FLOORS]
+    connectors.append({"id": "trav-up", "name": "Travelator", "kind": "escalator", "direction": "up",
+                       "stops": [specials[f]["trav"][0] for f in trav]})
+    connectors.append({"id": "trav-down", "name": "Travelator", "kind": "escalator", "direction": "down",
+                       "stops": [specials[f]["trav"][1] for f in reversed(trav)]})
     connectors.append({"id": "elev-1", "name": "Elevator", "kind": "elevator", "direction": "both",
                        "stops": [specials[f]["lift"] for f in order]})
     connectors.append({"id": "walk-annex", "name": "Annex Walkway", "kind": "bridge", "direction": "both",
@@ -517,7 +604,7 @@ def build() -> dict:
         lift = specials[fid].get("lift")
         lift_xy = g.nodes[lift] if lift else None
         placed, blanks = allocate(plan, by_floor[fid], lift_xy)
-        walk_nodes = [n for n in g.nodes if "-w" in n or "-x" in n]
+        walk_nodes = [n for n in g.nodes if "-w" in n or "-x" in n or "-b" in n]
         for k, ((name, _, cat, extra, minutes, fictional), units) in enumerate(placed):
             poly = largest(unary_union([u.poly for u in units]).buffer(0.5).buffer(-0.5)) or max((u.poly for u in units), key=lambda q: q.area)
             door_xy = units[len(units) // 2].door
@@ -537,7 +624,7 @@ def build() -> dict:
             if fictional:
                 place["fictional"] = True
             places.append(place)
-        rails = []
+        rails = [coords(plan.void)] if plan.void is not None and not plan.void_open else []
         for _, up, dn, cx, c in specials[fid].get("atria", []):
             rail = box(cx - 62, c["y"] - c["half"] + 14, cx + 62, c["y"] + c["half"] - 14)
             rails.append(coords(rail))
@@ -558,10 +645,10 @@ def build() -> dict:
         {"id": "gf-mrt-entrance", "label": "Ground Floor, main entrance", "floor": "GF",
          "node": specials["GF"]["entrances"]["main"], "heading_deg": 0},
         {"id": "lg-supermarket", "label": "Lower Ground, SM Supermarket", "floor": "LG", "node": node_of("sm-supermarket-lg"), "heading_deg": 0},
-        {"id": "2f-escalator-a", "label": "2nd Floor, Escalator A", "floor": "2F", "node": connectors[0]["stops"][2], "heading_deg": 0},
+        {"id": "2f-escalator-a", "label": "2nd Floor, Escalator A", "floor": "2F", "node": specials["2F"]["banks"][0][0], "heading_deg": 0},
         {"id": "lg-food-hall", "label": "Lower Ground, Market Food Hall", "floor": "LG", "node": node_of("market-food-hall-lg"), "heading_deg": 0},
         {"id": "3f-ace-hardware", "label": "3rd Floor, ACE Hardware", "floor": "3F", "node": node_of("ace-hardware-3f"), "heading_deg": 0},
-        {"id": "4f-escalators", "label": "4th Floor, escalators", "floor": "4F", "node": connectors[0]["stops"][4], "heading_deg": 0},
+        {"id": "4f-escalators", "label": "4th Floor, escalators", "floor": "4F", "node": specials["4F"]["banks"][0][0], "heading_deg": 0},
         {"id": "ax-entrance", "label": "Annex entrance", "floor": "AX", "node": specials["AX"]["entrances"]["main"], "heading_deg": 0},
     ]
     return {
