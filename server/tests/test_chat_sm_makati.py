@@ -146,3 +146,10 @@ def test_steering_with_no_trip_says_so(real):
 def test_a_named_store_narrows_a_stand_in_for_the_same_stop(real):
     out = say(real, "zara and h&m")
     assert [e["candidates"] for e in out["trip"]["errands"]] == [["h-m-gf"]]
+
+
+@pytest.mark.parametrize("text", ["nearest restroom", "where is the nearest restroom", "pinakamalapit na CR", "ATM"])
+def test_any_will_do_heads_straight_to_the_nearest(real, text):
+    out = ask(real, text)
+    assert out["result"]["go"] == out["result"]["places"][0]["id"]
+    assert out["reply"].startswith("The nearest is ")

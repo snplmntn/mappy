@@ -18,8 +18,8 @@ from .mall import Mall
 from .models import Edit, Errand, ErrandReq, Extraction, Trip, hhmm_to_min
 from .planner import plan_trip
 from .router import Router
-from .rules import FRIEND_RE, PLAN_SEPARATORS, parse
-from .search import CATEGORY_LABELS, Search, categories_in, places_label
+from .rules import FRIEND_RE, NEAREST_RE, PLAN_SEPARATORS, parse
+from .search import ANY_WILL_DO, CATEGORY_LABELS, Search, categories_in, places_label
 from .trip import MAX_ERRANDS, apply_edits, duplicate_of, new_errand_id
 
 CANDIDATES = 3
@@ -350,6 +350,23 @@ class ChatService:
         return Nudge(near, f"{top['name']} is {top['walk_min']} min away on {top['floor_name']}. "
                            f"{near['name']} on {near['floor_name']} does {kind} too, {near['walk_min']} min.")
 
+    def _go(self, message: str, out: dict) -> dict:
+        """Head straight to the top place when it is the obvious answer: the nearest of a kind where any
+        one will do (or the shopper asked for the nearest), or a store named outright. A nudge or a swap
+        is a real choice, so those stay a list. Only from a known spot: from the entrance it's a guess."""
+        result = out["result"]
+        if result["type"] != "places" or result.get("alternatives_for") or not result["places"]:
+            return out
+        top = result["places"][0]
+        if top["walk_min"] is None or any(p.get("nudge") for p in result["places"]):
+            return out
+        nearest = result["category"] in ANY_WILL_DO or NEAREST_RE.search(message)
+        if not (nearest or top["name"] in self.search.names_in(message)):
+            return out
+        where = f"The nearest is {top['name']}," if nearest else f"{top['name']} is"
+        return {**out, "reply": f"{where} on {top['floor_name']}, {top['walk_min']} min away. Taking you there.",
+                "result": {**result, "go": top["id"]}}
+
     def _plan_payload(self, trip: Trip, start: str, now_min: int, changes: list[str]) -> dict:
         plan = plan_trip(trip, start, now_min, self._router(trip), self.mall)
         return {"type": "plan", "plan": plan.model_dump(), "changes": changes}
@@ -366,6 +383,8 @@ class ChatService:
                     x, out = retry, retry_out
         if FRIEND_RE.search(message):
             out = _for_friend(out)
+        elif x.intent == "find" and at:
+            out = self._go(message, out)
         out["meta"] = {"engine": x.source, "intent": x.intent}  # which engine understood it, for the receipt line
         return out
 

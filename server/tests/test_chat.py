@@ -341,7 +341,8 @@ def test_no_nudge_when_the_other_store_is_not_much_nearer(mall, search, monkeypa
     walk_times(monkeypatch, {"jollibee-gf": 3, "foodcourt-2f": 2})
     out = run(svc(mall, search).chat("jollibee", {"anchor": "2f-esc-a"}, "14:00", Trip()))
     assert [p["id"] for p in out["result"]["places"]] == ["jollibee-gf"]
-    assert out["reply"] == "Here's what I found for “jollibee”:"
+    assert out["reply"] == "Jollibee is on Ground Floor, 3 min away. Taking you there."
+    assert out["result"]["go"] == "jollibee-gf"
 
 
 def test_no_nudge_without_a_walk_time(mall, search, monkeypatch):
@@ -417,3 +418,41 @@ def test_more_after_a_swap_keeps_the_brand(mall, search, monkeypatch):
     out = run(s.chat("iba pa", AT, "14:00", Trip(), prev=first))["result"]
     assert out["alternatives_for"] == "McDonald's" and out["category"] == "food"
     assert out["places"][0]["id"] not in first["shown"]
+
+
+def test_any_will_do_heads_to_the_nearest(mall, search):
+    for query in ("CR", "nearest restroom", "take me to the restroom"):
+        out = run(svc(mall, search).chat(query, AT, "14:00", Trip()))
+        assert out["result"]["go"] == "cr-gf", query
+        assert out["reply"].startswith("The nearest is Restroom, on Ground Floor") and "Taking you there" in out["reply"]
+
+
+def test_asking_for_the_nearest_heads_there(mall, search, monkeypatch):
+    walk_times(monkeypatch, {"starbucks-gf": 5, "starbucks-2f": 2})
+    for query in ("nearest coffee", "pinakamalapit na kape", "closest starbucks"):
+        out = run(svc(mall, search).chat(query, AT, "14:00", Trip()))
+        assert out["result"]["go"] == "starbucks-2f", query
+
+
+def test_a_store_named_outright_heads_to_its_nearest_branch(mall, search, monkeypatch):
+    walk_times(monkeypatch, {"starbucks-gf": 5, "starbucks-2f": 2})
+    out = run(svc(mall, search).chat("where's starbucks", AT, "14:00", Trip()))
+    assert out["result"]["go"] == "starbucks-2f" and out["reply"].startswith("Starbucks is on 2nd Floor, 2 min")
+
+
+def test_choices_stay_a_list(mall, search, monkeypatch):
+    walk_times(monkeypatch, {"jollibee-gf": 9, "foodcourt-2f": 2, "starbucks-gf": 3, "starbucks-2f": 2})
+    for query in ("food", "coffee", "mcdo", "jollibee"):  # browsing, a swap, a nudge
+        out = run(svc(mall, search).chat(query, AT, "14:00", Trip()))
+        assert "go" not in out["result"], query
+
+
+def test_no_heading_off_without_a_known_spot(mall, search):
+    out = run(svc(mall, search).chat("CR", None, "14:00", Trip()))
+    assert "go" not in out["result"] and out["reply"].startswith("Here's what I found")
+
+
+def test_no_heading_off_without_a_walk_time(mall, search, monkeypatch):
+    walk_times(monkeypatch, {})
+    out = run(svc(mall, search).chat("CR", AT, "14:00", Trip()))
+    assert "go" not in out["result"]

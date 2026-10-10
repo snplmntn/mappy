@@ -12,7 +12,8 @@ SEPARATORS = re.compile(r",|;|\btapos\b(?!\s+na\b)|\band\b|\bthen\b|\bsaka\b|\bp
 PLAN_SEPARATORS = re.compile(rf"{SEPARATORS.pattern}|\bat\b|\btsaka\b", re.I)
 LOCATE_CUES = ("nasa ", "andito", "nandito", "i'm at", "im at", "i am at", "katapat", "tabi ng",
                "beside", "near ", "kita ko", "i see", "harap ng", "tapat ng", "nandyan", "andyan")
-QUESTION_WORDS = re.compile(r"^(?:where can i (?:find|get|buy)|where can i|where do i|where is|where's|where|"
+QUESTION_WORDS = re.compile(r"^(?:take me to|bring me to|how do i get to|dalhin mo ako sa|"
+                            r"where can i (?:find|get|buy)|where can i|where do i|where is|where's|where|"
                             r"saan (?:ako )?pwede|saan|nasaan|asan|san|may|gusto ko(?:ng)?|kailangan ko(?:ng)?|"
                             r"need ko|hanap(?: ako)?|naghahanap ako|i want(?: to)?|i need(?: to)?|looking for)"
                             r"\s+(?:ang|ng|ba|po|yung|the)?\s*", re.I)
@@ -26,6 +27,8 @@ MORE_RE = re.compile(r"^\s*(?:iba pa|iba pang|yung iba|meron pa|may iba pa|ano p
 TRAILING_RE = re.compile(r"(?:\s+(?:ba|po|dito|rito|here|meron|nga|naman))+\s*$", re.I)
 WHERE_AM_I_RE = re.compile(r"^\s*(?:(?:nasaan|nasan|asan|saan)\s+(?:na\s+)?ako(?:\s+(?:ngayon|ba|po))*|"
                            r"where am i(?:\s+now)?)[\s?!.]*$", re.I)
+# Asking for the closest one: "nearest coffee", "pinakamalapit na CR".
+NEAREST_RE = re.compile(r"\b(?:the\s+)?(?:nearest|closest|pinaka\s*malapit)\b(?:\s+(?:na|ng))?", re.I)
 # Someone else is the one at the spot being described ("my friend is near Gong Cha").
 FRIEND_RE = re.compile(r"\b(?:friend|friends|kaibigan|tropa|barkada|kasama ko|si [a-z]+ (?:ay )?nasa)\b", re.I)
 NUM_WORDS = {"isa": 1, "isang": 1, "dalawa": 2, "dalawang": 2, "tatlo": 3, "tatlong": 3}
@@ -209,6 +212,7 @@ def parse(message: str, trip: Trip, search: Search) -> Extraction | None:
         if SEPARATORS.search(msg):
             return None
     query = TRAILING_RE.sub("", QUESTION_WORDS.sub("", msg).strip(" ?!.")) or msg
+    query = NEAREST_RE.sub("", query).strip() or query  # "nearest restroom" asks for restrooms, nearest first
     asked = query != msg.strip(" ?!.")
     if cat := search.alias_category(query):
         return Extraction(intent="find", errands=[ErrandReq(query=query, category=cat)])
