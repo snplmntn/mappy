@@ -57,7 +57,7 @@ h3 { font-size: 21px; font-weight: 900; letter-spacing: -.5px; margin: 0 0 10px;
 .offline-note .icon { width: 16px; height: 16px; }
 .connection-note { border-left: 3px solid var(--ink); padding: 10px 14px; background: #fffef8; font-size: 12px; line-height: 1.6; margin: 20px 0 0; }
 .section-description { color: #51514b; font-size: 13px; margin: -4px 0 22px; line-height: 1.6; }
-.location-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
+.location-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px; }
 .location-card { text-align: center; padding: 0 16px 20px; }
 .card-kicker { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 12px 8px; margin: 0 -16px 14px; border-bottom: 2px solid var(--ink); background: var(--lilac); font-size: 12px; font-weight: 800; }
 .location-card:nth-child(3n+2) .card-kicker { background: var(--yellow); }
@@ -72,6 +72,7 @@ footer { display: flex; justify-content: space-between; align-items: center; gap
   .connect-card { flex-direction: column; align-items: stretch; }
   .connect-card .qr-code { align-self: center; }
   .connect-copy .helper { margin-top: 8px; }
+  .location-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 600px) {
   .topbar { flex-wrap: wrap; padding: 18px; gap: 20px; }
@@ -90,9 +91,10 @@ footer { display: flex; justify-content: space-between; align-items: center; gap
   footer { align-items: flex-start; }
   footer > span:last-child { max-width: 220px; line-height: 1.6; text-align: right; }
 }
-/* Laptop screens: the whole sheet fits in one window, with QR codes sized to the window height. */
+/* Laptop screens: the whole sheet fits in one window. QR codes take whatever the two rows of
+   location cards leave over in height, capped by the width of a column in the 4-across grid. */
 @media screen and (min-width: 1000px) and (min-height: 560px) {
-  :root { --qr: clamp(56px, calc((100dvh - 540px) / 2), 180px); }
+  :root { --qr: clamp(56px, min(calc((100dvh - 540px) / 2), calc((min(100vw, 1228px) - 72px) * .176 - 36px)), 180px); }
   .topbar { padding-top: 8px; padding-bottom: 8px; }
   main { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 3fr); grid-template-areas: "head head" "steps steps" "connect spots"; column-gap: 24px; padding: 14px 24px; }
   .page-heading { grid-area: head; }
@@ -117,6 +119,7 @@ footer { display: flex; justify-content: space-between; align-items: center; gap
   .card-kicker { margin: 0 -12px 10px; padding: 8px; }
   .location-card .qr-code { margin-bottom: 8px; }
   .location-card h3 { font-size: 13px; max-width: none; margin-bottom: 2px; }
+  .location-card p { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .button { transition: none; } }
 /* No fixed paper size: the layout fits on one A4 or Letter sheet, whichever the printer uses. */
@@ -146,7 +149,7 @@ footer { display: flex; justify-content: space-between; align-items: center; gap
   .qr-card { box-shadow: none; border: 1.5px solid black; border-radius: 0; }
   .qr-code { padding: 0; }
   .qr-code > svg { width: 30mm; height: 30mm; }
-  .location-grid { grid-template-columns: repeat(3, 1fr); gap: 4mm; }
+  .location-grid { grid-template-columns: repeat(4, 1fr); gap: 4mm; }
   .location-card { padding: 0 3mm 3mm; }
   .card-kicker { margin: 0 -3mm 2mm; padding: 2mm; font-size: 9px; background: white !important; border-bottom: 1px solid black; }
   .location-card .qr-code { margin-bottom: 2mm; }

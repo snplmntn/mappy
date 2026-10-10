@@ -649,6 +649,7 @@ def build() -> dict:
         {"id": "lg-food-hall", "label": "Lower Ground, Market Food Hall", "floor": "LG", "node": node_of("market-food-hall-lg"), "heading_deg": 0},
         {"id": "3f-ace-hardware", "label": "3rd Floor, ACE Hardware", "floor": "3F", "node": node_of("ace-hardware-3f"), "heading_deg": 0},
         {"id": "4f-escalators", "label": "4th Floor, escalators", "floor": "4F", "node": specials["4F"]["banks"][0][0], "heading_deg": 0},
+        {"id": "5f-sm-home", "label": "5th Floor, SM Home", "floor": "5F", "node": node_of("sm-home-5f"), "heading_deg": 0},
         {"id": "ax-entrance", "label": "Annex entrance", "floor": "AX", "node": specials["AX"]["entrances"]["main"], "heading_deg": 0},
     ]
     return {
