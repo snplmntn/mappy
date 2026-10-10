@@ -68,7 +68,10 @@ def test_dropped_repair_is_picked_up_where_it_was_dropped(real):
 
 def test_a_generic_stop_uses_the_nearest_places(real):
     out = say(real, "cr muna tapos kape", at={"anchor": "3f-ace-hardware"})
-    assert out["result"]["plan"]["stops"][0]["place"] == "restrooms-3f"
+    start = real.mall.anchors["3f-ace-hardware"].node
+    restrooms = [p for p in real.mall.places.values() if p.category == "restroom"]
+    nearest = min(restrooms, key=lambda p: real.router.seconds(start, p.node))
+    assert nearest.floor == "3F" and out["result"]["plan"]["stops"][0]["place"] == nearest.id
 
 
 def test_a_new_list_skips_stops_already_planned(real):
