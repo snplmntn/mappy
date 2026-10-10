@@ -89,7 +89,16 @@ Phone (Chrome, 13 KB gzipped)  ──HTTP──>  FastAPI on the laptop
 
 ## Data honesty
 
-**Store names come from public listings, with floors checked against a June 2026 walk-through video** ([Where In PH, "SM MAKATI Walking Tour 2026"](https://www.youtube.com/watch?v=3IVE7saCJUk)) and the SM Store directory pylons it shows. **The interior layout is our reconstruction** inside SM Makati's real building footprint. The video does not visit the Annex, the Lower Ground mall corridors or Cyberzone, so stores there are unconfirmed. The app says so on screen. Phone-repair stalls marked "demo" (FixHub Mobile, QuickFix Gadget Clinic, ScreenDoc) are fictional. Loading SM's real floor plans would be a data swap: edit the store table in `tools/build_sm_makati.py` or replace `data/sm-makati/mall.json`.
+**Store names come from public listings, with floors checked against a June 2026 walk-through video** ([Where In PH, "SM MAKATI Walking Tour 2026"](https://www.youtube.com/watch?v=3IVE7saCJUk)) and the SM Store directory pylons it shows. **The interior layout is our reconstruction** inside SM Makati's real building footprint. The video does not visit the Annex, the Lower Ground mall corridors or Cyberzone, so stores there are unconfirmed. The app says so on screen. Phone-repair stalls marked "demo" (FixHub Mobile, QuickFix Gadget Clinic, ScreenDoc) are fictional. So that every storefront has something to show, empty units are filled with brands typical of each floor in other SM malls (`GUESSED_STORES` in `tools/build_sm_makati.py`, off with `FILL_WITH_GUESSES = False`); the app tags these "demo" too, and they are not claims that the brand is at SM Makati. Loading SM's real floor plans would be a data swap: edit the store table in `tools/build_sm_makati.py` or replace `data/sm-makati/mall.json`.
+
+## Editing the SM Makati map
+
+Name storefronts by hand while watching a walk-through video:
+```powershell
+.venv\Scripts\python -m pip install -e ".[data]"   # once: adds shapely
+.venv\Scripts\python tools\map_editor.py           # then open http://127.0.0.1:8765
+```
+Load a local video file, click a storefront (Shift+click for a store spanning several units), type the name and press Enter. Your stores are saved in `data/sm-makati/units.json` and keep their exact units on every rebuild; stores you haven't placed are still auto-placed from the table in `tools/build_sm_makati.py`. Each save rebuilds `mall.json`; restart the app server to serve it. Changing the layout constants (`VOID`, `MAIN`) renumbers units, and the editor lists any placements that lost their units.
 
 ## Disclosures
 
