@@ -32,6 +32,10 @@ PLACE_LABELS = {
 }
 
 
+# Kinds where any one will do, so the nearest one is the answer rather than a list to choose from.
+ANY_WILL_DO = {"restroom", "atm", "nursing_room", "clinic", "chapel"}
+
+
 def places_label(category: str) -> str:
     """A category's places mid-sentence: "coffee shops", "ATMs", "food places"."""
     return PLACE_LABELS.get(category) or f"{CATEGORY_LABELS.get(category, category).lower()} places"

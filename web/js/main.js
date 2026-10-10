@@ -69,16 +69,19 @@ function toast(text) {
 const actions = {
   browse() { nav.browse(); },
   /** Ask Mappy. `echo: false` resends without repeating the shopper's bubble (retry, new location). */
-  send(text, { echo = true, prefix = "" } = {}) {
+  async send(text, { echo = true, prefix = "" } = {}) {
     text = text.trim();
     if (!text || state.busy) return;
     if (echo) pushMessage({ role: "user", text });
     const { signal } = (inflight = new AbortController());
-    return withBusy(async () => {
+    let go = null;  // the server's obvious pick ("nearest restroom"): start directions without a tap
+    await withBusy(async () => {
       const res = await post("/api/chat", { message: text, at: state.at, now: nowHHMM(), trip: state.trip, prev: state.lastPlaces }, { signal });
       update({ trip: res.trip, ...(res.result?.type === "places" && { lastPlaces: res.result }) });
       pushMessage({ role: "bot", text: prefix + res.reply, result: res.result, query: text, meta: res.meta });
+      go = res.result?.go;
     }, "send", text);
+    if (go && state.index.places[go]) return this.navigateToPlace(go);
   },
 
   stop() {
