@@ -9,7 +9,7 @@ const CAT_CLASS = {
   electronics: "m-tech", gaming: "m-tech", appliances: "m-tech",
   phone_repair: "m-service", shoe_repair: "m-service", pharmacy: "m-service", bank: "m-service",
   atm: "m-service", remittance: "m-service", courier: "m-service",
-  restroom: "m-rest",
+  restroom: "m-rest", nursing_room: "m-rest", chapel: "m-rest", clinic: "m-rest", services: "m-service",
 };
 export const CATEGORY_NAMES = {
   phone_repair: "Phone repair", shoe_repair: "Shoe repair", food: "Food", cafe: "Coffee", clothing: "Clothes",
@@ -17,6 +17,7 @@ export const CATEGORY_NAMES = {
   beauty: "Beauty", department_store: "Department store", electronics: "Electronics", gaming: "Gaming",
   appliances: "Appliances", grocery: "Grocery", pharmacy: "Pharmacy", bank: "Bank", atm: "ATM",
   remittance: "Money transfer", courier: "Courier", pet: "Pets", restroom: "Restroom",
+  services: "Customer service", nursing_room: "Nursing room", chapel: "Chapel", clinic: "Clinic",
 };
 const LABEL_UNITS = 13;
 const MIN_PPU = 0.25;

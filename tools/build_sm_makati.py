@@ -12,6 +12,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "data" / "sm-makati" / "mall.json"
+# Stores placed by hand in tools/map_editor.py: each names the storefront units it occupies.
+PINS = ROOT / "data" / "sm-makati" / "units.json"
 
 # © OpenStreetMap contributors (ODbL). Way 27831200 (SM Makati), way 263667838 (SM Makati Annex).
 MAIN_LATLON = [
@@ -34,6 +36,7 @@ CATEGORY_DEFAULTS = {
     "electronics": (20, False), "gaming": (20, False), "appliances": (20, False), "grocery": (30, False),
     "pharmacy": (5, False), "bank": (15, False), "atm": (3, False), "remittance": (10, False),
     "courier": (10, False), "pet": (15, False), "restroom": (5, False),
+    "services": (10, False), "nursing_room": (15, False), "chapel": (20, False), "clinic": (20, False),
 }
 
 CATEGORY_TAGS = {
@@ -60,6 +63,10 @@ CATEGORY_TAGS = {
     "restroom": ["cr", "banyo", "toilet", "comfort room"],
     "phone_repair": ["phone", "cellphone", "cellfone", "screen", "battery", "sira", "ayos", "paayos", "magpaayos", "ipaayos", "repair", "basag"],
     "shoe_repair": ["sapatos", "takong", "repair", "ayos", "paayos", "magpaayos", "ipaayos", "bag"],
+    "services": ["customer service", "information", "info desk", "lost and found", "concierge", "tanong"],
+    "nursing_room": ["breastfeeding", "nursing room", "lactation", "padede", "diaper", "baby"],
+    "chapel": ["chapel", "simbahan", "misa", "mass", "dasal", "prayer"],
+    "clinic": ["clinic", "first aid", "doctor", "nurse", "hilo", "masakit"],
 }
 
 # (name, floor, category, extra tags, service minutes or None, fictional)
@@ -113,8 +120,10 @@ STORES = [
     ("La Botica", "GF", "pharmacy", [], None, False),
     ("SipYO Coco Fluff", "GF", "food", ["ice cream", "buko", "dessert"], None, False),
     # 2F: loop around the central void; Cyberzone is on this level per the directory pylons.
+    ("The SM Store", "2F", "department_store", ["men's fashion", "customer service"], None, False),
     ("Sports Central", "2F", "clothing", ["sports", "adidas", "nike", "rubber shoes"], None, False),
     ("KLAD", "2F", "accessories", ["jewelry", "alahas"], None, False),
+    ("BDO ATM", "2F", "atm", [], None, False),
     ("@Tokyo", "2F", "accessories", ["bag", "japanese"], None, False),
     ("JINS", "2F", "accessories", ["eyeglasses", "salamin"], None, False),
     ("TW Steel", "2F", "accessories", ["watch", "relo"], None, False),
@@ -125,6 +134,7 @@ STORES = [
     ("Kultura Filipino", "2F", "gift", ["filipino", "barong"], None, False),
     ("Seattle's Best Coffee", "2F", "cafe", [], None, False),
     ("Miniso", "2F", "home", ["cute", "gift"], None, False),
+    ("Surplus", "2F", "clothing", ["discount", "sale"], None, False),
     ("Sfera", "2F", "clothing", [], None, False),
     ("Dear Flora", "2F", "clothing", [], None, False),
     ("Crocs", "2F", "shoes", [], None, False),
@@ -142,7 +152,10 @@ STORES = [
     ("QuickFix Gadget Clinic", "2F", "phone_repair", ["tablet", "laptop repair", "cyberzone"], 60, True),
     ("ScreenDoc", "2F", "phone_repair", ["screen replacement", "cyberzone"], 30, True),
     # 3F
+    ("The SM Store", "3F", "department_store", ["kids", "women's fashion", "toys"], None, False),
     ("ACE Hardware", "3F", "home", ["hardware", "tools", "pako"], None, False),
+    ("Toy Kingdom", "3F", "gift", ["toys", "laruan"], None, False),
+    ("Baby Company", "3F", "clothing", ["baby", "diaper", "stroller"], None, False),
     ("Watsons", "3F", "pharmacy", ["skincare", "shampoo"], None, False),
     ("Alfamart", "3F", "grocery", ["convenience store", "snacks"], None, False),
     ("Mi Store", "3F", "electronics", ["xiaomi", "phone"], None, False),
@@ -158,6 +171,7 @@ STORES = [
     ("Jo Malone London", "3F", "beauty", ["perfume", "pabango"], None, False),
     ("Lancome", "3F", "beauty", [], None, False),
     # 4F
+    ("The SM Store", "4F", "department_store", ["shoes", "luggage", "lingerie"], None, False),
     ("SM Appliance Center", "4F", "appliances", [], None, False),
     ("TCL", "4F", "appliances", ["tv", "television"], None, False),
     ("David's Salon", "4F", "beauty", ["haircut", "gupit", "salon"], None, False),
@@ -173,6 +187,108 @@ STORES = [
 
 
 
+# Demo filler: brands typical of each floor in other SM malls, NOT SM Makati data. They take only storefronts that
+# no real or hand-placed store uses, and are marked fictional so the app tags them "demo". The big fast-food chains
+# are left out on purpose, so "walang Jollibee dito" still shows the app suggesting a nearby alternative.
+FILL_WITH_GUESSES = True
+GUESSED_STORES = {
+    "LG": [("Mercury Drug", "pharmacy", ["gamot"]), ("Cebuana Lhuillier", "remittance", ["pawnshop", "sanglaan"]),
+           ("LBC Express", "courier", []), ("SM Bills Payment", "remittance", ["bayad", "bills", "kuryente", "tubig"]),
+           ("Potato Corner", "food", ["fries"]), ("Mister Donut", "cafe", ["donut"]), ("Tokyo Tokyo", "food", ["japanese"]),
+           ("Red Ribbon", "food", ["cake", "bakery"]), ("Generika", "pharmacy", ["gamot"])],
+    "GF": [("Penshoppe", "clothing", []), ("Bench", "clothing", []), ("Cotton On", "clothing", []),
+           ("Charles & Keith", "accessories", ["bag"]), ("Lovisa", "accessories", ["earrings"]),
+           ("Sunnies Studios", "accessories", ["sunglasses", "salamin"]), ("Swatch", "accessories", ["watch", "relo"]),
+           ("BPI", "bank", []), ("Metrobank", "bank", []), ("Krispy Kreme", "cafe", ["donut"]),
+           ("Coffee Bean & Tea Leaf", "cafe", []), ("Payless", "shoes", []), ("Havaianas", "shoes", ["tsinelas"]),
+           ("Skechers", "shoes", [])],
+    "2F": [("Samsung", "electronics", ["cellphone", "phone", "cyberzone"]),
+           ("Power Mac Center", "electronics", ["apple", "iphone", "macbook", "cyberzone"]),
+           ("Datablitz", "gaming", ["console", "cyberzone"]), ("Octagon", "electronics", ["computer", "cyberzone"]),
+           ("Silicon Valley", "electronics", ["computer", "cyberzone"]), ("World Balance", "shoes", ["rubber shoes"]),
+           ("Vans", "shoes", [])],
+    "3F": [("National Book Store", "books_stationery", ["school supplies"]), ("Typo", "gift", ["notebook"]),
+           ("Daiso", "home", ["88"]), ("Muji", "home", []), ("Owndays", "accessories", ["eyeglasses", "salamin"]),
+           ("Nature Republic", "beauty", ["korean skincare"]), ("Human Nature", "beauty", []),
+           ("Etude House", "beauty", ["korean makeup"]), ("Tiger Sugar", "food", ["milk tea"]),
+           ("Chatime", "food", ["milk tea"]), ("Pancake House", "food", ["pancake", "breakfast"]),
+           ("Pepper Lunch", "food", ["japanese"]), ("Bo's Coffee", "cafe", []), ("Hallmark", "gift", ["card"]),
+           ("Papemelroti", "gift", [])],
+    "4F": [("Timezone", "gaming", ["arcade", "laro"]), ("Samgyupsalamat", "food", ["samgyup", "korean", "unli"]),
+           ("Shakey's", "food", ["pizza"]), ("Pizza Hut", "food", ["pizza"]), ("Yellow Cab", "food", ["pizza"]),
+           ("BonChon", "food", ["chicken", "korean"]), ("Army Navy", "food", ["burger", "burrito"]),
+           ("Max's Restaurant", "food", ["chicken", "filipino"]), ("Kenny Rogers", "food", ["chicken"]),
+           ("Sbarro", "food", ["pizza", "pasta"]), ("Subway", "food", ["sandwich"]), ("Dairy Queen", "food", ["ice cream", "dessert"]),
+           ("Zark's", "food", ["burger"]), ("Classic Savory", "food", ["chicken", "chinese"]), ("Conti's", "food", ["cake", "pasta"]),
+           ("Ramen Nagi", "food", ["ramen", "japanese"]), ("Macao Imperial", "food", ["milk tea"]),
+           ("Serenitea", "food", ["milk tea"]), ("Dunkin", "cafe", ["donut"]), ("Tim Hortons", "cafe", []),
+           ("Burger King", "food", ["burger"]), ("Wendy's", "food", ["burger"]), ("Taco Bell", "food", ["taco", "mexican"]),
+           ("Andok's", "food", ["lechon manok", "chicken"]), ("Shawarma Shack", "food", ["shawarma"]),
+           ("Security Bank", "bank", []), ("UnionBank", "bank", []), ("RCBC", "bank", [])],
+    "5F": [("Mandaue Foam", "home", ["sofa", "furniture", "kama"]), ("Our Home", "home", ["furniture"]),
+           ("Uratex", "home", ["foam", "kutson"]), ("True Value", "home", ["hardware"]),
+           ("Fully Booked", "books_stationery", ["books", "libro"]), ("Toys R Us", "gift", ["toys", "laruan"]),
+           ("Abenson", "appliances", []), ("Anson's", "appliances", []), ("Western Appliances", "appliances", []),
+           ("Wilcon Depot", "home", ["tiles", "hardware"]), ("Handyman", "home", ["hardware", "tools"]),
+           ("Japan Home Centre", "home", ["88", "kitchen"]), ("Kidzoona", "gaming", ["play area", "kids"]),
+           ("Hanabishi", "appliances", ["electric fan"]), ("Kolin", "appliances", ["aircon"]),
+           ("Imarflex", "appliances", ["rice cooker"]), ("Asahi", "appliances", ["electric fan"])],
+    "AX": [("Automatic Centre", "appliances", ["aircon"]), ("PC Express", "electronics", ["computer", "pc parts"]),
+           ("Digital Walker", "electronics", ["gadget"]), ("Beyond the Box", "electronics", ["apple", "iphone"]),
+           ("iTech", "gaming", ["console"]), ("Palawan Express", "remittance", ["padala"]),
+           ("MLhuillier", "remittance", ["padala", "pawnshop"]), ("JRS Express", "courier", []),
+           ("Pet Lovers Centre", "pet", ["dog food", "cat food"]), ("Huawei", "electronics", ["phone"]),
+           ("Oppo", "electronics", ["phone"]), ("Vivo", "electronics", ["phone"]), ("Realme", "electronics", ["phone"]),
+           ("Smart Store", "electronics", ["sim", "load", "prepaid"]), ("Globe Store", "electronics", ["sim", "load", "prepaid"])],
+}
+
+
+# Facilities every SM floor has, placed by NEAR-style hints: (name, floor, category, tags, near, seen in video/board).
+# Restrooms come in pairs at opposite corridor ends, as in most SM malls; LG's are at the end of the food hall (seen).
+# They are generic, not brands, so none is tagged "demo"; only the unseen ones' positions are guesses.
+FACILITIES = [
+    ("Restrooms", "LG", "restroom", [], "store:Market Food Hall", True),
+    ("Restrooms", "LG", "restroom", [], "end:n", False),
+    ("Restrooms", "GF", "restroom", ["pwd"], "end:n", False),
+    ("Restrooms", "GF", "restroom", ["pwd"], "end:s", False),
+    ("Package Counter", "GF", "services", ["bag deposit", "package"], "entrance:main", True),
+    ("Customer Service", "GF", "services", ["lost and found", "gift certificate"], "lift", False),
+    ("Nursing Room", "GF", "nursing_room", [], "end:s", False),
+    ("Restrooms", "2F", "restroom", ["pwd"], "end:n", True),
+    ("Restrooms", "2F", "restroom", ["pwd"], "end:s", False),
+    ("Information Desk", "2F", "services", ["glorietta"], "esc0", True),
+    ("Restrooms", "3F", "restroom", ["pwd"], "end:n", False),
+    ("Restrooms", "3F", "restroom", ["pwd"], "end:s", False),
+    ("Chapel", "3F", "chapel", ["our lady of the most holy rosary"], "store:ACE Hardware", True),
+    ("Servicio", "3F", "services", ["alteration", "gift wrap", "repair"], "store:Chapel", True),
+    ("Gift Registry", "3F", "services", ["wedding", "registry"], "store:Servicio", True),
+    ("Nursing Room", "3F", "nursing_room", ["kids"], "end:s", False),
+    ("Restrooms", "4F", "restroom", ["pwd"], "end:n", False),
+    ("Restrooms", "4F", "restroom", ["pwd"], "end:s", False),
+    ("Prestige Lounge", "4F", "services", ["sm advantage", "lounge"], "store:The SM Store", True),
+    ("Mall Clinic", "4F", "clinic", [], "lift", False),
+    ("Restrooms", "5F", "restroom", ["pwd"], "end:s", False),
+    ("Gift Registry", "5F", "services", ["wedding", "registry"], "store:SM Home", True),
+    ("Restrooms", "AX", "restroom", [], "entrance:main", False),
+]
+# Where the walk-through video put a store: the free unit nearest this spot (see targets_for). Order matters for
+# "store:" hints only in that the named store must be placed first (anchors always are).
+NEAR = {
+    ("Goldilocks", "LG"): "trav", ("Kumori", "LG"): "trav",
+    ("Sizzling Plate", "LG"): "store:Market Food Hall", ("Cucina Norte", "LG"): "store:Market Food Hall",
+    ("Ssamjang Express", "LG"): "store:Market Food Hall",
+    ("The Body Shop", "GF"): "entrance:main", ("Crate & Barrel", "GF"): "entrance:main",
+    ("BreadTalk", "GF"): "trav", ("Sunnies Face", "GF"): "trav", ("Shiseido", "GF"): "store:The SM Store",
+    ("MAC", "GF"): "store:The SM Store", ("Clinique", "GF"): "store:The SM Store",
+    ("Starbucks", "GF"): "void:s", ("Innisfree", "GF"): "esc0",
+    ("KLAD", "2F"): "esc0", ("@Tokyo", "2F"): "void:w", ("JINS", "2F"): "void:w", ("Kultura Filipino", "2F"): "esc1",
+    ("Seattle's Best Coffee", "2F"): "esc0", ("BDO ATM", "2F"): "esc0",
+    ("Mi Store", "3F"): "esc0", ("Watsons", "3F"): "store:ACE Hardware", ("Alfamart", "3F"): "store:ACE Hardware",
+    ("Mary Grace Cafe", "3F"): "void:e", ("Auntie Anne's", "3F"): "void:e", ("Carmen's Best", "3F"): "esc1",
+    ("Gotcha", "3F"): "esc1",
+    ("David's Salon", "4F"): "esc0", ("Honey Graze Bakery + Kitchen", "4F"): "store:SM Appliance Center",
+    ("Lojel", "4F"): "lift", ("TCL", "4F"): "store:SM Appliance Center",
+}
 
 from shapely.geometry import LineString, MultiPoint, Point, Polygon, box
 from shapely.ops import nearest_points, polylabel, unary_union, voronoi_diagram
@@ -194,7 +310,7 @@ MITRE = dict(join_style="mitre", mitre_limit=3.0)
 NODE_STEP = 30
 # Stores that span several storefronts, and where they go.
 PERIMETER_ANCHORS = {"SM Supermarket": 9, "The SM Store": 7, "SM Appliance Center": 5, "H&M": 2, "Uniqlo": 2,
-                     "SM Home": 4, "ACE Hardware": 2}
+                     "SM Home": 20, "ACE Hardware": 3, "ACE Express": 4, "Sports Central": 2, "Watsons": 2, "Decathlon": 2}
 ISLAND_ANCHORS = {"Market Food Hall"}
 
 
@@ -251,6 +367,7 @@ def svg_path(geom):
 class Unit:
     def __init__(self, poly, door, zone, pos, island=None):
         self.poly, self.door, self.zone, self.pos, self.island = poly, door, zone, pos, island
+        self.id = ""
 
 
 class Plan:
@@ -344,6 +461,12 @@ class Plan:
         for k, isl in enumerate(islands):
             self.units += self._island_units(isl, k, unit_len)
         self.islands = islands
+        # Stable ids, so hand-placed stores (PINS) find their units again on every rebuild.
+        for i, u in enumerate(sorted((u for u in self.units if u.zone == "perimeter"), key=lambda u: u.pos)):
+            u.id = f"{fid}-p{i:02d}"
+        for u in self.units:
+            if u.zone == "island":
+                u.id = f"{fid}-i{u.island}-{u.pos:02d}"
         # Space no storefront covered (corners, slivers) becomes plain unnamed storefront, never a hole.
         covered = unary_union([u.poly for u in self.units])
         spare = perimeter.union(unary_union(islands)) if islands else perimeter
@@ -504,12 +627,18 @@ def label_for(poly):
     return [round(p.x, 1), round(p.y, 1), round(min(maxx - minx - 8, max(40.0, 2.6 * r)), 1)]
 
 
-def allocate(plan: Plan, rows, lift_xy):
-    """Assign stores to storefront units. Anchors take several adjacent units; the foodcourt takes an island."""
+def allocate(plan: Plan, rows, targets, near, pinned=(), fillers=()):
+    """Assign stores to storefront units. Hand-placed stores keep their units; anchors take several adjacent units and
+    the food hall an island; stores with a NEAR hint take the free unit closest to that spot (an entrance, the
+    travelator, an escalator bank, a corridor end, or another store); the rest spread over what is left, and demo
+    fillers take whatever is still empty."""
     perim = sorted([u for u in plan.units if u.zone == "perimeter"], key=lambda u: u.pos)
     island_units = [u for u in plan.units if u.zone == "island"]
     used: set[int] = set()
     placed = []
+    for row, units in pinned:
+        used.update(id(u) for u in units)
+        placed.append((row, units))
     spacing = (plan.ring_out.exterior.length / max(1, len(perim))) * 1.6
 
     def adjacent_run(k):
@@ -526,6 +655,12 @@ def allocate(plan: Plan, rows, lift_xy):
                 best = (area, run)
         return best[1] if best else None
 
+    def spot(key):
+        if key and key.startswith("store:"):
+            hit = next((us for r, us in placed if r[0].lower() == key[6:].lower()), None)
+            return hit[len(hit) // 2].door if hit else None
+        return targets.get(key)
+
     for row in sorted([r for r in rows if r[0] in PERIMETER_ANCHORS], key=lambda r: -PERIMETER_ANCHORS[r[0]]):
         run = adjacent_run(PERIMETER_ANCHORS[row[0]]) or adjacent_run(1)
         used.update(id(u) for u in run)
@@ -535,24 +670,51 @@ def allocate(plan: Plan, rows, lift_xy):
         run = [u for u in island_units if u.island == best_island and id(u) not in used]
         used.update(id(u) for u in run)
         placed.append((row, run))
-    for row in [r for r in rows if r[0] == "Restrooms"]:
-        pool = [u for u in island_units if id(u) not in used] or [u for u in perim if id(u) not in used]
-        u = min(pool, key=lambda u: math.dist(u.door, lift_xy) if lift_xy else u.poly.area)
+    later = []
+    for row in [r for r in rows if r[0] not in PERIMETER_ANCHORS and r[0] not in ISLAND_ANCHORS]:
+        xy = spot(near.get(id(row)))
+        pool = [u for u in perim + island_units if id(u) not in used]
+        if xy is None or not pool:
+            later.append(row)
+            continue
+        u = min(pool, key=lambda u: math.dist(u.door, xy))
         used.add(id(u))
         placed.append((row, [u]))
-    rest = [r for r in rows if r[0] not in PERIMETER_ANCHORS and r[0] not in ISLAND_ANCHORS and r[0] != "Restrooms"]
     free = [u for u in perim + island_units if id(u) not in used]
-    if len(rest) > len(free):
-        sys.exit(f"{plan.fid}: {len(rest)} stores but only {len(free)} free storefronts")
-    picks = [free[int(i * len(free) / len(rest))] for i in range(len(rest))] if rest else []
-    for row, u in zip(rest, picks):
+    if len(later) > len(free):
+        sys.exit(f"{plan.fid}: {len(later)} stores but only {len(free)} free storefronts")
+    picks = [free[int(i * len(free) / len(later))] for i in range(len(later))] if later else []
+    for row, u in zip(later, picks):
         used.add(id(u))
         placed.append((row, [u]))
-    blanks = [u for u in plan.units if id(u) not in used]
-    return placed, blanks
+    blanks = sorted((u for u in plan.units if id(u) not in used), key=lambda u: (u.zone, u.island or 0, u.pos))
+    for row, u in zip(fillers, blanks):
+        placed.append((row, [u]))
+    return placed, blanks[len(fillers):]
 
 
-def build() -> dict:
+def targets_for(plan: Plan, g: Graph, special: dict) -> dict:
+    """Named spots on a floor that NEAR hints can point at."""
+    t = {f"entrance:{name}": g.nodes[nid] for name, nid in special.get("entrances", {}).items()}
+    if plan.void is not None:
+        for k, side in enumerate("nswe"):
+            t[f"void:{side}"] = plan.links[k].coords[0]      # where the cross walkway meets the void balcony
+            t[f"end:{side}"] = plan.links[k].coords[-1]      # where it meets the outer corridor
+    for k, (up, _) in enumerate(special.get("banks", [])):
+        t[f"esc{k}"] = g.nodes[up]
+    if "trav" in special:
+        t["trav"] = g.nodes[special["trav"][0]]
+    if "lift" in special:
+        t["lift"] = g.nodes[special["lift"]]
+    return t
+
+
+def load_pins() -> list[dict]:
+    return json.loads(PINS.read_text(encoding="utf-8"))["stores"] if PINS.exists() else []
+
+
+def build(editor: dict | None = None) -> dict:
+    """The mall data. Pass a dict as `editor` to also get every storefront unit and what fills it."""
     main_m, angle = project(MAIN_LATLON)
     annex_m, _ = project(ANNEX_LATLON, angle)
     main_px, main_w, main_h, _ = portrait_px(main_m)
@@ -595,18 +757,63 @@ def build() -> dict:
     connectors.append({"id": "walk-annex", "name": "Annex Walkway", "kind": "bridge", "direction": "both",
                        "stops": [specials["GF"]["entrances"]["annex"], specials["AX"]["entrances"]["main"]], "seconds": 60})
 
-    by_floor = {f: [("Restrooms", f, "restroom", [], None, False)] for f in plans}
+    # Hand-placed stores win over the STORES table; a pin whose units no longer exist falls back to auto placement.
+    pins_by_floor: dict[str, list] = {f: [] for f in plans}
+    pinned_keys, orphans = set(), []
+    for pin in load_pins():
+        fid = pin["floor"]
+        units = {u.id: u for u in plans[fid].units} if fid in plans else {}
+        hit = [units[i] for i in pin["units"] if i in units]
+        if len(hit) < len(pin["units"]):
+            orphans.append({"name": pin["name"], "floor": fid, "missing": [i for i in pin["units"] if i not in units]})
+        if not hit:
+            continue
+        row = (pin["name"], fid, pin["category"], pin.get("tags", []), pin.get("service_min"), pin.get("fictional", False))
+        pins_by_floor[fid].append((row, hit))
+        pinned_keys.add((pin["name"].lower(), fid))
+    by_floor: dict[str, list] = {f: [] for f in plans}
+    near: dict[int, str] = {}
     for row in STORES:
-        by_floor[row[1]].append(row)
+        if (row[0].lower(), row[1]) not in pinned_keys:
+            by_floor[row[1]].append(row)
+            if (row[0], row[1]) in NEAR:
+                near[id(row)] = NEAR[(row[0], row[1])]
+    for name, fid, cat, tags, hint, real in FACILITIES:
+        if (name.lower(), fid) in pinned_keys or (cat == "restroom" and any(r[2] == "restroom" for r, _ in pins_by_floor[fid])):
+            continue
+        row = (name, fid, cat, tags, None, False)
+        by_floor[fid].append(row)
+        near[id(row)] = hint
     used_ids: set[str] = set()
     for fid, plan in plans.items():
         g = graphs[fid]
-        lift = specials[fid].get("lift")
-        lift_xy = g.nodes[lift] if lift else None
-        placed, blanks = allocate(plan, by_floor[fid], lift_xy)
+        here = {r[0].lower() for r in by_floor[fid]} | {r[0].lower() for r, _ in pins_by_floor[fid]}
+        fillers = [(n, fid, c, t, None, True) for n, c, t in GUESSED_STORES.get(fid, [])
+                   if FILL_WITH_GUESSES and n.lower() not in here]
+        placed, blanks = allocate(plan, by_floor[fid], targets_for(plan, g, specials[fid]), near, pins_by_floor[fid], fillers)
+        # Corner slivers no storefront covers join the store they share the most wall with, so nothing is left blank.
+        extra_area: dict[int, list] = {}
+        loose = []
+        for piece in plan.leftovers:
+            touch = [(piece.buffer(1.5).intersection(unary_union([u.poly for u in us])).area, k) for k, (_, us) in enumerate(placed)]
+            best = max(touch, default=(0, None))
+            if best[0] > 1:
+                extra_area.setdefault(best[1], []).append(piece)
+            else:
+                loose.append(piece)
+        if editor is not None:
+            pinned_rows = {id(r) for r, _ in pins_by_floor[fid]}
+            editor.setdefault("floors", {})[fid] = {
+                "units": [{"id": u.id, "shape": coords(u.poly), "door": [round(u.door[0], 1), round(u.door[1], 1)]}
+                          for u in plan.units],
+                "stores": [{"name": r[0], "category": r[2], "tags": r[3], "units": [u.id for u in us],
+                            "pinned": id(r) in pinned_rows} for r, us in placed],
+            }
+            editor["orphans"] = orphans
         walk_nodes = [n for n in g.nodes if "-w" in n or "-x" in n or "-b" in n]
         for k, ((name, _, cat, extra, minutes, fictional), units) in enumerate(placed):
-            poly = largest(unary_union([u.poly for u in units]).buffer(0.5).buffer(-0.5)) or max((u.poly for u in units), key=lambda q: q.area)
+            parts = [u.poly for u in units] + extra_area.get(k, [])
+            poly = largest(unary_union(parts).buffer(0.8).buffer(-0.8)) or max((u.poly for u in units), key=lambda q: q.area)
             door_xy = units[len(units) // 2].door
             door = g.add(f"d{k}", door_xy)
             g.link(door, g.nearest(door_xy, walk_nodes))
@@ -634,7 +841,7 @@ def build() -> dict:
         floors.append({"id": fid, "name": name, "level": level, "width": w, "height": h,
                        "scale_m_per_px": M_PER_PX, "outline": [list(p) for p in poly_px],
                        "walk_path": svg_path(plan.walk), "atria": rails,
-                       "blanks": [coords(u.poly) for u in blanks] + [coords(g) for g in plan.leftovers]})
+                       "blanks": [coords(u.poly) for u in blanks] + [coords(piece) for piece in loose]})
         nodes += [{"id": n, "floor": fid, "x": x, "y": y} for n, (x, y) in g.nodes.items()]
         edges += g.edges
 

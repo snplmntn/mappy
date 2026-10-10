@@ -16,6 +16,7 @@ CATEGORY_LABELS = {
     "department_store": "Department store", "electronics": "Electronics", "gaming": "Gaming",
     "appliances": "Appliances", "grocery": "Grocery", "pharmacy": "Pharmacy", "bank": "Bank",
     "atm": "ATM", "remittance": "Money transfer", "courier": "Courier", "pet": "Pet", "restroom": "Restroom",
+    "services": "Customer service", "nursing_room": "Nursing room", "chapel": "Chapel", "clinic": "Clinic",
 }
 
 # A category's places as a plural noun phrase ("other shoe stores"), where the label alone would not read.
@@ -27,6 +28,7 @@ PLACE_LABELS = {
     "grocery": "groceries", "pharmacy": "pharmacies", "bank": "banks", "atm": "ATMs",
     "remittance": "money-transfer counters", "courier": "couriers", "pet": "pet stores", "restroom": "restrooms",
     "phone_repair": "phone repair shops", "shoe_repair": "shoe repair shops",
+    "services": "service counters", "nursing_room": "nursing rooms", "chapel": "chapels", "clinic": "clinics",
 }
 
 
@@ -62,6 +64,11 @@ CATEGORY_WORDS = {
     "gaming": ["gaming", "games", "console"],
     "electronics": ["electronics", "gadget", "gadgets"],
     "appliances": ["appliance", "appliances"],
+    "services": ["customer service", "info desk", "information desk", "lost and found", "concierge"],
+    "nursing_room": ["nursing room", "breastfeeding", "breast feeding", "lactation", "padede", "magpapadede",
+                     "diaper change", "baby room"],
+    "chapel": ["chapel", "simbahan", "misa", "mass", "magsimba", "prayer room", "dasal", "magdasal"],
+    "clinic": ["clinic", "first aid", "doctor", "nurse", "nahihilo", "hinimatay"],
 }
 # Verb + object pairs that name a service, e.g. "ipapaayos sapatos" is shoe repair, not shoes.
 # A matched pair consumes its words, so the object's own category doesn't also count.

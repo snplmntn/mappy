@@ -51,3 +51,14 @@ def test_floors_are_shaped_like_the_building():
     raw = json.loads(P.read_text(encoding="utf-8"))
     for f in raw["floors"]:
         assert f["walk_path"].startswith("M") and len(f["outline"]) >= 10, f["id"]
+
+
+def test_no_empty_storefronts_and_restrooms_on_every_floor():
+    import json
+
+    raw = json.loads(P.read_text(encoding="utf-8"))
+    assert {f["id"]: len(f["blanks"]) for f in raw["floors"]} == {f["id"]: 0 for f in raw["floors"]}
+    m = load_mall(P)
+    for fid in ("GF", "2F", "3F", "4F"):
+        assert sum(1 for p in m.places.values() if p.floor == fid and p.category == "restroom") == 2, fid
+    assert not any(p.fictional for p in m.places.values() if p.category == "restroom")
