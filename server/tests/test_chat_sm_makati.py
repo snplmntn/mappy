@@ -153,3 +153,10 @@ def test_any_will_do_heads_straight_to_the_nearest(real, text):
     out = ask(real, text)
     assert out["result"]["go"] == out["result"]["places"][0]["id"]
     assert out["reply"].startswith("The nearest is ")
+
+
+def test_a_brand_place_named_outright_beats_the_brand_s_other_places(real):
+    out = ask(real, "BDO ATM")
+    assert {p["id"] for p in out["result"]["places"]} == {"bdo-atm-gf", "bdo-atm-lg", "bdo-atm-2f"}
+    assert out["result"]["go"] == out["result"]["places"][0]["id"]
+    assert [p["id"] for p in ask(real, "BDO")["result"]["places"]] == ["bdo-gf"]

@@ -187,7 +187,8 @@ class ChatService:
         brand = brand_in(query)
         if brand and (stores := [pid for pid in self.search.ids
                                  if is_store_of(brand, self.mall.places[pid].name, self.mall.places[pid].tags)]):
-            return stores, None
+            named = set(self.search.names_in(query))  # "BDO ATM" is the ATMs, not the BDO branch
+            return [pid for pid in stores if self.mall.places[pid].name in named] or stores, None
         if brand and self.search.by_category(brand.category):
             return (self.search.alternatives(brand.category, brand.traits),
                     StandIn(brand.name, brand.category, brand.traits, swapped=True))
